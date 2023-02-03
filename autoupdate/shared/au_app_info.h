@@ -8,7 +8,7 @@
 #include "../../plugin.h"
 
 #define AUTOUPDATE_APP_NAME "SvenInt"
-#define AUTOUPDATE_APP_FILENAME "sven_internal.dll"
+#define AUTOUPDATE_APP_FILENAME "svenmod/plugins/sven_internal.dll"
 
 #define AUTOUPDATE_APP_MAJOR_VERSION ( SVENINT_MAJOR_VERSION )
 #define AUTOUPDATE_APP_MINOR_VERSION ( SVENINT_MINOR_VERSION )
