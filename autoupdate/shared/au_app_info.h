@@ -5,7 +5,7 @@
 #pragma once
 #endif
 
-#include "../plugin.h"
+#include "../../plugin.h"
 
 #define AUTOUPDATE_APP_NAME "SvenInt"
 #define AUTOUPDATE_APP_FILENAME "sven_internal.dll"

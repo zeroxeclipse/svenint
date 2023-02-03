@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.3.2)
 
 project(AutoUpdaterServer)
 
-set(AUTOUPDATER_SERVER "autoupdate_server")
+set(AUTOUPDATER_SERVER "svenint_autoupdate_server")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
