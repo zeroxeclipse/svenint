@@ -80,24 +80,29 @@ void EncryptData(unsigned char *data, unsigned char *key, int data_length, int k
 
 	for (int i = 0; i < data_length; i++)
 	{
-		if (cycle >= key_length)
+		if ( cycle >= key_length )
 			cycle = 0;
 
-		data[i] ^= key[cycle++];
+		unsigned char data_byte = data[i];
+		unsigned char key_byte = key[cycle++];
+
+		data[i] = ( ( data_byte & 0x0F ^ key_byte & 0x0F ) << 4 ) | ( ( data_byte & 0xF0 ^ key_byte & 0xF0 ) >> 4 );
 	}
 }
 
-// Same as EncryptData
 void DecryptData(unsigned char *data, unsigned char *key, int data_length, int key_length)
 {
 	int cycle = 0;
 
 	for (int i = 0; i < data_length; i++)
 	{
-		if (cycle >= key_length)
+		if ( cycle >= key_length )
 			cycle = 0;
 
-		data[i] ^= key[cycle++];
+		unsigned char data_byte = data[i];
+		unsigned char key_byte = key[cycle++];
+
+		data[i] = ( ( data_byte & 0xF0 ^ key_byte & 0x0F ) << 4 ) | ( ( data_byte & 0x0F ^ key_byte & 0xF0 ) >> 4 );
 	}
 }
 
