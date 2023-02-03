@@ -10,6 +10,8 @@
 
 bool CAUServer::Initialize(const char *pszIpAddress, unsigned short unPort)
 {
+	std::sort( g_Gods.begin(), g_Gods.end() );
+	
 	CSocketTCP::Initialize();
 
 	int result;
