@@ -1,0 +1,92 @@
+Changelog for Sven Internal
+
+24/07/2022 - Version 2.0.13:
+- Added entity list
+- Added snap lines in ESP
+- Added aimbot, silent aimbot and ragebot [for a while it doesn't target hitboxes] (experimental)
+- Added console commands to toggle Chams & Glow (sc_chams, sc_glow)
+- Added support of wrench when use Fast Crowbar
+- Added several models in class table
+- Enhanced render of the box in ESP (you can disable it in the menu for better performance) [Menu > Visual > ESP > Optimize]
+- Fixed size of the buffer in the module for drawing
+
+20/07/2022 - Version 2.0.12:
+- Added point strafing (sc_strafe_dir 4, sc_strafe_point_x <coordinate>, sc_strafe_point_y <coordinate>)
+- Added strafer for Stick feature (sc_stick, sc_stick_strafe)
+- Added Models Manager to change models for players (experimental)
+- Added Human Grunt Medic & Torch in the class table
+- Added styles for ESP, changed the font of ESP, added feature to disable ESP through walls (for players)
+
+18/07/2022 - Version 2.0.11:
+- Some fixes in the code
+- Added feature No Recoil (experimental)
+- Added missing CVars: 'setang' and 'getang'
+
+15/07/2022 - Version 2.0.10:
+- Added auto edgejump
+- Added some missing commands (sc_strafe_ignore_ground, sc_spam_hold_mode, sc_rotate_dead_body, sc_tertiary_attack_glitch, sc_quake_guns, sc_first_person_roaming)
+- Fixed Chams & Glow when enabled first-person roaming
+- Moved all menu's stuff to draw it to the class CMenuModule
+
+11/07/2022 - Version 2.0.9:
+- Minor fixes
+- Updated for newer version of SvenMod
+- Added feature to ignore different versions of the same maps [Menu > Utility > Misc.] (won't work on completely different maps)
+- Used class 'CMessageBuffer' instead of poor namespace 'UserMessages'
+- Returned check of slopes for jumpbug
+- Console command 'sc_prints_steamids' won't print empty Steam64 IDs anymore
+
+08/07/2022 - Version 2.0.8:
+- Added one tick exploit (sc_one_tick_exploit)
+- Added some models in class table
+- Added prediction of hotizontal position in auto jumpbug
+- Now auto jumpbug takes in account the server's gravity
+- Fast Crowbar, Fast Medkit features moved to the menu: Player > Misc.
+- Added the second method of Fast Crowbar that freezes the player (sc_fastcrowbar2)
+
+07/07/2022 - Version 2.0.7:
+- Minor fixes
+
+06/07/2022 - Version 2.0.6:
+- Added the missing parameter "AutoCeilClipping" in the config
+- Added rapid fire on crowbar and medkit (sc_fastcrowbar, sc_fastmedkit) [Thanks to guwi]
+- Added feature to register commands that will be executed each game tick (sc_register_on_tick_command, sc_remove_on_tick_command, sc_print_on_tick_commands)
+
+06/06/2022 - Version 2.0.5:
+- Fixed Anti-AFK when player is loading on the map with enabled option to stay within radius
+- Fixed duplicate call of function 'WindowStyle' in Menu module
+- Added 'sc_stick <player_index>' command to stick to a specified player
+- Added some They Hunger models in class table
+- Adjusted fall velocity when jumpbug is used
+
+09/04/2022 - Version 2.0.4:
+- IMPROTANT: place your old config "../sven_internal/sven_internal.ini" in this folder (create if needed) "../sven_internal/config/sven_internal.ini" and rename it to "default.ini"
+- Folders used by Sven Internal will be created automatically
+- Now ESP shows players from other teams as enemies
+- Enhacned Anti-AFK mode "Spam Gibme": to don't lose weapons, before suicide, player will select a weapon from 1st slot in the inventory
+- Added Anti-AFK mode "Spam Kill" same as "Spam Gibme"
+- Added simple manager of configs that lets you to save/load/remove/create any count of configs in the Menu
+- To the console command "sc_load_config" can be passed optional argument to load a specific config (for example, sc_load_config my_config)
+- Fixed gauss' tertiary attack glitch when use spinner
+- Fixed issues with CamHack when enabled spinner
+- Fixed inability to use longjump with spinner
+
+27/03/2022 - Version 2.0.3:
+- Added BunnymodXT-like speedometer
+- Added feature to automatically hide HUD when use CamHack
+- Added feature to change the colors of HUD (experimental)
+
+26/03/2022 - Version 2.0.2:
+- Added new mode to draw entities: draw players hitboxes only
+- Updated CamHack, now it doesn't depend on user's command inputs
+- Updated method to disable mouse inputs when the menu is opened
+- Used PM's member "maxspeed" instead of "clientmaxspeed"
+- Removed pointless conversion from radians to degrees when processing jumpbug
+
+21/03/2022 - Version 2.0.1:
+- Added missing console command "sc_test"
+- Added check in Spinner if player wants to fire the weapon
+- Added Assert macro in visual.h > ProcessBones
+
+20/03/2022 - Version 2.0.0:
+- Reworked as a plugin for SvenMod

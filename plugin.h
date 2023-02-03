@@ -1,0 +1,16 @@
+#ifndef PLUGIN_H
+#define PLUGIN_H
+
+#ifdef _WIN32
+#pragma once
+#endif
+
+#define SVENINT_MAJOR_VERSION ( 2 )
+#define SVENINT_MINOR_VERSION ( 0 )
+#define SVENINT_PATCH_VERSION ( 27 )
+
+#define SVENINT_MAJOR_VERSION_STRING "2"
+#define SVENINT_MINOR_VERSION_STRING "0"
+#define SVENINT_PATCH_VERSION_STRING "27"
+
+#endif // PLUGIN_H

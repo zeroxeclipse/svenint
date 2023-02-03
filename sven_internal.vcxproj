@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{b39a82ae-287f-4e5b-b4c1-b2ba6247cc90}</ProjectGuid>
+    <RootNamespace>sveninternal</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>Sven Internal</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <TargetName>sven_internal</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <TargetName>sven_internal</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_WINSOCK_DEPRECATED_NO_WARNINGS;DBG_ASSERT;DBG_ASSERT_FATAL;AU_CLIENT;WIN32;_DEBUG;SVENINTERNAL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>SvenMod\public;imgui;imgui_impl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <AdditionalLibraryDirectories>SvenMod\lib\public;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>svenmod.lib;steam_api.lib;OpenGL32.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_WINSOCK_DEPRECATED_NO_WARNINGS;DBG_ASSERT;DBG_ASSERT_FATAL;AU_CLIENT;WIN32;NDEBUG;SVENINTERNAL_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>svenmod\public;glew\include;imgui;imgui_impl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OpenMPSupport>false</OpenMPSupport>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <AdditionalLibraryDirectories>glew\lib\Release\Win32;steam\lib;svenmod\lib\public;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>svenmod.lib;steam_api.lib;OpenGL32.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="autoupdate\client\au_client.cpp" />
+    <ClCompile Include="autoupdate\client\autoupdate.cpp" />
+    <ClCompile Include="autoupdate\shared\au_protocol.cpp" />
+    <ClCompile Include="autoupdate\shared\au_socket.cpp" />
+    <ClCompile Include="autoupdate\shared\au_utils.cpp" />
+    <ClCompile Include="config.cpp" />
+    <ClCompile Include="features\aim.cpp" />
+    <ClCompile Include="features\antiafk.cpp" />
+    <ClCompile Include="features\bsp.cpp" />
+    <ClCompile Include="features\camhack.cpp" />
+    <ClCompile Include="features\chams.cpp" />
+    <ClCompile Include="features\chat_colors.cpp" />
+    <ClCompile Include="features\custom_vote_popup.cpp" />
+    <ClCompile Include="features\dynamic_glow.cpp" />
+    <ClCompile Include="features\firstperson_roaming.cpp" />
+    <ClCompile Include="features\flashlight.cpp" />
+    <ClCompile Include="features\keyspam.cpp" />
+    <ClCompile Include="features\message_spammer.cpp" />
+    <ClCompile Include="features\misc.cpp" />
+    <ClCompile Include="features\models_manager.cpp" />
+    <ClCompile Include="features\radar.cpp" />
+    <ClCompile Include="features\skybox.cpp" />
+    <ClCompile Include="features\speedrun_tools.cpp" />
+    <ClCompile Include="features\strafer.cpp" />
+    <ClCompile Include="features\thirdperson.cpp" />
+    <ClCompile Include="features\visual.cpp" />
+    <ClCompile Include="game\aim_prediction.cpp" />
+    <ClCompile Include="game\class_table.cpp" />
+    <ClCompile Include="game\drawing.cpp" />
+    <ClCompile Include="game\entitylist.cpp" />
+    <ClCompile Include="game\utils.cpp" />
+    <ClCompile Include="imgui\imgui.cpp" />
+    <ClCompile Include="imgui\imgui_demo.cpp" />
+    <ClCompile Include="imgui\imgui_draw.cpp" />
+    <ClCompile Include="imgui\imgui_tables.cpp" />
+    <ClCompile Include="imgui\imgui_widgets.cpp" />
+    <ClCompile Include="imgui_impl\imgui_impl_opengl2.cpp" />
+    <ClCompile Include="imgui_impl\imgui_impl_win32.cpp" />
+    <ClCompile Include="modules\hooks.cpp" />
+    <ClCompile Include="modules\menu.cpp" />
+    <ClCompile Include="modules\patches.cpp" />
+    <ClCompile Include="modules\server.cpp" />
+    <ClCompile Include="modules\server_client_bridge.cpp" />
+    <ClCompile Include="patterns.cpp" />
+    <ClCompile Include="plugin.cpp" />
+    <ClCompile Include="scripts\lua\lapi.c" />
+    <ClCompile Include="scripts\lua\lauxlib.c" />
+    <ClCompile Include="scripts\lua\lbaselib.c" />
+    <ClCompile Include="scripts\lua\lcode.c" />
+    <ClCompile Include="scripts\lua\lcorolib.c" />
+    <ClCompile Include="scripts\lua\lctype.c" />
+    <ClCompile Include="scripts\lua\ldblib.c" />
+    <ClCompile Include="scripts\lua\ldebug.c" />
+    <ClCompile Include="scripts\lua\ldo.c" />
+    <ClCompile Include="scripts\lua\ldump.c" />
+    <ClCompile Include="scripts\lua\lfunc.c" />
+    <ClCompile Include="scripts\lua\lgc.c" />
+    <ClCompile Include="scripts\lua\linit.c" />
+    <ClCompile Include="scripts\lua\liolib.c" />
+    <ClCompile Include="scripts\lua\llex.c" />
+    <ClCompile Include="scripts\lua\lmathlib.c" />
+    <ClCompile Include="scripts\lua\lmem.c" />
+    <ClCompile Include="scripts\lua\loadlib.c" />
+    <ClCompile Include="scripts\lua\lobject.c" />
+    <ClCompile Include="scripts\lua\lopcodes.c" />
+    <ClCompile Include="scripts\lua\loslib.c" />
+    <ClCompile Include="scripts\lua\lparser.c" />
+    <ClCompile Include="scripts\lua\lstate.c" />
+    <ClCompile Include="scripts\lua\lstring.c" />
+    <ClCompile Include="scripts\lua\lstrlib.c" />
+    <ClCompile Include="scripts\lua\ltable.c" />
+    <ClCompile Include="scripts\lua\ltablib.c" />
+    <ClCompile Include="scripts\lua\ltests.c" />
+    <ClCompile Include="scripts\lua\ltm.c" />
+    <ClCompile Include="scripts\lua\lua.c" />
+    <ClCompile Include="scripts\lua\lundump.c" />
+    <ClCompile Include="scripts\lua\lutf8lib.c" />
+    <ClCompile Include="scripts\lua\lvm.c" />
+    <ClCompile Include="scripts\lua\lzio.c" />
+    <ClCompile Include="scripts\lua_cvar.cpp" />
+    <ClCompile Include="scripts\lua_debug.cpp" />
+    <ClCompile Include="scripts\lua_logic.cpp" />
+    <ClCompile Include="scripts\lua_mod.cpp" />
+    <ClCompile Include="scripts\lua_triggers.cpp" />
+    <ClCompile Include="scripts\lua_vector.cpp" />
+    <ClCompile Include="scripts\scripts.cpp" />
+    <ClCompile Include="strafe\strafe.cpp" />
+    <ClCompile Include="SvenMod\public\hl_sdk\cl_dll\interpolation.cpp" />
+    <ClCompile Include="svenmod\public\hl_sdk\pm_shared\pm_shared.cpp" />
+    <ClCompile Include="svenmod\shared\convar.cpp" />
+    <ClCompile Include="svenmod\shared\features.cpp" />
+    <ClCompile Include="svenmod\shared\global_ifaces.cpp" />
+    <ClCompile Include="svenmod\shared\interface.cpp" />
+    <ClCompile Include="SvenMod\shared\mathlib.cpp" />
+    <ClCompile Include="svenmod\shared\messagebuffer.cpp" />
+    <ClCompile Include="svenmod\shared\sys.cpp" />
+    <ClCompile Include="utils\menu_styles.cpp" />
+    <ClCompile Include="utils\patcher.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ADVobfuscator\Indexes.h" />
+    <ClInclude Include="ADVobfuscator\Inline.h" />
+    <ClInclude Include="ADVobfuscator\Log.h" />
+    <ClInclude Include="ADVobfuscator\MetaFSM.h" />
+    <ClInclude Include="ADVobfuscator\MetaRandom.h" />
+    <ClInclude Include="ADVobfuscator\MetaString.h" />
+    <ClInclude Include="ADVobfuscator\ObfuscatedCall.h" />
+    <ClInclude Include="ADVobfuscator\ObfuscatedCallWithPredicate.h" />
+    <ClInclude Include="ADVobfuscator\Unroller.h" />
+    <ClInclude Include="autoupdate\client\autoupdate.h" />
+    <ClInclude Include="autoupdate\client\au_client.h" />
+    <ClInclude Include="autoupdate\shared\au_app_info.h" />
+    <ClInclude Include="autoupdate\shared\au_app_version.h" />
+    <ClInclude Include="autoupdate\shared\au_platform.h" />
+    <ClInclude Include="autoupdate\shared\au_protocol.h" />
+    <ClInclude Include="autoupdate\shared\au_socket.h" />
+    <ClInclude Include="autoupdate\shared\au_utils.h" />
+    <ClInclude Include="config.h" />
+    <ClInclude Include="features\aim.h" />
+    <ClInclude Include="features\antiafk.h" />
+    <ClInclude Include="features\bsp.h" />
+    <ClInclude Include="features\camhack.h" />
+    <ClInclude Include="features\chams.h" />
+    <ClInclude Include="features\chat_colors.h" />
+    <ClInclude Include="features\custom_vote_popup.h" />
+    <ClInclude Include="features\dynamic_glow.h" />
+    <ClInclude Include="features\firstperson_roaming.h" />
+    <ClInclude Include="features\flashlight.h" />
+    <ClInclude Include="features\keyspam.h" />
+    <ClInclude Include="features\message_spammer.h" />
+    <ClInclude Include="features\misc.h" />
+    <ClInclude Include="features\models_manager.h" />
+    <ClInclude Include="features\radar.h" />
+    <ClInclude Include="features\skybox.h" />
+    <ClInclude Include="features\speedrun_tools.h" />
+    <ClInclude Include="features\strafer.h" />
+    <ClInclude Include="features\thirdperson.h" />
+    <ClInclude Include="features\visual.h" />
+    <ClInclude Include="game\aim_prediction.h" />
+    <ClInclude Include="game\class_table.h" />
+    <ClInclude Include="game\drawing.h" />
+    <ClInclude Include="game\entitylist.h" />
+    <ClInclude Include="game\utils.h" />
+    <ClInclude Include="imgui\imconfig.h" />
+    <ClInclude Include="imgui\imgui.h" />
+    <ClInclude Include="imgui\imgui_internal.h" />
+    <ClInclude Include="imgui\imstb_rectpack.h" />
+    <ClInclude Include="imgui\imstb_textedit.h" />
+    <ClInclude Include="imgui\imstb_truetype.h" />
+    <ClInclude Include="imgui_impl\imgui_impl_opengl2.h" />
+    <ClInclude Include="imgui_impl\imgui_impl_win32.h" />
+    <ClInclude Include="modules\hooks.h" />
+    <ClInclude Include="modules\menu.h" />
+    <ClInclude Include="modules\server.h" />
+    <ClInclude Include="modules\server_client_bridge.h" />
+    <ClInclude Include="patterns.h" />
+    <ClInclude Include="plugin.h" />
+    <ClInclude Include="scripts\lua\lapi.h" />
+    <ClInclude Include="scripts\lua\lauxlib.h" />
+    <ClInclude Include="scripts\lua\lcode.h" />
+    <ClInclude Include="scripts\lua\lctype.h" />
+    <ClInclude Include="scripts\lua\ldebug.h" />
+    <ClInclude Include="scripts\lua\ldo.h" />
+    <ClInclude Include="scripts\lua\lfunc.h" />
+    <ClInclude Include="scripts\lua\lgc.h" />
+    <ClInclude Include="scripts\lua\ljumptab.h" />
+    <ClInclude Include="scripts\lua\llex.h" />
+    <ClInclude Include="scripts\lua\llimits.h" />
+    <ClInclude Include="scripts\lua\lmem.h" />
+    <ClInclude Include="scripts\lua\lobject.h" />
+    <ClInclude Include="scripts\lua\lopcodes.h" />
+    <ClInclude Include="scripts\lua\lopnames.h" />
+    <ClInclude Include="scripts\lua\lparser.h" />
+    <ClInclude Include="scripts\lua\lprefix.h" />
+    <ClInclude Include="scripts\lua\lstate.h" />
+    <ClInclude Include="scripts\lua\lstring.h" />
+    <ClInclude Include="scripts\lua\ltable.h" />
+    <ClInclude Include="scripts\lua\ltests.h" />
+    <ClInclude Include="scripts\lua\ltm.h" />
+    <ClInclude Include="scripts\lua\lua.h" />
+    <ClInclude Include="scripts\lua\lua.hpp" />
+    <ClInclude Include="scripts\lua\luaconf.h" />
+    <ClInclude Include="scripts\lua\lualib.h" />
+    <ClInclude Include="scripts\lua\lundump.h" />
+    <ClInclude Include="scripts\lua\lvm.h" />
+    <ClInclude Include="scripts\lua\lzio.h" />
+    <ClInclude Include="scripts\lua_cvar.h" />
+    <ClInclude Include="scripts\lua_debug.h" />
+    <ClInclude Include="scripts\lua_logic.h" />
+    <ClInclude Include="scripts\lua_mod.h" />
+    <ClInclude Include="scripts\lua_triggers.h" />
+    <ClInclude Include="scripts\lua_vector.h" />
+    <ClInclude Include="scripts\scripts.h" />
+    <ClInclude Include="strafe\strafe.h" />
+    <ClInclude Include="strafe\strafe_utils.h" />
+    <ClInclude Include="SvenMod\public\hl_sdk\cl_dll\interpolation.h" />
+    <ClInclude Include="utils\menu_styles.h" />
+    <ClInclude Include="utils\patcher.h" />
+    <ClInclude Include="utils\xorstr.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="packages\boost.1.79.0\build\boost.targets" Condition="Exists('packages\boost.1.79.0\build\boost.targets')" />
+  </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\boost.1.79.0\build\boost.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\boost.1.79.0\build\boost.targets'))" />
+  </Target>
+</Project>

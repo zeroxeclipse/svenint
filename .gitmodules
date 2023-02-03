@@ -1,0 +1,6 @@
+[submodule "imgui"]
+	path = imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "svenmod"]
+	path = svenmod
+	url = https://github.com/sw1ft747/svenmod.git

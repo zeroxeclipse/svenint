@@ -1,0 +1,21 @@
+# I am a comment!
+
+loop
+send stuck
+sleep 0.35
+send play
+sleep 0.35
+send diff
+sleep 0.35
+send alone
+sleep 0.35
+send light
+sleep 0.35
+send my ears
+sleep 0.35
+send vote
+sleep 0.35
+send buy
+sleep 0.35
+send thief
+sleep 125.0

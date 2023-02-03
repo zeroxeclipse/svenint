@@ -1,0 +1,644 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Sven Internal">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Sven Internal\Features">
+      <UniqueIdentifier>{c0de00d1-7112-44c5-ad2c-70644f275eb9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sven Internal\Dear ImGui">
+      <UniqueIdentifier>{4665f19d-ba78-4fda-90a8-7d42dddb7a41}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sven Internal\Modules">
+      <UniqueIdentifier>{d4ea7595-372e-4c33-9612-a4e45c26226e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sven Internal\Utils">
+      <UniqueIdentifier>{8d61be9f-4834-43ea-8787-ee837357622e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sven Internal\Game Utils">
+      <UniqueIdentifier>{5e32d909-973b-4cce-9abb-b5de0bee785b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sven Internal\ADVobfuscator">
+      <UniqueIdentifier>{e586ca4e-401d-4ba9-8929-b627fe668580}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SvenMod Shared">
+      <UniqueIdentifier>{ee915b88-b13a-44cc-9fef-4fe959568f6d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sven Internal\Scripts">
+      <UniqueIdentifier>{3682adba-9775-401f-bfc7-7f1444b9a5bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sven Internal\Scripts\Lua">
+      <UniqueIdentifier>{c4819d91-864c-4b1d-8676-200015a4d75e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sven Internal\AutoUpdate">
+      <UniqueIdentifier>{3a064a85-e5be-4305-b84d-a198ea3f52fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sven Internal\AutoUpdate\shared">
+      <UniqueIdentifier>{a01ef630-f6fb-4b62-b8b9-f02bb6c51b17}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="plugin.cpp">
+      <Filter>Sven Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="config.cpp">
+      <Filter>Sven Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="patterns.cpp">
+      <Filter>Sven Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui.cpp">
+      <Filter>Sven Internal\Dear ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_demo.cpp">
+      <Filter>Sven Internal\Dear ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_draw.cpp">
+      <Filter>Sven Internal\Dear ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_tables.cpp">
+      <Filter>Sven Internal\Dear ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui\imgui_widgets.cpp">
+      <Filter>Sven Internal\Dear ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_impl\imgui_impl_opengl2.cpp">
+      <Filter>Sven Internal\Dear ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_impl\imgui_impl_win32.cpp">
+      <Filter>Sven Internal\Dear ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="modules\menu.cpp">
+      <Filter>Sven Internal\Modules</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\menu_styles.cpp">
+      <Filter>Sven Internal\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="modules\hooks.cpp">
+      <Filter>Sven Internal\Modules</Filter>
+    </ClCompile>
+    <ClCompile Include="game\class_table.cpp">
+      <Filter>Sven Internal\Game Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="game\drawing.cpp">
+      <Filter>Sven Internal\Game Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="game\utils.cpp">
+      <Filter>Sven Internal\Game Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="SvenMod\shared\mathlib.cpp">
+      <Filter>Sven Internal\Game Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="modules\patches.cpp">
+      <Filter>Sven Internal\Modules</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\patcher.cpp">
+      <Filter>Sven Internal\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="features\custom_vote_popup.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="features\visual.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="features\firstperson_roaming.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="features\antiafk.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="features\chams.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="features\camhack.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="features\strafer.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="strafe\strafe.cpp">
+      <Filter>Sven Internal\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="features\keyspam.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="features\message_spammer.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="features\skybox.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="features\dynamic_glow.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="features\chat_colors.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="features\misc.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="SvenMod\public\hl_sdk\cl_dll\interpolation.cpp">
+      <Filter>Sven Internal\Game Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="features\aim.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="features\models_manager.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="game\entitylist.cpp">
+      <Filter>Sven Internal\Game Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="features\radar.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="features\speedrun_tools.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="features\bsp.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="features\thirdperson.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="svenmod\shared\convar.cpp">
+      <Filter>SvenMod Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="svenmod\shared\features.cpp">
+      <Filter>SvenMod Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="svenmod\shared\global_ifaces.cpp">
+      <Filter>SvenMod Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="svenmod\shared\interface.cpp">
+      <Filter>SvenMod Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="svenmod\shared\messagebuffer.cpp">
+      <Filter>SvenMod Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="svenmod\shared\sys.cpp">
+      <Filter>SvenMod Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="features\flashlight.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="svenmod\public\hl_sdk\pm_shared\pm_shared.cpp">
+      <Filter>Sven Internal\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\scripts.cpp">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lapi.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lauxlib.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lbaselib.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lcode.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lcorolib.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lctype.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\ldblib.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\ldebug.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\ldo.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\ldump.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lfunc.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lgc.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\linit.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\liolib.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\llex.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lmathlib.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lmem.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\loadlib.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lobject.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lopcodes.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\loslib.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lparser.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lstate.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lstring.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lstrlib.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\ltable.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\ltablib.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\ltests.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\ltm.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lua.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lundump.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lutf8lib.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lvm.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua\lzio.c">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua_vector.cpp">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua_debug.cpp">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua_mod.cpp">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua_cvar.cpp">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua_triggers.cpp">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua_logic.cpp">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="modules\server.cpp">
+      <Filter>Sven Internal\Modules</Filter>
+    </ClCompile>
+    <ClCompile Include="game\aim_prediction.cpp">
+      <Filter>Sven Internal\Game Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="modules\server_client_bridge.cpp">
+      <Filter>Sven Internal\Modules</Filter>
+    </ClCompile>
+    <ClCompile Include="autoupdate\shared\au_protocol.cpp">
+      <Filter>Sven Internal\AutoUpdate\shared</Filter>
+    </ClCompile>
+    <ClCompile Include="autoupdate\shared\au_socket.cpp">
+      <Filter>Sven Internal\AutoUpdate\shared</Filter>
+    </ClCompile>
+    <ClCompile Include="autoupdate\shared\au_utils.cpp">
+      <Filter>Sven Internal\AutoUpdate\shared</Filter>
+    </ClCompile>
+    <ClCompile Include="autoupdate\client\au_client.cpp">
+      <Filter>Sven Internal\AutoUpdate</Filter>
+    </ClCompile>
+    <ClCompile Include="autoupdate\client\autoupdate.cpp">
+      <Filter>Sven Internal\AutoUpdate</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="config.h">
+      <Filter>Sven Internal</Filter>
+    </ClInclude>
+    <ClInclude Include="patterns.h">
+      <Filter>Sven Internal</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imconfig.h">
+      <Filter>Sven Internal\Dear ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imgui.h">
+      <Filter>Sven Internal\Dear ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imgui_internal.h">
+      <Filter>Sven Internal\Dear ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imstb_rectpack.h">
+      <Filter>Sven Internal\Dear ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imstb_textedit.h">
+      <Filter>Sven Internal\Dear ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imstb_truetype.h">
+      <Filter>Sven Internal\Dear ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui_impl\imgui_impl_opengl2.h">
+      <Filter>Sven Internal\Dear ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui_impl\imgui_impl_win32.h">
+      <Filter>Sven Internal\Dear ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\menu_styles.h">
+      <Filter>Sven Internal\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="modules\hooks.h">
+      <Filter>Sven Internal\Modules</Filter>
+    </ClInclude>
+    <ClInclude Include="game\class_table.h">
+      <Filter>Sven Internal\Game Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="game\drawing.h">
+      <Filter>Sven Internal\Game Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="game\utils.h">
+      <Filter>Sven Internal\Game Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\patcher.h">
+      <Filter>Sven Internal\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="features\custom_vote_popup.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="features\visual.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="features\firstperson_roaming.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="features\antiafk.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="features\chams.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="features\camhack.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="features\strafer.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="strafe\strafe.h">
+      <Filter>Sven Internal\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="strafe\strafe_utils.h">
+      <Filter>Sven Internal\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="features\keyspam.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="features\message_spammer.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="features\skybox.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="features\dynamic_glow.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="features\chat_colors.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="features\misc.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="SvenMod\public\hl_sdk\cl_dll\interpolation.h">
+      <Filter>Sven Internal\Game Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="modules\menu.h">
+      <Filter>Sven Internal\Modules</Filter>
+    </ClInclude>
+    <ClInclude Include="features\aim.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="features\models_manager.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="game\entitylist.h">
+      <Filter>Sven Internal\Game Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="features\radar.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="ADVobfuscator\Indexes.h">
+      <Filter>Sven Internal\ADVobfuscator</Filter>
+    </ClInclude>
+    <ClInclude Include="ADVobfuscator\Inline.h">
+      <Filter>Sven Internal\ADVobfuscator</Filter>
+    </ClInclude>
+    <ClInclude Include="ADVobfuscator\Log.h">
+      <Filter>Sven Internal\ADVobfuscator</Filter>
+    </ClInclude>
+    <ClInclude Include="ADVobfuscator\MetaFSM.h">
+      <Filter>Sven Internal\ADVobfuscator</Filter>
+    </ClInclude>
+    <ClInclude Include="ADVobfuscator\MetaRandom.h">
+      <Filter>Sven Internal\ADVobfuscator</Filter>
+    </ClInclude>
+    <ClInclude Include="ADVobfuscator\MetaString.h">
+      <Filter>Sven Internal\ADVobfuscator</Filter>
+    </ClInclude>
+    <ClInclude Include="ADVobfuscator\ObfuscatedCall.h">
+      <Filter>Sven Internal\ADVobfuscator</Filter>
+    </ClInclude>
+    <ClInclude Include="ADVobfuscator\ObfuscatedCallWithPredicate.h">
+      <Filter>Sven Internal\ADVobfuscator</Filter>
+    </ClInclude>
+    <ClInclude Include="ADVobfuscator\Unroller.h">
+      <Filter>Sven Internal\ADVobfuscator</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\xorstr.h">
+      <Filter>Sven Internal\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="features\speedrun_tools.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="features\bsp.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="features\thirdperson.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="features\flashlight.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\scripts.h">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lapi.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lauxlib.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lcode.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lctype.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\ldebug.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\ldo.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lfunc.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lgc.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\ljumptab.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\llex.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\llimits.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lmem.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lobject.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lopcodes.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lopnames.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lparser.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lprefix.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lstate.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lstring.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\ltable.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\ltests.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\ltm.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lua.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lua.hpp">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\luaconf.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lualib.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lundump.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lvm.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua\lzio.h">
+      <Filter>Sven Internal\Scripts\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua_vector.h">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua_debug.h">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua_mod.h">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua_cvar.h">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua_triggers.h">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua_logic.h">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="modules\server.h">
+      <Filter>Sven Internal\Modules</Filter>
+    </ClInclude>
+    <ClInclude Include="game\aim_prediction.h">
+      <Filter>Sven Internal\Game Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="modules\server_client_bridge.h">
+      <Filter>Sven Internal\Modules</Filter>
+    </ClInclude>
+    <ClInclude Include="plugin.h">
+      <Filter>Sven Internal</Filter>
+    </ClInclude>
+    <ClInclude Include="autoupdate\shared\au_app_info.h">
+      <Filter>Sven Internal\AutoUpdate\shared</Filter>
+    </ClInclude>
+    <ClInclude Include="autoupdate\shared\au_app_version.h">
+      <Filter>Sven Internal\AutoUpdate\shared</Filter>
+    </ClInclude>
+    <ClInclude Include="autoupdate\shared\au_platform.h">
+      <Filter>Sven Internal\AutoUpdate\shared</Filter>
+    </ClInclude>
+    <ClInclude Include="autoupdate\shared\au_protocol.h">
+      <Filter>Sven Internal\AutoUpdate\shared</Filter>
+    </ClInclude>
+    <ClInclude Include="autoupdate\shared\au_socket.h">
+      <Filter>Sven Internal\AutoUpdate\shared</Filter>
+    </ClInclude>
+    <ClInclude Include="autoupdate\shared\au_utils.h">
+      <Filter>Sven Internal\AutoUpdate\shared</Filter>
+    </ClInclude>
+    <ClInclude Include="autoupdate\client\au_client.h">
+      <Filter>Sven Internal\AutoUpdate</Filter>
+    </ClInclude>
+    <ClInclude Include="autoupdate\client\autoupdate.h">
+      <Filter>Sven Internal\AutoUpdate</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+</Project>
