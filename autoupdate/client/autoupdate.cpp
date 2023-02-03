@@ -120,10 +120,11 @@ void AutoUpdate_ExtractAndLaunch()
 			//	CloseHandle( procInfo.hThread );
 			//}
 
-			system( AU_UPDATER_FILENAME );
+			//system( AU_UPDATER_FILENAME );
+			system( "start " AU_UPDATER_FILENAME);
 		#else
 			chmod( AU_UPDATER_FILENAME, S_IRUSR | S_IXUSR );
-			system( "./" AU_UPDATER_FILENAME );
+			system( "./" AU_UPDATER_FILENAME);
 		#endif
 		}
 		else
