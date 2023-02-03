@@ -675,36 +675,7 @@ void CSpeedrunTools::Think()
 		return (unsigned short)output;
 	};
 
-	if ( Host_IsServerActive() )
-	{
-		union
-		{
-			float un_fl;
-			unsigned long un_ul;
-		};
-
-		FindCvars();
-
-		g_pServerEngineFuncs->pfnMessageBegin( MSG_BROADCAST, SVC_SVENINT, NULL, NULL );
-			g_pServerEngineFuncs->pfnWriteByte( SVENINT_COMM_TIMESCALE );
-			g_pServerEngineFuncs->pfnWriteByte( s_bNotifyTimescaleChanged ? 1 : 0 );
-
-			//g_pServerEngineFuncs->pfnWriteShort( FixedUnsigned16( host_framerate->value, 1 << 3 ) );
-			//g_pServerEngineFuncs->pfnWriteShort( FixedUnsigned16( fps_max->value, 1 << 3 ) );
-			//g_pServerEngineFuncs->pfnWriteShort( FixedUnsigned16( sc_st_min_frametime.GetFloat(), 1 << 3 ) );
-			
-			un_fl = host_framerate->value;
-			g_pServerEngineFuncs->pfnWriteLong( un_ul );
-
-			un_fl = fps_max->value;
-			g_pServerEngineFuncs->pfnWriteLong( un_ul );
-
-			un_fl = sc_st_min_frametime.GetFloat();
-			g_pServerEngineFuncs->pfnWriteLong( un_ul );
-		g_pServerEngineFuncs->pfnMessageEnd();
-
-		s_bNotifyTimescaleChanged = false;
-	}
+	BroadcastTimescale();
 
 	if ( is_hl_c17 && iNihilanthIndex != 0 )
 	{
@@ -1089,6 +1060,76 @@ void CSpeedrunTools::StopTimer()
 	m_flSegmentStart = 0.f;
 }
 
+void CSpeedrunTools::BroadcastTimescale()
+{
+	if ( Host_IsServerActive() )
+	//if ( false )
+	{
+		union
+		{
+			float un_fl;
+			unsigned long un_ul;
+		};
+
+		FindCvars();
+
+		g_pServerEngineFuncs->pfnMessageBegin( MSG_BROADCAST, SVC_SVENINT, NULL, NULL );
+			g_pServerEngineFuncs->pfnWriteByte( SVENINT_COMM_TIMESCALE );
+			g_pServerEngineFuncs->pfnWriteByte( s_bNotifyTimescaleChanged ? 1 : 0 );
+
+			//g_pServerEngineFuncs->pfnWriteShort( FixedUnsigned16( host_framerate->value, 1 << 3 ) );
+			//g_pServerEngineFuncs->pfnWriteShort( FixedUnsigned16( fps_max->value, 1 << 3 ) );
+			//g_pServerEngineFuncs->pfnWriteShort( FixedUnsigned16( sc_st_min_frametime.GetFloat(), 1 << 3 ) );
+			
+			un_fl = host_framerate->value;
+			g_pServerEngineFuncs->pfnWriteLong( un_ul );
+
+			un_fl = fps_max->value;
+			g_pServerEngineFuncs->pfnWriteLong( un_ul );
+
+			un_fl = sc_st_min_frametime.GetFloat();
+			g_pServerEngineFuncs->pfnWriteLong( un_ul );
+		g_pServerEngineFuncs->pfnMessageEnd();
+
+		s_bNotifyTimescaleChanged = false;
+	}
+}
+
+void CSpeedrunTools::SendTimescale(edict_t *pPlayer)
+{
+	if ( Host_IsServerActive() )
+	//if ( false )
+	{
+		union
+		{
+			float un_fl;
+			unsigned long un_ul;
+		};
+
+		FindCvars();
+
+		g_pServerEngineFuncs->pfnMessageBegin( MSG_ONE_UNRELIABLE, SVC_SVENINT, NULL, pPlayer );
+			g_pServerEngineFuncs->pfnWriteByte( SVENINT_COMM_TIMESCALE );
+			g_pServerEngineFuncs->pfnWriteByte( 1 );
+
+			//g_pServerEngineFuncs->pfnWriteShort( FixedUnsigned16( host_framerate->value, 1 << 3 ) );
+			//g_pServerEngineFuncs->pfnWriteShort( FixedUnsigned16( fps_max->value, 1 << 3 ) );
+			//g_pServerEngineFuncs->pfnWriteShort( FixedUnsigned16( sc_st_min_frametime.GetFloat(), 1 << 3 ) );
+			
+			un_fl = host_framerate->value;
+			g_pServerEngineFuncs->pfnWriteLong( un_ul );
+
+			un_fl = fps_max->value;
+			g_pServerEngineFuncs->pfnWriteLong( un_ul );
+
+			un_fl = sc_st_min_frametime.GetFloat();
+			g_pServerEngineFuncs->pfnWriteLong( un_ul );
+		g_pServerEngineFuncs->pfnMessageEnd();
+
+		s_bNotifyTimescaleChanged = false;
+	}
+}
+
 void CSpeedrunTools::SetTimescale(float timescale)
 {
 	FindCvars();
@@ -1125,16 +1166,18 @@ void CSpeedrunTools::SetTimescale_Comm(bool notify, float framerate, float fpsma
 	FindCvars();
 
 	CVar()->SetValue( host_framerate, framerate );
-	CVar()->SetValue( fps_max, fpsmax );
+	//CVar()->SetValue( fps_max, fpsmax );
 
 	sc_st_min_frametime.SetValue( min_frametime );
 
 	if ( notify )
 	{
+		CVar()->SetValue( fps_max, fpsmax );
+
 		if ( min_frametime != 0.f )
-			Msg("<SvenInt-Comm> Timescale has been changed to %.2f\n", 1.f / ( min_frametime * fpsmax ));
+			Utils()->PrintChatText("<SvenInt-Comm> Timescale has been changed to %.2f\n", 1.f / ( min_frametime * fpsmax ));
 		else
-			Msg("<SvenInt-Comm> Timescale has been changed to 1.0\n");
+			Utils()->PrintChatText("<SvenInt-Comm> Timescale has been changed to 1.0\n");
 	}
 
 	s_bIgnoreCvarChange = false;

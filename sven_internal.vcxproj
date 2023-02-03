@@ -123,6 +123,7 @@
     <ClCompile Include="features\strafer.cpp" />
     <ClCompile Include="features\thirdperson.cpp" />
     <ClCompile Include="features\visual.cpp" />
+    <ClCompile Include="friends.cpp" />
     <ClCompile Include="game\aim_prediction.cpp" />
     <ClCompile Include="game\class_table.cpp" />
     <ClCompile Include="game\drawing.cpp" />
@@ -235,6 +236,7 @@
     <ClInclude Include="features\strafer.h" />
     <ClInclude Include="features\thirdperson.h" />
     <ClInclude Include="features\visual.h" />
+    <ClInclude Include="friends.h" />
     <ClInclude Include="game\aim_prediction.h" />
     <ClInclude Include="game\class_table.h" />
     <ClInclude Include="game\drawing.h" />

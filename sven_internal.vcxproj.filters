@@ -338,6 +338,9 @@
     <ClCompile Include="autoupdate\client\autoupdate.cpp">
       <Filter>Sven Internal\AutoUpdate</Filter>
     </ClCompile>
+    <ClCompile Include="friends.cpp">
+      <Filter>Sven Internal</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">
@@ -636,6 +639,9 @@
     </ClInclude>
     <ClInclude Include="autoupdate\client\autoupdate.h">
       <Filter>Sven Internal\AutoUpdate</Filter>
+    </ClInclude>
+    <ClInclude Include="friends.h">
+      <Filter>Sven Internal</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

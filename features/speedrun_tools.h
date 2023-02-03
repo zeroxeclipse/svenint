@@ -62,6 +62,9 @@ public:
 	void StartTimer();
 	void StopTimer();
 
+	void BroadcastTimescale();
+	void SendTimescale(edict_t *pPlayer);
+
 	void SetTimescale(float timescale);
 	void SetTimescale_Comm(bool notify, float framerate, float fpsmax, float min_frametime);
 	

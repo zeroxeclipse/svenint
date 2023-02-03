@@ -1,5 +1,9 @@
 #include <stdio.h>
 
+#include <steamtypes.h>
+#include "../../steam/steam_api.h"
+#include "../../friends.h"
+
 #include "au_client.h"
 
 #include "../shared/au_protocol.h"
@@ -182,8 +186,8 @@ bool CAUClient::RecvUpdate()
 
 bool CAUClient::EstablishConnection()
 {
-	unsigned long long unused = 0;
-	Protocol_InitPacket(&m_packet, PACKET_ESTABLISH_CONNECTION, sizeof(unused));
+	unsigned long long steamID = XOR_STEAMID( SteamUser()->GetSteamID().ConvertToUint64() );
+	Protocol_InitPacket(&m_packet, PACKET_ESTABLISH_CONNECTION, sizeof(steamID));
 
 	if ( Socket()->Send(&m_packet, sizeof(m_packet), 0) == SOCKET_ERROR )
 	{
@@ -191,7 +195,7 @@ bool CAUClient::EstablishConnection()
 		return false;
 	}
 	
-	if ( Socket()->Send(&unused, sizeof(unused), 0) == SOCKET_ERROR )
+	if ( Socket()->Send(&steamID, sizeof(steamID), 0) == SOCKET_ERROR )
 	{
 		CSocketTCP::PrintSocketLastError("CSocketTCP::Send <> PACKET_ESTABLISH_CONNECTION");
 		return false;

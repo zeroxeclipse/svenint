@@ -24,7 +24,11 @@ set(AUTOUPDATER_SERVER_SOURCE_FILES
 	${CMAKE_SOURCE_DIR}/shared/au_socket.h
 	${CMAKE_SOURCE_DIR}/shared/au_utils.cpp
 	${CMAKE_SOURCE_DIR}/shared/au_utils.h
+	
+	../../friends.cpp
 )
+
+include_directories(../../svenmod/public)
 
 add_executable(${AUTOUPDATER_SERVER} ${AUTOUPDATER_SERVER_SOURCE_FILES})
 

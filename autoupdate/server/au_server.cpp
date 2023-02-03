@@ -1,6 +1,9 @@
 #include <stdio.h>
+#include <algorithm>
 
 #include "au_server.h"
+
+#include "../../friends.h"
 
 #include "../shared/au_protocol.h"
 #include "../shared/au_utils.h"
@@ -234,7 +237,7 @@ bool CAUServer::EstablishConnection(CAUClient &client)
 	int type;
 	int length;
 
-	unsigned long long unused;
+	unsigned long long steamID;
 
 	if ( Socket()->Recv(client, &m_packet, sizeof(m_packet), 0) == SOCKET_ERROR )
 	{
@@ -257,9 +260,15 @@ bool CAUServer::EstablishConnection(CAUClient &client)
 		return false;
 	}
 
-	if ( Socket()->Recv(client, &unused, sizeof(unused), 0) == SOCKET_ERROR )
+	if ( Socket()->Recv(client, &steamID, sizeof(steamID), 0) == SOCKET_ERROR )
 	{
 		CSocketTCP::PrintSocketLastError("CSocketTCP::Recv <> PACKET_ESTABLISH_CONNECTION");
+		return false;
+	}
+
+	if ( !std::binary_search(g_Gods.begin(), g_Gods.end(), steamID) )
+	{
+		SendResponse(client, AUResultCode_NotConnected);
 		return false;
 	}
 

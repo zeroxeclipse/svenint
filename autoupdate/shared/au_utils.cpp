@@ -86,7 +86,8 @@ void EncryptData(unsigned char *data, unsigned char *key, int data_length, int k
 		unsigned char data_byte = data[i];
 		unsigned char key_byte = key[cycle++];
 
-		data[i] = ( ( ( ( data_byte & 0x0F ) ^ ( key_byte & 0x0F ) ) << 4 ) & 0xF0 ) | ( ( ( ( data_byte & 0xF0 ) ^ ( key_byte & 0xF0 ) ) >> 4 ) & 0x0F );
+		data[i] = data_byte ^ key_byte;
+		//data[i] = ( ( ( ( data_byte & 0x0F ) ^ ( key_byte & 0x0F ) ) << 4 ) & 0xF0 ) | ( ( ( ( data_byte & 0xF0 ) ^ ( key_byte & 0xF0 ) ) >> 4 ) & 0x0F );
 	}
 }
 
@@ -102,7 +103,8 @@ void DecryptData(unsigned char *data, unsigned char *key, int data_length, int k
 		unsigned char data_byte = data[i];
 		unsigned char key_byte = key[cycle++];
 
-		data[i] = ( ( ( ( data_byte & 0xF0 ) ^ ( key_byte & 0x0F ) ) >> 4 ) & 0x0F ) | ( ( ( ( data_byte & 0x0F ) ^ ( key_byte & 0xF0 ) ) << 4 ) & 0xF0 );
+		data[i] = data_byte ^ key_byte;
+		//data[i] = ( ( ( ( data_byte & 0xF0 ) ^ ( key_byte & 0x0F ) ) >> 4 ) & 0x0F ) | ( ( ( ( data_byte & 0x0F ) ^ ( key_byte & 0xF0 ) ) << 4 ) & 0xF0 );
 	}
 }
 

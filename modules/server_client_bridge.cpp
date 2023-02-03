@@ -92,6 +92,8 @@ DECLARE_FUNC(void, __cdecl, HOOKED_ClientPutInServer, edict_t *pEntity)
         g_pServerEngineFuncs->pfnWriteLong(0x0);
         g_pServerEngineFuncs->pfnWriteLong(0x0);
     g_pServerEngineFuncs->pfnMessageEnd();
+
+    g_SpeedrunTools.SendTimescale(pEntity);
 }
 
 //-----------------------------------------------------------------------------
