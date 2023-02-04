@@ -1,3 +1,5 @@
+#include "../../utils/xorstr.h"
+
 #include "au_socket.h"
 #include "au_utils.h"
 
@@ -124,7 +126,7 @@ void CSocketTCP::PrintSocketLastError(const char *pszMessage)
 {
 	const char *pszError = GetLastErrorString();
 
-	AU_Printf("[%s] ERROR: %s (0x%X)\n", pszMessage, pszError, GetLastError());
+	AU_Printf(xs("[%s] ERROR: %s (0x%X)\n"), pszMessage, pszError, GetLastError());
 
 	FreeErrorString( pszError );
 }

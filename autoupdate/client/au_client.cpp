@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+#include "../../utils/xorstr.h"
+
 #include <steamtypes.h>
 #include "../../steam/steam_api.h"
 #include "../../friends.h"
@@ -23,7 +25,7 @@ bool CAUClient::Initialize(const char *pszIpAddress, unsigned short unPort)
 	
 	if ( result == INVALID_SOCKET )
 	{
-		CSocketTCP::PrintSocketLastError("CSocketTCP::Create");
+		CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Create"));
 		return false;
 	}
 	
@@ -42,7 +44,7 @@ void CAUClient::Shutdown()
 // Returns 'true' to keep the client thread alive, otherwise 'false' to terminate the thread
 //-----------------------------------------------------------------------------
 
-bool CAUClient::Session()
+bool CAUClient::Session(int *code)
 {
 	// Never was trying to make something similar, so it may look ugly D:
 
@@ -57,28 +59,34 @@ bool CAUClient::Session()
 	// Establish connection with server
 	//-----------------------------------------------------------------------------
 	
+	*code = AUResultCode_NotConnected;
+
 	if ( !EstablishConnection() )
 		return false;
 
-	AU_Printf("Connection accepted\n");
+	AU_Printf(xs("Connection accepted\n"));
 
 	//-----------------------------------------------------------------------------
 	// Send to server our platform
 	//-----------------------------------------------------------------------------
 
+	*code = AUResultCode_BadPlatform;
+
 	if ( !SendPlatformType() )
 		return false;
 
-	AU_Printf("Transmitted platform type\n");
+	AU_Printf(xs("Transmitted platform type\n"));
 
 	//-----------------------------------------------------------------------------
 	// Send app's version to server
 	//-----------------------------------------------------------------------------
 
+	*code = AUResultCode_Bad;
+
 	if ( !SendAppVersion(version, &bUpdateAvailable) )
 		return false;
 
-	AU_Printf("Client's app version is %s\n", bUpdateAvailable ? "outdated" : "up to date");
+	AU_Printf(xs("Client's app version is %s\n"), bUpdateAvailable ? xs("outdated") : xs("up to date"));
 
 	//-----------------------------------------------------------------------------
 	// Send to server new query
@@ -87,11 +95,11 @@ bool CAUClient::Session()
 	// Nothing to do here
 	if ( !bUpdateAvailable )
 	{
-		AU_Printf_Clr({ 40, 255, 40, 255 }, "[SvenInt::AutoUpdate] Current version is up to date\n");
+		AU_Printf_Clr({ 40, 255, 40, 255 }, xs("[SvenInt::AutoUpdate] Current version is up to date\n"));
 
 		Disconnect(AUResultCode_OK);
 
-		AU_Printf("Disconnected from server\n");
+		AU_Printf(xs("Disconnected from server\n"));
 		return false;
 	}
 
@@ -100,9 +108,11 @@ bool CAUClient::Session()
 
 	if ( Socket()->Send(&m_packet, sizeof(m_packet), 0) == SOCKET_ERROR )
 	{
-		CSocketTCP::PrintSocketLastError("CSocketTCP::Send <> PACKET_QUERY_UPDATE");
+		CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Send <> PACKET_QUERY_UPDATE"));
 		return false;
 	}
+
+	*code = AUResultCode_InvalidPacket;
 
 	if ( !RecvPacket() )
 		return false;
@@ -113,31 +123,34 @@ bool CAUClient::Session()
 
 		if ( Socket()->Recv(&code, sizeof(code), 0) == SOCKET_ERROR )
 		{
-			CSocketTCP::PrintSocketLastError("CSocketTCP::Recv <> PACKET_DISCONNECT");
+			CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Recv <> PACKET_DISCONNECT"));
 			return false;
 		}
 
-		AU_Printf("Server disconnected with code: %d\n", code);
+		AU_Printf(xs("Server disconnected with code: %d\n"), code);
 		return false;
 	}
+
+	*code = AUResultCode_Bad;
 
 	// Receiving an update
 	RecvUpdate();
 
-	AU_Printf("An update has been received\n");
-	AU_Printf_Clr({ 255, 255, 90, 255 }, "[SvenInt::AutoUpdate] New version is available, close game to update\n");
+	AU_Printf(xs("An update has been received\n"));
+	AU_Printf_Clr({ 255, 255, 90, 255 }, xs("[SvenInt::AutoUpdate] New version is available, close game to update\n"));
 
 	//-----------------------------------------------------------------------------
 	// Session ends with disconnect packet
 	//-----------------------------------------------------------------------------
 
-	int code;
+	int result;
 
-	if ( !RecvDisconnect(&code) )
+	if ( !RecvDisconnect(&result) )
 		return false;
 
-	AU_Printf("Server disconnected with code: %d\n", code);
+	AU_Printf(xs("Server disconnected with code: %d\n"), result);
 
+	*code = AUResultCode_OK;
 	return false;
 }
 
@@ -153,13 +166,13 @@ bool CAUClient::RecvUpdate()
 
 	if ( g_pUpdateData == NULL )
 	{
-		AU_Printf("Failed to allocate memory\n");
+		AU_Printf(xs("Failed to allocate memory\n"));
 		return false;
 	}
 
 	if ( Socket()->Recv(key, 8, 0) == SOCKET_ERROR )
 	{
-		CSocketTCP::PrintSocketLastError("CSocketTCP::Recv <> UPDATE");
+		CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Recv <> UPDATE"));
 		return false;
 	}
 
@@ -171,8 +184,8 @@ bool CAUClient::RecvUpdate()
 
 		if ( (bytes = Socket()->Recv(g_pUpdateData + iReceivedBytes, g_ulUpdateSize - iReceivedBytes, 0)) == SOCKET_ERROR )
 		{
-			AU_Printf_Clr({ 255, 90, 90, 255 }, "[SvenInt::AutoUpdate] Update download was interrupted\n");
-			CSocketTCP::PrintSocketLastError("CSocketTCP::Recv <> UPDATE");
+			AU_Printf_Clr({ 255, 90, 90, 255 }, xs("[SvenInt::AutoUpdate] Update download was interrupted\n"));
+			CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Recv <> UPDATE"));
 			return false;
 		}
 
@@ -191,13 +204,13 @@ bool CAUClient::EstablishConnection()
 
 	if ( Socket()->Send(&m_packet, sizeof(m_packet), 0) == SOCKET_ERROR )
 	{
-		CSocketTCP::PrintSocketLastError("CSocketTCP::Send <> PACKET_ESTABLISH_CONNECTION");
+		CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Send <> PACKET_ESTABLISH_CONNECTION"));
 		return false;
 	}
 	
 	if ( Socket()->Send(&steamID, sizeof(steamID), 0) == SOCKET_ERROR )
 	{
-		CSocketTCP::PrintSocketLastError("CSocketTCP::Send <> PACKET_ESTABLISH_CONNECTION");
+		CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Send <> PACKET_ESTABLISH_CONNECTION"));
 		return false;
 	}
 
@@ -210,13 +223,13 @@ bool CAUClient::Disconnect(int code)
 
 	if ( Socket()->Send(&m_packet, sizeof(m_packet), 0) == SOCKET_ERROR )
 	{
-		CSocketTCP::PrintSocketLastError("CSocketTCP::Send <> PACKET_DISCONNECT");
+		CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Send <> PACKET_DISCONNECT"));
 		return false;
 	}
 	
 	if ( Socket()->Send(&code, sizeof(code), 0) == SOCKET_ERROR )
 	{
-		CSocketTCP::PrintSocketLastError("CSocketTCP::Send <> PACKET_DISCONNECT");
+		CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Send <> PACKET_DISCONNECT"));
 		return false;
 	}
 
@@ -229,19 +242,19 @@ bool CAUClient::RecvDisconnect(int *code)
 
 	if ( Socket()->Recv(&m_packet, sizeof(m_packet), 0) == SOCKET_ERROR )
 	{
-		CSocketTCP::PrintSocketLastError("CSocketTCP::Recv <> PACKET_DISCONNECT");
+		CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Recv <> PACKET_DISCONNECT"));
 		return false;
 	}
 
 	if ( !Protocol_PacketIsValid(&m_packet) )
 	{
-		AU_Printf("PACKET_DISCONNECT <> Received invalid packet\n");
+		AU_Printf(xs("PACKET_DISCONNECT <> Received invalid packet\n"));
 		return false;
 	}
 
 	if ( m_packet.type != PACKET_DISCONNECT )
 	{
-		AU_Printf("PACKET_DISCONNECT <> Invalid packet type\n");
+		AU_Printf(xs("PACKET_DISCONNECT <> Invalid packet type\n"));
 		return false;
 	}
 
@@ -249,7 +262,7 @@ bool CAUClient::RecvDisconnect(int *code)
 
 	if ( Socket()->Recv(&response, sizeof(response), 0) == SOCKET_ERROR)
 	{
-		CSocketTCP::PrintSocketLastError("CSocketTCP::Recv <> PACKET_DISCONNECT");
+		CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Recv <> PACKET_DISCONNECT"));
 		return false;
 	}
 
@@ -262,13 +275,13 @@ bool CAUClient::RecvPacket()
 {
 	if ( Socket()->Recv(&m_packet, sizeof(m_packet), 0) == SOCKET_ERROR )
 	{
-		CSocketTCP::PrintSocketLastError("CSocketTCP::Recv <> RecvPacket");
+		CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Recv <> RecvPacket"));
 		return false;
 	}
 
 	if ( !Protocol_PacketIsValid(&m_packet) )
 	{
-		AU_Printf("RecvPacket <> Received invalid packet\n");
+		AU_Printf(xs("RecvPacket <> Received invalid packet\n"));
 		return false;
 	}
 
@@ -289,13 +302,13 @@ bool CAUClient::SendPlatformType()
 
 	if ( Socket()->Send(&m_packet, sizeof(m_packet), 0) == SOCKET_ERROR )
 	{
-		CSocketTCP::PrintSocketLastError("CSocketTCP::Send <> PACKET_PLATFORM");
+		CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Send <> PACKET_PLATFORM"));
 		return false;
 	}
 	
 	if ( Socket()->Send(&platform, sizeof(platform), 0) == SOCKET_ERROR )
 	{
-		CSocketTCP::PrintSocketLastError("CSocketTCP::Send <> PACKET_PLATFORM");
+		CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Send <> PACKET_PLATFORM"));
 		return false;
 	}
 
@@ -310,13 +323,13 @@ bool CAUClient::SendAppVersion(app_version_t &version, bool *bUpdateAvailable)
 
 	if ( Socket()->Send(&m_packet, sizeof(m_packet), 0) == SOCKET_ERROR )
 	{
-		CSocketTCP::PrintSocketLastError("CSocketTCP::Send <> PACKET_APP_VERSION");
+		CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Send <> PACKET_APP_VERSION"));
 		return false;
 	}
 
 	if ( Socket()->Send(&version, sizeof(version), 0) == SOCKET_ERROR )
 	{
-		CSocketTCP::PrintSocketLastError("CSocketTCP::Send <> PACKET_APP_VERSION");
+		CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Send <> PACKET_APP_VERSION"));
 		return false;
 	}
 
@@ -342,13 +355,13 @@ bool CAUClient::IsServerResponseOK()
 
 	if ( Socket()->Recv(&m_packet, sizeof(m_packet), 0) == SOCKET_ERROR )
 	{
-		CSocketTCP::PrintSocketLastError("CSocketTCP::Recv <> PACKET_RESPONSE");
+		CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Recv <> PACKET_RESPONSE"));
 		return false;
 	}
 
 	if ( !Protocol_PacketIsValid(&m_packet) )
 	{
-		AU_Printf("PACKET_RESPONSE <> Received invalid packet\n");
+		AU_Printf(xs("PACKET_RESPONSE <> Received invalid packet\n"));
 		return false;
 	}
 
@@ -357,7 +370,7 @@ bool CAUClient::IsServerResponseOK()
 
 	if ( type != PACKET_RESPONSE )
 	{
-		AU_Printf("PACKET_RESPONSE <> Invalid packet type\n");
+		AU_Printf(xs("PACKET_RESPONSE <> Invalid packet type\n"));
 		return false;
 	}
 
@@ -365,13 +378,13 @@ bool CAUClient::IsServerResponseOK()
 
 	if ( Socket()->Recv(&response, length, 0) == SOCKET_ERROR )
 	{
-		CSocketTCP::PrintSocketLastError("CSocketTCP::Recv <> PACKET_RESPONSE");
+		CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Recv <> PACKET_RESPONSE"));
 		return false;
 	}
 
 	if ( response != AUResultCode_OK )
 	{
-		AU_Printf("PACKET_RESPONSE received error code %d\n", response);
+		AU_Printf(xs("PACKET_RESPONSE received error code %d\n"), response);
 		return false;
 	}
 
@@ -387,7 +400,7 @@ int CAUClient::RecvServerResponse(int *result)
 
 	if ( Socket()->Recv(&m_packet, sizeof(m_packet), 0) == SOCKET_ERROR )
 	{
-		CSocketTCP::PrintSocketLastError("CSocketTCP::Recv <> PACKET_RESPONSE");
+		CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Recv <> PACKET_RESPONSE"));
 		*result = AUResultCode_SocketError;
 		
 		return AUResultCode_Bad;
@@ -395,7 +408,7 @@ int CAUClient::RecvServerResponse(int *result)
 
 	if ( !Protocol_PacketIsValid(&m_packet) )
 	{
-		AU_Printf("PACKET_RESPONSE <> Received invalid packet\n");
+		AU_Printf(xs("PACKET_RESPONSE <> Received invalid packet\n"));
 		*result = AUResultCode_InvalidPacket;
 		
 		return AUResultCode_Bad;
@@ -406,7 +419,7 @@ int CAUClient::RecvServerResponse(int *result)
 
 	if ( type != PACKET_RESPONSE )
 	{
-		AU_Printf("PACKET_RESPONSE <> Invalid packet type\n");
+		AU_Printf(xs("PACKET_RESPONSE <> Invalid packet type\n"));
 		*result = AUResultCode_InvalidPacketType;
 		
 		return AUResultCode_Bad;
@@ -416,7 +429,7 @@ int CAUClient::RecvServerResponse(int *result)
 
 	if ( Socket()->Recv(&response, length, 0) == SOCKET_ERROR )
 	{
-		CSocketTCP::PrintSocketLastError("CSocketTCP::Recv <> PACKET_RESPONSE");
+		CSocketTCP::PrintSocketLastError(xs("CSocketTCP::Recv <> PACKET_RESPONSE"));
 		*result = AUResultCode_SocketError;
 		
 		return AUResultCode_Bad;

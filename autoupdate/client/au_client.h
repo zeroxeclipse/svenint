@@ -17,7 +17,7 @@ public:
 	bool Initialize(const char *pszIpAddress, unsigned short unPort);
 	void Shutdown();
 
-	bool Session();
+	bool Session(int *code);
 
 	bool EstablishConnection();
 	bool Disconnect(int code);
