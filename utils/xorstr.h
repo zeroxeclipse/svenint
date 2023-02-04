@@ -68,10 +68,18 @@ private:
 
 public:
 	template < size_t... Is >
+#ifdef _WIN32
 	constexpr __forceinline XorString(const char* str, std::index_sequence< Is... >) : _key(RandomChar< K >::value), _encrypted{ enc(str[Is])... } {
+#else
+	constexpr __attribute__((always_inline)) XorString(const char* str, std::index_sequence< Is... >) : _key(RandomChar< K >::value), _encrypted{ enc(str[Is])... } {
+#endif
 	}
 
+#ifdef _WIN32
 	__forceinline decltype(auto) decrypt(void)
+#else
+	__attribute__((always_inline)) decltype(auto) decrypt(void)
+#endif
 	{
 
 		for (size_t i = 0; i < N; ++i)
