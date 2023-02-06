@@ -570,6 +570,29 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam("PlayerHulls_R", cvars.st_player_hulls_color[0]);
 			ConfigManager()->ImportParam("PlayerHulls_G", cvars.st_player_hulls_color[1]);
 			ConfigManager()->ImportParam("PlayerHulls_B", cvars.st_player_hulls_color[2]);
+			ConfigManager()->ImportParam("HUDColor_R", cvars.st_hud_color[0]);
+			ConfigManager()->ImportParam("HUDColor_G", cvars.st_hud_color[1]);
+			ConfigManager()->ImportParam("HUDColor_B", cvars.st_hud_color[2]);
+			ConfigManager()->ImportParam("ShowViewAngles", cvars.st_show_view_angles);
+			ConfigManager()->ImportParam("ViewAnglesWidthFrac", cvars.st_show_view_angles_width_frac);
+			ConfigManager()->ImportParam("ViewAnglesHeightFrac", cvars.st_show_view_angles_height_frac);
+			ConfigManager()->ImportParam("ShowPosition", cvars.st_show_pos);
+			ConfigManager()->ImportParam("PositionViewOrigin", cvars.st_show_pos_view_origin);
+			ConfigManager()->ImportParam("PositionWidthFrac", cvars.st_show_pos_width_frac);
+			ConfigManager()->ImportParam("PositionHeightFrac", cvars.st_show_pos_height_frac);
+			ConfigManager()->ImportParam("ShowVelocity", cvars.st_show_velocity);
+			ConfigManager()->ImportParam("VelocityWidthFrac", cvars.st_show_velocity_width_frac);
+			ConfigManager()->ImportParam("VelocityHeightFrac", cvars.st_show_velocity_height_frac);
+			ConfigManager()->ImportParam("ShowGaussBoostInfo", cvars.st_show_gauss_boost_info);
+			ConfigManager()->ImportParam("GaussBoostInfoWidthFrac", cvars.st_show_gauss_boost_info_width_frac);
+			ConfigManager()->ImportParam("GaussBoostInfoHeightFrac", cvars.st_show_gauss_boost_info_height_frac);
+			ConfigManager()->ImportParam("ShowSelfgaussInfo", cvars.st_show_selfgauss_info);
+			ConfigManager()->ImportParam("SelfgaussInfoWidthFrac", cvars.st_show_selfgauss_width_frac);
+			ConfigManager()->ImportParam("SelfgaussInfoHeightFrac", cvars.st_show_selfgauss_height_frac);
+			ConfigManager()->ImportParam("ShowEntityInfo", cvars.st_show_entity_info);
+			ConfigManager()->ImportParam("EntityInfoCheckPlayers", cvars.st_show_entity_info_check_players);
+			ConfigManager()->ImportParam("EntityInfoWidthFrac", cvars.st_show_entity_info_width_frac);
+			ConfigManager()->ImportParam("EntityInfoHeightFrac", cvars.st_show_entity_info_height_frac);
 
 			ConfigManager()->EndSectionImport();
 		}
@@ -694,6 +717,8 @@ bool CConfig::Load()
 		if (ConfigManager()->BeginSectionImport("VOTEPOPUP"))
 		{
 			ConfigManager()->ImportParam("Enable", cvars.vote_popup);
+			ConfigManager()->ImportParam("YesKey", cvars.vote_popup_yes_key);
+			ConfigManager()->ImportParam("NoKey", cvars.vote_popup_no_key);
 			ConfigManager()->ImportParam("WidthSize", cvars.vote_popup_width_size);
 			ConfigManager()->ImportParam("HeightSize", cvars.vote_popup_height_size);
 			ConfigManager()->ImportParam("WidthBorderPixels", cvars.vote_popup_w_border_pix);
@@ -1174,6 +1199,29 @@ void CConfig::Save()
 			ConfigManager()->ExportParam("PlayerHulls_R", cvars.st_player_hulls_color[0]);
 			ConfigManager()->ExportParam("PlayerHulls_G", cvars.st_player_hulls_color[1]);
 			ConfigManager()->ExportParam("PlayerHulls_B", cvars.st_player_hulls_color[2]);
+			ConfigManager()->ExportParam("HUDColor_R", cvars.st_hud_color[0]);
+			ConfigManager()->ExportParam("HUDColor_G", cvars.st_hud_color[1]);
+			ConfigManager()->ExportParam("HUDColor_B", cvars.st_hud_color[2]);
+			ConfigManager()->ExportParam("ShowViewAngles", cvars.st_show_view_angles);
+			ConfigManager()->ExportParam("ViewAnglesWidthFrac", cvars.st_show_view_angles_width_frac);
+			ConfigManager()->ExportParam("ViewAnglesHeightFrac", cvars.st_show_view_angles_height_frac);
+			ConfigManager()->ExportParam("ShowPosition", cvars.st_show_pos);
+			ConfigManager()->ExportParam("PositionViewOrigin", cvars.st_show_pos_view_origin);
+			ConfigManager()->ExportParam("PositionWidthFrac", cvars.st_show_pos_width_frac);
+			ConfigManager()->ExportParam("PositionHeightFrac", cvars.st_show_pos_height_frac);
+			ConfigManager()->ExportParam("ShowVelocity", cvars.st_show_velocity);
+			ConfigManager()->ExportParam("VelocityWidthFrac", cvars.st_show_velocity_width_frac);
+			ConfigManager()->ExportParam("VelocityHeightFrac", cvars.st_show_velocity_height_frac);
+			ConfigManager()->ExportParam("ShowGaussBoostInfo", cvars.st_show_gauss_boost_info);
+			ConfigManager()->ExportParam("GaussBoostInfoWidthFrac", cvars.st_show_gauss_boost_info_width_frac);
+			ConfigManager()->ExportParam("GaussBoostInfoHeightFrac", cvars.st_show_gauss_boost_info_height_frac);
+			ConfigManager()->ExportParam("ShowSelfgaussInfo", cvars.st_show_selfgauss_info);
+			ConfigManager()->ExportParam("SelfgaussInfoWidthFrac", cvars.st_show_selfgauss_width_frac);
+			ConfigManager()->ExportParam("SelfgaussInfoHeightFrac", cvars.st_show_selfgauss_height_frac);
+			ConfigManager()->ExportParam("ShowEntityInfo", cvars.st_show_entity_info);
+			ConfigManager()->ExportParam("EntityInfoCheckPlayers", cvars.st_show_entity_info_check_players);
+			ConfigManager()->ExportParam("EntityInfoWidthFrac", cvars.st_show_entity_info_width_frac);
+			ConfigManager()->ExportParam("EntityInfoHeightFrac", cvars.st_show_entity_info_height_frac);
 
 			ConfigManager()->EndSectionExport();
 		}
@@ -1298,6 +1346,8 @@ void CConfig::Save()
 		if (ConfigManager()->BeginSectionExport("VOTEPOPUP"))
 		{
 			ConfigManager()->ExportParam("Enable", cvars.vote_popup);
+			ConfigManager()->ExportParam("YesKey", cvars.vote_popup_yes_key);
+			ConfigManager()->ExportParam("NoKey", cvars.vote_popup_no_key);
 			ConfigManager()->ExportParam("WidthSize", cvars.vote_popup_width_size);
 			ConfigManager()->ExportParam("HeightSize", cvars.vote_popup_height_size);
 			ConfigManager()->ExportParam("WidthBorderPixels", cvars.vote_popup_w_border_pix);

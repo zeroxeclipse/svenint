@@ -7,6 +7,7 @@
 
 #include <base_feature.h>
 #include <IDetoursAPI.h>
+#include <IVGUI.h>
 
 #include <hl_sdk/cl_dll/cl_dll.h>
 
@@ -49,24 +50,30 @@ public:
 	virtual void Unload();
 
 public:
-	void Think();
+	void GameFrame();
 	void CreateMove(float frametime, struct usercmd_s *cmd, int active);
 	void OnVideoInit();
 	void V_CalcRefDef();
+	void Draw();
 	void OnHUDRedraw(float flTime);
 
 	float SegmentCurrentTime();
 
 	void ShowTimer(float flTime, bool bServer);
-
 	void StartTimer();
 	void StopTimer();
 
 	void BroadcastTimescale();
 	void SendTimescale(edict_t *pPlayer);
-
 	void SetTimescale(float timescale);
 	void SetTimescale_Comm(bool notify, float framerate, float fpsmax, float min_frametime);
+
+	void ShowViewangles(int r, int g, int b);
+	void ShowPosition(int r, int g, int b);
+	void ShowVelocity(int r, int g, int b);
+	void ShowGaussBoostInfo(int r, int g, int b);
+	void ShowSelfgaussInfo(int r, int g, int b);
+	void ShowEntityInfo(int r, int g, int b);
 	
 	void OnBeginLoading();
 	void OnFirstClientdataReceived(client_data_t *pcldata, float flTime);
@@ -95,6 +102,8 @@ private:
 	DetourHandle_t m_hHost_FilterTime;
 	DetourHandle_t m_hCbuf_AddText;
 	DetourHandle_t m_hServerCmd;
+
+	vgui::HFont m_engineFont;
 };
 
 extern CSpeedrunTools g_SpeedrunTools;

@@ -210,7 +210,7 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 	g_Drawing.Init();
 	g_Visual.ResetJumpSpeed();
 
-	g_pEngineFuncs->ClientCmd(xs("cl_timeout 999999;unbind F1;unbind F2;exec sven_internal.cfg"));
+	g_pEngineFuncs->ClientCmd(xs("cl_timeout 999999;exec sven_internal.cfg"));
 	m_flPlatTime = g_pEngineFuncs->Sys_FloatTime();
 
 	ConColorMsg({ 40, 255, 40, 255 }, xs("[Sven Internal] Successfully loaded\n"));
@@ -346,7 +346,7 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 			{
 				g_Skybox.Think();
 				g_ChatColors.Think();
-				g_SpeedrunTools.Think();
+				g_SpeedrunTools.GameFrame();
 
 				static int wait_frames_TAGS = 0;
 
@@ -387,6 +387,7 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 void CSvenInternal::Draw(void)
 {
 	g_Bsp.Draw();
+	g_SpeedrunTools.Draw();
 	g_Visual.Process();
 	g_Radar.Draw();
 	g_VotePopup.Draw();

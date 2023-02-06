@@ -1944,6 +1944,15 @@ void CMenuModule::DrawWindowHUD()
 					ImGui::Spacing();
 					ImGui::Spacing();
 
+					ImGui::InputInt("Yes Key##votepopup", &g_Config.cvars.vote_popup_yes_key);
+
+					ImGui::Spacing();
+
+					ImGui::InputInt("No Key##votepopup", &g_Config.cvars.vote_popup_no_key);
+					
+					ImGui::Spacing();
+					ImGui::Spacing();
+
 					ImGui::SliderInt("Width Size##cvp", &g_Config.cvars.vote_popup_width_size, 0, 1000);
 
 					ImGui::Spacing();
@@ -2789,6 +2798,112 @@ void CMenuModule::DrawWindowUtility()
 					ImGui::Spacing();
 
 					ImGui::ColorEdit4("Hull Color##st", g_Config.cvars.st_player_hulls_color);
+
+					ImGui::Spacing();
+					ImGui::Spacing();
+					
+					ImGui::Text("HUD");
+
+					ImGui::Spacing();
+
+					ImGui::Separator();
+
+					/*
+			
+		bool st_show_selfgauss_info = true;
+		float st_show_selfgauss_width_frac = 0.05f;
+		float st_show_selfgauss_height_frac = 0.5f;
+
+		bool st_show_entity_info = true;
+		bool st_show_entity_info_check_players = true;
+		float st_show_entity_info_width_frac = 0.05f;
+		float st_show_entity_info_height_frac = 0.6f;
+					
+					*/
+
+					ImGui::Spacing();
+					ImGui::Spacing();
+
+					ImGui::ColorEdit3("HUD Color##st", g_Config.cvars.st_hud_color);
+
+					ImGui::Spacing();
+					ImGui::Spacing();
+					
+					ImGui::Checkbox("Show View Angles##st", &g_Config.cvars.st_show_view_angles);
+
+					ImGui::Spacing();
+
+					ImGui::SliderFloat("Width Fraction##st_va", &g_Config.cvars.st_show_view_angles_width_frac, 0.0f, 1.0f);
+
+					ImGui::Spacing();
+
+					ImGui::SliderFloat("Height Fraction##st_va", &g_Config.cvars.st_show_view_angles_height_frac, 0.0f, 1.0f);
+					
+					ImGui::Spacing();
+					ImGui::Spacing();
+					
+					ImGui::Checkbox("Show Position##st", &g_Config.cvars.st_show_pos); ImGui::SameLine();
+					ImGui::Checkbox("Use View Origin##st_pos", &g_Config.cvars.st_show_pos_view_origin);
+
+					ImGui::Spacing();
+
+					ImGui::SliderFloat("Width Fraction##st_pos", &g_Config.cvars.st_show_pos_width_frac, 0.0f, 1.0f);
+
+					ImGui::Spacing();
+
+					ImGui::SliderFloat("Height Fraction##st_pos", &g_Config.cvars.st_show_pos_height_frac, 0.0f, 1.0f);
+					
+					ImGui::Spacing();
+					ImGui::Spacing();
+					
+					ImGui::Checkbox("Show Velocity##st", &g_Config.cvars.st_show_velocity);
+
+					ImGui::Spacing();
+
+					ImGui::SliderFloat("Width Fraction##st_vel", &g_Config.cvars.st_show_velocity_width_frac, 0.0f, 1.0f);
+
+					ImGui::Spacing();
+
+					ImGui::SliderFloat("Height Fraction##st_vel", &g_Config.cvars.st_show_velocity_height_frac, 0.0f, 1.0f);
+					
+					ImGui::Spacing();
+					ImGui::Spacing();
+					
+					ImGui::Checkbox("Show Gauss Boost Info##st", &g_Config.cvars.st_show_gauss_boost_info);
+
+					ImGui::Spacing();
+
+					ImGui::SliderFloat("Width Fraction##st_gaussboost", &g_Config.cvars.st_show_gauss_boost_info_width_frac, 0.0f, 1.0f);
+
+					ImGui::Spacing();
+
+					ImGui::SliderFloat("Height Fraction##st_gaussboost", &g_Config.cvars.st_show_gauss_boost_info_height_frac, 0.0f, 1.0f);
+					
+					ImGui::Spacing();
+					ImGui::Spacing();
+					
+					ImGui::Checkbox("Show Selfgauss Info##st", &g_Config.cvars.st_show_selfgauss_info);
+
+					ImGui::Spacing();
+
+					ImGui::SliderFloat("Width Fraction##st_selfgauss", &g_Config.cvars.st_show_selfgauss_width_frac, 0.0f, 1.0f);
+
+					ImGui::Spacing();
+
+					ImGui::SliderFloat("Height Fraction##st_selfgauss", &g_Config.cvars.st_show_selfgauss_height_frac, 0.0f, 1.0f);
+					
+					ImGui::Spacing();
+					ImGui::Spacing();
+					
+					ImGui::Checkbox("Show Entity Info##st", &g_Config.cvars.st_show_entity_info);
+
+					ImGui::Spacing();
+
+					ImGui::SliderFloat("Width Fraction##st_ent", &g_Config.cvars.st_show_entity_info_width_frac, 0.0f, 1.0f);
+
+					ImGui::Spacing();
+
+					ImGui::SliderFloat("Height Fraction##st_ent", &g_Config.cvars.st_show_entity_info_height_frac, 0.0f, 1.0f);
 
 					ImGui::Spacing();
 					ImGui::Spacing();

@@ -2,12 +2,17 @@
 
 #include "bsp.h"
 
+#include <gl/GL.h>
+
 #include <IRender.h>
 #include <IClient.h>
 #include <IFileSystem.h>
+#include <ISvenModAPI.h>
 
 #include <dbg.h>
 #include <convar.h>
+
+#include <hl_sdk/common/com_model.h>
 
 #include <istream>
 #include <streambuf>
@@ -172,11 +177,164 @@ CON_COMMAND(sc_debug_draw_clear, "")
 	Render()->DrawClear();
 }
 
+class CDrawTransModel : public IDrawContext
+{
+public:
+	CDrawTransModel(int modelindex);
+
+	virtual void	Draw(void);
+	virtual bool	ShouldStopDraw(void);
+
+	virtual const Vector &GetDrawOrigin(void) const;
+
+private:
+	int m_modelindex;
+	Vector m_vecMidPoint;
+};
+
+CDrawTransModel::CDrawTransModel(int modelindex)
+{
+	m_modelindex = modelindex;
+
+	bspheader_t *header = (bspheader_t *)bsp;
+
+	lump_t *lump_models = &header->lumps[LUMP_MODELS];
+
+	bspmodel_t *models = (bspmodel_t *)(bsp + lump_models->fileofs);
+	int models_count = lump_models->filelen / sizeof(bspmodel_t);
+
+	bspmodel_t *model = &models[m_modelindex];
+
+	Vector vecOrigin = *(Vector *)model->origin;
+	Vector vecMins = *(Vector *)model->mins;
+	Vector vecMaxs = *(Vector *)model->maxs;
+
+	m_vecMidPoint = vecOrigin + vecMins;
+	m_vecMidPoint += ((vecOrigin + vecMaxs) - (vecOrigin + vecMins)) * 0.5f;
+}
+
+void CDrawTransModel::Draw()
+{
+	glEnable(GL_BLEND);
+	glDisable(GL_ALPHA_TEST);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glDisable(GL_TEXTURE_2D);
+
+	bspheader_t *header = (bspheader_t *)bsp;
+
+	lump_t *lump_models = &header->lumps[LUMP_MODELS];
+	lump_t *lump_nodes = &header->lumps[LUMP_NODES];
+	lump_t *lump_faces = &header->lumps[LUMP_FACES];
+	lump_t *lump_edges = &header->lumps[LUMP_EDGES];
+	lump_t *lump_surfedges = &header->lumps[LUMP_SURFEDGES];
+	lump_t *lump_vertexes = &header->lumps[LUMP_VERTEXES];
+
+	bspmodel_t *models = (bspmodel_t *)(bsp + lump_models->fileofs);
+	int models_count = lump_models->filelen / sizeof(bspmodel_t);
+
+	bspnode_t *nodes = (bspnode_t *)(bsp + lump_nodes->fileofs);
+	int nodes_count = lump_nodes->filelen / sizeof(bspnode_t);
+
+	bspface_t *faces = (bspface_t *)(bsp + lump_faces->fileofs);
+	int faces_count = lump_faces->filelen / sizeof(bspface_t);
+
+	bspedge_t *edges = (bspedge_t *)(bsp + lump_edges->fileofs);
+	int edges_count = lump_edges->filelen / sizeof(bspedge_t);
+
+	uint32_t *surfedges = (uint32_t *)(bsp + lump_surfedges->fileofs);
+	int surfedges_count = lump_surfedges->filelen / sizeof(uint32_t);
+
+	bspvertex_t *vertexes = (bspvertex_t *)(bsp + lump_vertexes->fileofs);
+	int vertexes_count = lump_vertexes->filelen / sizeof(bspvertex_t);
+
+	bspmodel_t *model = &models[m_modelindex];
+
+	glColor4f(1.f, 1.f, 1.f, 0.6f);
+
+	for (int i = 0; i < model->numfaces; i++)
+	{
+		int facenum = model->firstface + i;
+		bspface_t *face = &faces[facenum];
+
+		glBegin(GL_TRIANGLE_FAN);
+		//glBegin(GL_TRIANGLES);
+
+		for (int j = 0; j < face->numedges; j++)
+		{
+			int32_t edgenum = surfedges[face->firstedge + j];
+			bspedge_t *edge = &edges[abs(edgenum)];
+
+			int edgevertexnum = (edgenum >= 0 ? 1 : 0);
+			int vertexnum = edge->v[edgevertexnum];
+
+			Vector vertex = *(Vector *)&vertexes[vertexnum];
+
+			//Render()->DrawPoint(vertex, { 255, 255, 255, 255 }, 24.f, 10.f);
+			glVertex3f(vertex.x, vertex.y, vertex.z);
+		}
+
+		glEnd();
+	}
+
+	glEnable(GL_TEXTURE_2D);
+
+	glDisable(GL_BLEND);
+	glDisable(GL_ALPHA_TEST);
+}
+
+bool CDrawTransModel::ShouldStopDraw()
+{
+	return false;
+}
+
+const Vector &CDrawTransModel::GetDrawOrigin() const
+{
+	return m_vecMidPoint;
+}
+
 CON_COMMAND(sc_ultra_test, "")
 {
 	if (args.ArgC() > 1)
 	{
 		int modelindex = atoi(args[1]);
+
+		Render()->AddDrawContext( new CDrawTransModel(modelindex), 5.f );
+
+		//model_t *pModel = g_pEngineStudio->GetModelByIndex( modelindex );
+
+		//if (pModel == NULL)
+		//	return;
+
+		//Msg("[MODEL] type: %d\n", pModel->type);
+		//Msg("[MODEL] numframes: %d\n", pModel->numframes);
+		//Msg("[MODEL] synctype: %d\n", pModel->synctype);
+		//Msg("[MODEL] flags: %d\n", pModel->flags);
+		//Msg("[MODEL] radius: %d\n", pModel->radius);
+		//Msg("[MODEL] firstmodelsurface: %d\n", pModel->firstmodelsurface);
+		//Msg("[MODEL] nummodelsurfaces: %d\n", pModel->nummodelsurfaces);
+		//Msg("[MODEL] numsubmodels: %d\n", pModel->numsubmodels);
+		//Msg("[MODEL] numplanes: %d\n", pModel->numplanes);
+		//Msg("[MODEL] numleafs: %d\n", pModel->numleafs);
+		//Msg("[MODEL] numvertexes: %d\n", pModel->numvertexes);
+		//Msg("[MODEL] numedges: %d\n", pModel->numedges);
+		//Msg("[MODEL] numnodes: %d\n", pModel->numnodes);
+		//Msg("[MODEL] numtexinfo: %d\n", pModel->numtexinfo);
+		//Msg("[MODEL] numsurfaces: %d\n", pModel->numsurfaces);
+		//Msg("[MODEL] numsurfedges: %d\n", pModel->numsurfedges);
+		//Msg("[MODEL] numclipnodes: %d\n", pModel->numclipnodes);
+		//Msg("[MODEL] nummarksurfaces: %d\n", pModel->nummarksurfaces);
+		//Msg("[MODEL] numtextures: %d\n", pModel->numtextures);
+
+		//for (int i = 0; i < MAX_MAP_HULLS; i++)
+		//{
+		//	Msg("[MODEL HULLS] hulls[%d].firstclipnode: %d\n", i, pModel->hulls[i].firstclipnode);
+		//	Msg("[MODEL HULLS] hulls[%d].lastclipnode: %d\n", i, pModel->hulls[i].lastclipnode);
+		//	Msg("[MODEL HULLS] hulls[%d].clip_mins: %.2f %.2f %.2f\n", i, VectorExpand( pModel->hulls[i].clip_mins ));
+		//	Msg("[MODEL HULLS] hulls[%d].clip_maxs: %.2f %.2f %.2f\n\n", i, VectorExpand( pModel->hulls[i].clip_maxs ));
+		//}
+
+		//return;
 
 		bspheader_t *header = (bspheader_t *)bsp;
 
@@ -295,7 +453,7 @@ CON_COMMAND(sc_ultra_test, "")
 			Msg("Face #%d\n", facenum);
 			Msg("Face side #%d\n", face->side);
 
-			Msg("Number of sides #%d\n", face->numedges);
+			Msg("Number of edges #%d\n", face->numedges);
 
 			for (int j = 0; j < face->numedges; j++)
 			{
@@ -309,9 +467,10 @@ CON_COMMAND(sc_ultra_test, "")
 				Vector vertex = *(Vector *)&vertexes[vertexnum];
 				////Vector vertex = *(Vector *)&vertexes[pivot_edge->v[edgevertexnum]] - *(Vector *)&vertexes[vertexnum];
 
-				Msg("Edge vertex[%d] - %d (%.3f %.3f %.3f)\n", edgevertexnum, vertexnum, VectorExpand(vertex));
+				Msg("Edge (%d) > vertex[%d] - %d (%.3f %.3f %.3f)\n", edgenum, edgevertexnum, vertexnum, VectorExpand(vertex));
 
-				Render()->DrawPoint( vertex, { 255, 255, 255, 255 }, 24.f, 10.f );
+				//Render()->DrawPoint( vertex, { 255, 255, 255, 255 }, 24.f, 10.f );
+				Render()->DrawBox( vertex, Vector(-2, -2, -2), Vector(2, 2, 2), { 255, 255, 255, 127 }, 10.f );
 
 				////Vector vertex1 = *(Vector *)&vertexes[edge->v[0]] - *(Vector *)&vertexes[pivot_edge->v[0]];
 				////Vector vertex2 = *(Vector *)&vertexes[edge->v[1]] - *(Vector *)&vertexes[pivot_edge->v[1]];
@@ -331,6 +490,18 @@ CON_COMMAND(sc_ultra_test, "")
 			}
 
 			Msg("\n");
+		}
+	}
+	else
+	{
+		for (int i = 0; i < MAX_MAP_MODELS; i++)
+		{
+			model_t *pModel = g_pEngineStudio->GetModelByIndex(i);
+
+			if ( pModel == NULL )
+				continue;
+
+			Msg("Modelname: %s (%d)\n", pModel->name, i);
 		}
 	}
 }
@@ -382,7 +553,8 @@ void CBsp::OnDisconnect()
 
 void CBsp::V_CalcRefdef()
 {
-	if (g_Config.cvars.show_triggers)
+	if ( g_Config.cvars.show_triggers )
+	//if ( false )
 	{
 		for (const TriggerEntity &trigger : vTriggers)
 		{
@@ -532,7 +704,7 @@ void CBsp::V_CalcRefdef()
 
 void CBsp::Draw()
 {
-	if (g_Config.cvars.show_spawns)
+	if ( g_Config.cvars.show_spawns )
 	{
 		for (const MonsterSpawn &monster : vMonsterSpawns)
 		{
@@ -558,7 +730,7 @@ void CBsp::Draw()
 		}
 	}
 
-	if (g_Config.cvars.show_triggers && g_Config.cvars.show_triggers_info)
+	if ( g_Config.cvars.show_triggers && g_Config.cvars.show_triggers_info )
 	{
 		for (const TriggerEntity &trigger : vTriggers)
 		{
@@ -688,6 +860,173 @@ void CBsp::Draw()
 				}
 			}
 		}
+	}
+}
+
+void CBsp::OnRenderScene()
+{
+	if ( g_Config.cvars.show_triggers )
+	{
+		glDisable( GL_TEXTURE_2D );
+
+		g_pTriangleAPI->RenderMode( kRenderTransAdd );
+		g_pTriangleAPI->CullFace( TRI_NONE );
+
+		for (const TriggerEntity &trigger : vTriggers)
+		{
+			float r, g, b, a;
+			bool bDraw = true;
+
+			switch (trigger.iType)
+			{
+			case TRIGGER_ONCE:
+				if ( g_Config.cvars.show_trigger_once )
+				{
+					r = g_Config.cvars.trigger_once_color[0];
+					g = g_Config.cvars.trigger_once_color[1];
+					b = g_Config.cvars.trigger_once_color[2];
+					a = g_Config.cvars.trigger_once_color[3];
+				}
+				else
+				{
+					bDraw = false;
+				}
+
+				break;
+				
+			case TRIGGER_MULTIPLE:
+				if ( g_Config.cvars.show_trigger_multiple )
+				{
+					r = g_Config.cvars.trigger_multiple_color[0];
+					g = g_Config.cvars.trigger_multiple_color[1];
+					b = g_Config.cvars.trigger_multiple_color[2];
+					a = g_Config.cvars.trigger_multiple_color[3];
+				}
+				else
+				{
+					bDraw = false;
+				}
+
+				break;
+
+			case TRIGGER_HURT:
+				if ( g_Config.cvars.show_trigger_hurt )
+				{
+					r = g_Config.cvars.trigger_hurt_color[0];
+					g = g_Config.cvars.trigger_hurt_color[1];
+					b = g_Config.cvars.trigger_hurt_color[2];
+					a = g_Config.cvars.trigger_hurt_color[3];
+				}
+				else
+				{
+					bDraw = false;
+				}
+
+				break;
+				
+			case TRIGGER_HURT_HEAL:
+				if ( g_Config.cvars.show_trigger_hurt_heal )
+				{
+					r = g_Config.cvars.trigger_hurt_heal_color[0];
+					g = g_Config.cvars.trigger_hurt_heal_color[1];
+					b = g_Config.cvars.trigger_hurt_heal_color[2];
+					a = g_Config.cvars.trigger_hurt_heal_color[3];
+				}
+				else
+				{
+					bDraw = false;
+				}
+
+				break;
+
+			case TRIGGER_PUSH:
+				if ( g_Config.cvars.show_trigger_push )
+				{
+					r = g_Config.cvars.trigger_push_color[0];
+					g = g_Config.cvars.trigger_push_color[1];
+					b = g_Config.cvars.trigger_push_color[2];
+					a = g_Config.cvars.trigger_push_color[3];
+				}
+				else
+				{
+					bDraw = false;
+				}
+
+				break;
+				
+			case TRIGGER_TELEPORT:
+				if ( g_Config.cvars.show_trigger_teleport )
+				{
+					r = g_Config.cvars.trigger_teleport_color[0];
+					g = g_Config.cvars.trigger_teleport_color[1];
+					b = g_Config.cvars.trigger_teleport_color[2];
+					a = g_Config.cvars.trigger_teleport_color[3];
+				}
+				else
+				{
+					bDraw = false;
+				}
+
+				break;
+
+			case TRIGGER_CHANGELEVEL:
+				if ( g_Config.cvars.show_trigger_changelevel )
+				{
+					r = g_Config.cvars.trigger_changelevel_color[0];
+					g = g_Config.cvars.trigger_changelevel_color[1];
+					b = g_Config.cvars.trigger_changelevel_color[2];
+					a = g_Config.cvars.trigger_changelevel_color[3];
+				}
+				else
+				{
+					bDraw = false;
+				}
+
+				break;
+
+			case TRIGGER_ANTIRUSH:
+				if ( g_Config.cvars.show_trigger_antirush )
+				{
+					r = g_Config.cvars.trigger_antirush_color[0];
+					g = g_Config.cvars.trigger_antirush_color[1];
+					b = g_Config.cvars.trigger_antirush_color[2];
+					a = g_Config.cvars.trigger_antirush_color[3];
+				}
+				else
+				{
+					bDraw = false;
+				}
+
+				break;
+			}
+
+			if ( !bDraw )
+				continue;
+
+			model_t *pModel = g_pEngineStudio->GetModelByIndex( trigger.iModel + 1 );
+
+			if ( pModel == NULL )
+				continue;
+
+			msurface_t *pSurfaces = pModel->surfaces + pModel->firstmodelsurface;
+
+			for (int i = 0; i < pModel->nummodelsurfaces; i++)
+			{
+				g_pTriangleAPI->Color4f(r, g, b, a);
+				g_pTriangleAPI->Begin(TRI_POLYGON);
+
+				for (int j = 0; j < pSurfaces[i].polys->numverts; j++)
+				{
+					g_pTriangleAPI->Vertex3fv( pSurfaces[i].polys->verts[j] );
+				}
+
+				g_pTriangleAPI->End();
+			}
+		}
+
+		glEnable( GL_TEXTURE_2D );
+
+		g_pTriangleAPI->RenderMode( kRenderNormal );
 	}
 }
 

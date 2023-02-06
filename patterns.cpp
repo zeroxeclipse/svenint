@@ -17,6 +17,7 @@ namespace Patterns
 
 		DEFINE_PATTERN(V_RenderView, "81 EC ? ? 00 00 A1 ? ? ? ? 33 C4 89 84 24 ? ? 00 00 D9 EE D9 15");
 		DEFINE_PATTERN(R_RenderScene, "83 EC ? E8 ? ? ? ? 85 C0 74");
+		DEFINE_PATTERN(R_RenderScene_HOOKED, "E9 ? ? ? ? ? ? ? 85 C0 74");
 		DEFINE_PATTERN(R_SetupFrame, "83 EC 24 A1 ? ? ? ? 33 C4 89 44 24 20 33 C0 83 3D ? ? ? ? 01 0F 9F C0 50 E8 ? ? ? ? E8");
 		DEFINE_PATTERN(R_LoadSkyboxInt, "81 EC ? ? 00 00 A1 ? ? ? ? 33 C4 89 84 24 ? ? 00 00 53 8B 9C 24 ? ? 00 00 55 56 57 89 5C 24 24");
 

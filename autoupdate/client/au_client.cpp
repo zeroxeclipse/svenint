@@ -95,6 +95,8 @@ bool CAUClient::Session(int *code)
 	// Nothing to do here
 	if ( !bUpdateAvailable )
 	{
+		*code = AUResultCode_OK;
+
 		AU_Printf_Clr({ 40, 255, 40, 255 }, xs("[SvenInt::AutoUpdate] Current version is up to date\n"));
 
 		Disconnect(AUResultCode_OK);

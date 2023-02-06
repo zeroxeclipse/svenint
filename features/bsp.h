@@ -239,6 +239,7 @@ public:
 	void V_CalcRefdef();
 
 	void Draw();
+	void OnRenderScene();
 
 	void LoadBsp();
 	bool LoadEntsFromBsp(unsigned char *bsp, lump_t *lump_entities);

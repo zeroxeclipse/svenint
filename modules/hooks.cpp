@@ -69,6 +69,7 @@ DECLARE_HOOK(void, APIENTRY, glColor4f, GLfloat, GLfloat, GLfloat, GLfloat);
 DECLARE_HOOK(void, __cdecl, SCR_UpdateScreen);
 
 DECLARE_HOOK(void, __cdecl, V_RenderView);
+DECLARE_HOOK(void, __cdecl, R_RenderScene);
 DECLARE_HOOK(void, __cdecl, R_SetupFrame);
 
 DECLARE_HOOK(int, __cdecl, CRC_MapFile, uint32 *ulCRC, char *pszMapName);
@@ -165,6 +166,7 @@ private:
 	void *m_pfnglColor4f;
 	void *m_pfnSCR_UpdateScreen;
 	void *m_pfnV_RenderView;
+	void *m_pfnR_RenderScene;
 	void *m_pfnR_SetupFrame;
 	void *m_pfnCRC_MapFile;
 
@@ -180,6 +182,7 @@ private:
 	DetourHandle_t m_hglColor4f;
 	DetourHandle_t m_hSCR_UpdateScreen;
 	DetourHandle_t m_hV_RenderView;
+	DetourHandle_t m_hR_RenderScene;
 	DetourHandle_t m_hR_SetupFrame;
 	DetourHandle_t m_hCRC_MapFile;
 
@@ -870,6 +873,11 @@ DECLARE_FUNC(void, __cdecl, HOOKED_V_RenderView)
 	//}
 }
 
+DECLARE_FUNC(void, __cdecl, HOOKED_R_RenderScene)
+{
+	ORIG_R_RenderScene();
+}
+
 //-----------------------------------------------------------------------------
 // Studio renderer hooks
 //-----------------------------------------------------------------------------
@@ -1282,6 +1290,8 @@ HOOK_RESULT CClientPostHooks::HUD_DrawNormalTriangles(void)
 
 HOOK_RESULT CClientPostHooks::HUD_DrawTransparentTriangles(void)
 {
+	//g_Bsp.OnRenderScene();
+
 	return HOOK_CONTINUE;
 }
 
@@ -1387,6 +1397,7 @@ CHooksModule::CHooksModule()
 	m_pfnglColor4f = NULL;
 	m_pfnSCR_UpdateScreen = NULL;
 	m_pfnV_RenderView = NULL;
+	m_pfnR_RenderScene = NULL;
 	m_pfnR_SetupFrame = NULL;
 	m_pfnCRC_MapFile = NULL;
 
@@ -1394,6 +1405,7 @@ CHooksModule::CHooksModule()
 	m_hglBegin = 0;
 	m_hglColor4f = 0;
 	m_hV_RenderView = 0;
+	m_hR_RenderScene = 0;
 	m_hR_SetupFrame = 0;
 }
 
@@ -1472,6 +1484,14 @@ bool CHooksModule::Load()
 		Warning("Couldn't find function \"V_RenderView\"\n");
 		return false;
 	}
+	
+	//m_pfnR_RenderScene = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::R_RenderScene_HOOKED );
+
+	//if ( !m_pfnR_RenderScene )
+	//{
+	//	Warning("Couldn't find function \"R_RenderScene\"\n");
+	//	return false;
+	//}
 	
 	m_pfnR_SetupFrame = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::R_SetupFrame );
 
@@ -1618,6 +1638,7 @@ void CHooksModule::PostLoad()
 	m_hglColor4f = DetoursAPI()->DetourFunction( m_pfnglColor4f, HOOKED_glColor4f, GET_FUNC_PTR(ORIG_glColor4f) );
 	m_hSCR_UpdateScreen = DetoursAPI()->DetourFunction( m_pfnSCR_UpdateScreen, HOOKED_SCR_UpdateScreen, GET_FUNC_PTR(ORIG_SCR_UpdateScreen) );
 	m_hV_RenderView = DetoursAPI()->DetourFunction( m_pfnV_RenderView, HOOKED_V_RenderView, GET_FUNC_PTR(ORIG_V_RenderView) );
+	//m_hR_RenderScene = DetoursAPI()->DetourFunction( m_pfnR_RenderScene, HOOKED_R_RenderScene, GET_FUNC_PTR(ORIG_R_RenderScene) );
 	m_hR_SetupFrame = DetoursAPI()->DetourFunction( m_pfnR_SetupFrame, HOOKED_R_SetupFrame, GET_FUNC_PTR(ORIG_R_SetupFrame) );
 	m_hCRC_MapFile = DetoursAPI()->DetourFunction( m_pfnCRC_MapFile, HOOKED_CRC_MapFile, GET_FUNC_PTR(ORIG_CRC_MapFile) );
 
@@ -1652,6 +1673,7 @@ void CHooksModule::Unload()
 	DetoursAPI()->RemoveDetour( m_hglColor4f );
 	DetoursAPI()->RemoveDetour( m_hSCR_UpdateScreen );
 	DetoursAPI()->RemoveDetour( m_hV_RenderView );
+	//DetoursAPI()->RemoveDetour( m_hR_RenderScene );
 	DetoursAPI()->RemoveDetour( m_hR_SetupFrame );
 	DetoursAPI()->RemoveDetour( m_hCRC_MapFile );
 

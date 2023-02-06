@@ -102,7 +102,15 @@ DECLARE_FUNC(void, __cdecl, HOOKED_ClientPutInServer, edict_t *pEntity)
 
 void InitServerClientBridge()
 {
-	g_pEngineFuncs->HookUserMsg("SvenInt", UserMsgHook_SvenInt);
+	if ( g_pEngineFuncs->HookUserMsg("SvenInt", UserMsgHook_SvenInt) != 0 )
+    {
+        usermsg_t *pUserMsg = const_cast<usermsg_t *>( Utils()->FindUserMessage("SvenInt") );
+
+        if ( pUserMsg != NULL )
+        {
+            pUserMsg->function = UserMsgHook_SvenInt;
+        }
+    }
 
     hClientPutInServer = DetoursAPI()->DetourFunction( g_pServerFuncs->pfnClientPutInServer, HOOKED_ClientPutInServer, GET_FUNC_PTR(ORIG_ClientPutInServer) );
 }
@@ -113,31 +121,38 @@ void InitServerClientBridge()
 
 void ShutdownServerClientBridge()
 {
-    usermsg_t *pUserMsg = const_cast<usermsg_t *>( Utils()->FindUserMessage("ScreenFade") );
+    //usermsg_t *pUserMsg = const_cast<usermsg_t *>( Utils()->FindUserMessage("ScreenFade") );
+
+    //if ( pUserMsg != NULL )
+    //{
+    //    bool bFound = false;
+    //    usermsg_t *pPrev = NULL;
+
+    //    while ( pUserMsg )
+    //    {
+    //        if ( !stricmp(pUserMsg->name, "SvenInt") )
+    //        {
+    //            if ( pPrev != NULL )
+    //            {
+    //                pPrev->next = pUserMsg->next;
+    //            }
+
+    //            free( (void *)pUserMsg );
+
+    //            bFound = true;
+    //            break;
+    //        }
+
+    //        pPrev = pUserMsg;
+    //        pUserMsg = pUserMsg->next;
+    //    }
+    //}
+
+    usermsg_t *pUserMsg = const_cast<usermsg_t *>( Utils()->FindUserMessage("SvenInt") );
 
     if ( pUserMsg != NULL )
     {
-        bool bFound = false;
-        usermsg_t *pPrev = NULL;
-
-        while ( pUserMsg )
-        {
-            if ( !stricmp(pUserMsg->name, "SvenInt") )
-            {
-                if ( pPrev != NULL )
-                {
-                    pPrev->next = pUserMsg->next;
-                }
-
-                free( (void *)pUserMsg );
-
-                bFound = true;
-                break;
-            }
-
-            pPrev = pUserMsg;
-            pUserMsg = pUserMsg->next;
-        }
+        pUserMsg->function = NULL;
     }
 
     DetoursAPI()->RemoveDetour( hClientPutInServer );

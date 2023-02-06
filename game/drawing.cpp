@@ -437,7 +437,7 @@ void CDrawing::DrawTexture(int id, int x0, int y0, int x1, int y1, int r, int g,
 // Draw a formatted string
 //-----------------------------------------------------------------------------
 
-void CDrawing::DrawStringF(vgui::HFont font, int x, int y, int r, int g, int b, int a, FontAlignFlags_t alignment, const char*pszString, ...)
+void CDrawing::DrawStringF(vgui::HFont font, int x, int y, int r, int g, int b, int a, FontAlignFlags_t alignment, const char *pszString, ...)
 {
 	va_list va_alist;
 	va_start(va_alist, pszString);
@@ -446,6 +446,24 @@ void CDrawing::DrawStringF(vgui::HFont font, int x, int y, int r, int g, int b, 
 	MultiByteToWideChar(CP_UTF8, 0, s_szBuffer, 256, s_wszBuffer, 256);
 
 	int width, height;
+	g_pVGUI->Surface()->GetTextSize(font, s_wszBuffer, width, height);
+
+	ApplyTextAlignment(alignment, x, y, width, height);
+
+	g_pVGUI->Surface()->DrawSetTextFont(font);
+	g_pVGUI->Surface()->DrawSetTextColor(r, g, b, a);
+	g_pVGUI->Surface()->DrawSetTextPos(x, y - height / 2);
+	g_pVGUI->Surface()->DrawPrintText(s_wszBuffer, wcslen(s_wszBuffer));
+}
+
+void CDrawing::DrawStringExF(vgui::HFont font, int x, int y, int r, int g, int b, int a, int &width, int &height, FontAlignFlags_t alignment, const char *pszString, ...)
+{
+	va_list va_alist;
+	va_start(va_alist, pszString);
+	vsnprintf(s_szBuffer, sizeof(s_szBuffer), pszString, va_alist);
+	va_end(va_alist);
+	MultiByteToWideChar(CP_UTF8, 0, s_szBuffer, 256, s_wszBuffer, 256);
+
 	g_pVGUI->Surface()->GetTextSize(font, s_wszBuffer, width, height);
 
 	ApplyTextAlignment(alignment, x, y, width, height);
@@ -502,6 +520,20 @@ void CDrawing::DrawString(vgui::HFont font, int x, int y, int r, int g, int b, i
 	MultiByteToWideChar(CP_UTF8, 0, pszString, 256, s_wszBuffer, 256);
 
 	int width, height;
+	g_pVGUI->Surface()->GetTextSize(font, s_wszBuffer, width, height);
+
+	ApplyTextAlignment(alignment, x, y, width, height);
+
+	g_pVGUI->Surface()->DrawSetTextFont(font);
+	g_pVGUI->Surface()->DrawSetTextColor(r, g, b, a);
+	g_pVGUI->Surface()->DrawSetTextPos(x, y - height / 2);
+	g_pVGUI->Surface()->DrawPrintText(s_wszBuffer, wcslen(s_wszBuffer));
+}
+
+void CDrawing::DrawStringEx(vgui::HFont font, int x, int y, int r, int g, int b, int a, int &width, int &height, FontAlignFlags_t alignment, const char *pszString)
+{
+	MultiByteToWideChar(CP_UTF8, 0, pszString, 256, s_wszBuffer, 256);
+
 	g_pVGUI->Surface()->GetTextSize(font, s_wszBuffer, width, height);
 
 	ApplyTextAlignment(alignment, x, y, width, height);

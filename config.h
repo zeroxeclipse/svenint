@@ -11,6 +11,8 @@
 #include <platform.h>
 #include <convar.h>
 
+#include <keydefs.h>
+
 #ifdef PLATFORM_WINDOWS
 #include <Windows.h>
 #else
@@ -126,7 +128,7 @@ public:
 		float push_direction_color[3] = { 1.0f, 0.f, 0.f };
 		
 		bool show_players_sight_direction = false;
-		float players_sight_direction_length = 24.f;
+		float players_sight_direction_length = 48.f;
 		float players_sight_direction_width = 1.0f;
 		float players_sight_direction_color[3] = { 1.0f, 1.f, 1.f };
 
@@ -403,11 +405,41 @@ public:
 		//-----------------------------------------------------------------------------
 
 		bool st_timer = false;
+
 		bool st_player_hulls = false;
 		float st_player_hulls_color[4] = { 232.f / 255.f, 0.f / 255.f, 232.f / 255.f, 96.f / 255.f };
+
 		float st_timer_color[3] = { 100.f / 255.f, 130.f / 255.f, 200.f / 255.f };
 		float st_timer_width_frac = 0.01f;
 		float st_timer_height_frac = 0.35f;
+
+		float st_hud_color[3] = { 180.f / 255.f, 220.f / 255.f, 1.f };
+
+		bool st_show_view_angles = false;
+		float st_show_view_angles_width_frac = 0.895f;
+		float st_show_view_angles_height_frac = 0.25f;
+
+		bool st_show_pos = false;
+		bool st_show_pos_view_origin = true;
+		float st_show_pos_width_frac = 0.009f;
+		float st_show_pos_height_frac = 0.15f;
+
+		bool st_show_velocity = false;
+		float st_show_velocity_width_frac = 0.895f;
+		float st_show_velocity_height_frac = 0.09f;
+
+		bool st_show_gauss_boost_info = false;
+		float st_show_gauss_boost_info_width_frac = 0.3f;
+		float st_show_gauss_boost_info_height_frac = 0.03f;
+
+		bool st_show_selfgauss_info = false;
+		float st_show_selfgauss_width_frac = 0.575f;
+		float st_show_selfgauss_height_frac = 0.03f;
+
+		bool st_show_entity_info = false;
+		bool st_show_entity_info_check_players = true;
+		float st_show_entity_info_width_frac = 0.009f;
+		float st_show_entity_info_height_frac = 0.4f;
 		
 		//-----------------------------------------------------------------------------
 		// Spam inputs
@@ -512,6 +544,8 @@ public:
 		//-----------------------------------------------------------------------------
 
 		bool vote_popup = true;
+		int vote_popup_yes_key = K_F1;
+		int vote_popup_no_key = K_F2;
 		int vote_popup_width_size = 250;
 		int vote_popup_height_size = 125;
 		int vote_popup_w_border_pix = 12;

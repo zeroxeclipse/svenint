@@ -1,5 +1,8 @@
 // Speedrun Tools
 
+#include <vector>
+#include <algorithm>
+
 #include <ISvenModAPI.h>
 #include <IMemoryUtils.h>
 #include <IHooks.h>
@@ -17,6 +20,7 @@
 
 #include "../game/drawing.h"
 #include "../game/utils.h"
+#include "../game/entitylist.h"
 #include "../strafe/strafe_utils.h"
 
 #include "../patterns.h"
@@ -25,6 +29,8 @@
 //-----------------------------------------------------------------------------
 // Declare Hooks... and function pointer
 //-----------------------------------------------------------------------------
+
+DECLARE_FUNC_PTR(vgui::HFont, __cdecl, VGUI2_GetEngineFont);
 
 DECLARE_HOOK(void, __cdecl, UTIL_GetCircularGaussianSpread, float *, float *);
 DECLARE_HOOK(qboolean, __cdecl, Host_FilterTime, float);
@@ -485,6 +491,10 @@ DECLARE_FUNC(int, __cdecl, HOOKED_ServerCmd, const char *pszCommand)
 	return ORIG_ServerCmd(pszCommand);
 }
 
+//-----------------------------------------------------------------------------
+// Callbacks
+//-----------------------------------------------------------------------------
+
 void CSpeedrunTools::OnBeginLoading()
 {
 	is_hl_c17 = false;
@@ -657,10 +667,10 @@ void CSpeedrunTools::OnFirstClientdataReceived(client_data_t *pcldata, float flT
 }
 
 //-----------------------------------------------------------------------------
-// CSpeedrunTools implementation
+// GameFrame
 //-----------------------------------------------------------------------------
 
-void CSpeedrunTools::Think()
+void CSpeedrunTools::GameFrame()
 {
 	auto FixedUnsigned16 = [](float value, float scale) -> unsigned short
 	{
@@ -710,6 +720,10 @@ void CSpeedrunTools::Think()
 
 	im_commands.clear();
 }
+
+//-----------------------------------------------------------------------------
+// CreateMove
+//-----------------------------------------------------------------------------
 
 void CSpeedrunTools::CreateMove(float frametime, struct usercmd_s *cmd, int active)
 {
@@ -857,6 +871,10 @@ void CSpeedrunTools::CreateMove(float frametime, struct usercmd_s *cmd, int acti
 	}
 }
 
+//-----------------------------------------------------------------------------
+// VidInit
+//-----------------------------------------------------------------------------
+
 void CSpeedrunTools::OnVideoInit()
 {
 	if (im_file)
@@ -870,6 +888,10 @@ void CSpeedrunTools::OnVideoInit()
 	m_flTimerTime = 0.f;
 	m_flLastTimerUpdate = -1.f;
 }
+
+//-----------------------------------------------------------------------------
+// CalcRefDef
+//-----------------------------------------------------------------------------
 
 void CSpeedrunTools::V_CalcRefDef()
 {
@@ -912,6 +934,10 @@ void CSpeedrunTools::V_CalcRefDef()
 	}
 }
 
+//-----------------------------------------------------------------------------
+// HUD Redraw
+//-----------------------------------------------------------------------------
+
 void CSpeedrunTools::OnHUDRedraw(float time)
 {
 	if ( Host_IsServerActive() )
@@ -936,6 +962,30 @@ void CSpeedrunTools::OnHUDRedraw(float time)
 	}
 }
 
+//-----------------------------------------------------------------------------
+// Draw
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::Draw()
+{
+	m_engineFont = VGUI2_GetEngineFont();
+
+	int r = int(255.f * g_Config.cvars.st_hud_color[0]);
+	int g = int(255.f * g_Config.cvars.st_hud_color[1]);
+	int b = int(255.f * g_Config.cvars.st_hud_color[2]);
+
+	ShowViewangles(r, g, b);
+	ShowPosition(r, g, b);
+	ShowVelocity(r, g, b);
+	ShowGaussBoostInfo(r, g, b);
+	ShowSelfgaussInfo(r, g, b);
+	ShowEntityInfo(r, g, b);
+}
+
+//-----------------------------------------------------------------------------
+// Current segment time
+//-----------------------------------------------------------------------------
+
 float CSpeedrunTools::SegmentCurrentTime()
 {
 	if ( Host_IsServerActive() && m_bSegmentStarted )
@@ -945,6 +995,10 @@ float CSpeedrunTools::SegmentCurrentTime()
 
 	return 0.f;
 }
+
+//-----------------------------------------------------------------------------
+// Show timer
+//-----------------------------------------------------------------------------
 
 void CSpeedrunTools::ShowTimer(float flTime, bool bServer)
 {
@@ -1007,6 +1061,10 @@ void CSpeedrunTools::ShowTimer(float flTime, bool bServer)
 	g_Drawing.DrawDigit(ms % 10, x, y, r, g, b, FONT_ALIGN_LEFT);
 }
 
+//-----------------------------------------------------------------------------
+// Start timer
+//-----------------------------------------------------------------------------
+
 void CSpeedrunTools::StartTimer()
 {
 	if ( Host_IsServerActive() || g_pDemoAPI->IsPlayingback() )
@@ -1027,6 +1085,10 @@ void CSpeedrunTools::StartTimer()
 		m_flSegmentTime = 0.f;
 	}
 }
+
+//-----------------------------------------------------------------------------
+// Stop timer
+//-----------------------------------------------------------------------------
 
 void CSpeedrunTools::StopTimer()
 {
@@ -1059,6 +1121,10 @@ void CSpeedrunTools::StopTimer()
 	m_bSegmentStarted = false;
 	m_flSegmentStart = 0.f;
 }
+
+//-----------------------------------------------------------------------------
+// Send timescale to everyone
+//-----------------------------------------------------------------------------
 
 void CSpeedrunTools::BroadcastTimescale()
 {
@@ -1095,6 +1161,10 @@ void CSpeedrunTools::BroadcastTimescale()
 	}
 }
 
+//-----------------------------------------------------------------------------
+// Send timescale to a single player
+//-----------------------------------------------------------------------------
+
 void CSpeedrunTools::SendTimescale(edict_t *pPlayer)
 {
 	if ( Host_IsServerActive() )
@@ -1130,6 +1200,10 @@ void CSpeedrunTools::SendTimescale(edict_t *pPlayer)
 	}
 }
 
+//-----------------------------------------------------------------------------
+// Set timescale
+//-----------------------------------------------------------------------------
+
 void CSpeedrunTools::SetTimescale(float timescale)
 {
 	FindCvars();
@@ -1159,6 +1233,10 @@ void CSpeedrunTools::SetTimescale(float timescale)
 	Utils()->PrintChatText("<SvenInt> Timescale has been set to %.2f\n", timescale);
 }
 
+//-----------------------------------------------------------------------------
+// Set timescale from SvenInt user message
+//-----------------------------------------------------------------------------
+
 void CSpeedrunTools::SetTimescale_Comm(bool notify, float framerate, float fpsmax, float min_frametime)
 {
 	s_bIgnoreCvarChange = true;
@@ -1182,6 +1260,656 @@ void CSpeedrunTools::SetTimescale_Comm(bool notify, float framerate, float fpsma
 
 	s_bIgnoreCvarChange = false;
 }
+
+//-----------------------------------------------------------------------------
+// Draw view angles
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::ShowViewangles(int r, int g, int b)
+{
+	if ( g_Config.cvars.st_show_view_angles )
+	{
+		Vector va;
+		int width, height;
+
+		int x = int(g_ScreenInfo.width * g_Config.cvars.st_show_view_angles_width_frac);
+		int y = int(g_ScreenInfo.height * g_Config.cvars.st_show_view_angles_height_frac);
+
+		g_pEngineFuncs->GetViewAngles(va);
+		NormalizeAngles(va);
+
+		g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "View angles:");
+
+		y += height;
+
+		g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Pitch: %.6f", va.x);
+		
+		y += height;
+
+		g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Yaw: %.6f", va.y);
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Draw position
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::ShowPosition(int r, int g, int b)
+{
+	if ( g_Config.cvars.st_show_pos )
+	{
+		Vector origin;
+		int width, height;
+
+		int x = int(g_ScreenInfo.width * g_Config.cvars.st_show_pos_width_frac);
+		int y = int(g_ScreenInfo.height * g_Config.cvars.st_show_pos_height_frac);
+
+		origin = g_pPlayerMove->origin;
+
+		if ( g_Config.cvars.st_show_pos_view_origin )
+			origin += g_pPlayerMove->view_ofs;
+
+		g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Origin:");
+
+		y += height;
+
+		g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "X: %.6f", origin.x);
+
+		y += height;
+
+		g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Z: %.6f", origin.y);
+
+		y += height;
+
+		g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Y: %.6f", origin.z);
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Draw velocity
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::ShowVelocity(int r, int g, int b)
+{
+	if ( g_Config.cvars.st_show_velocity )
+	{
+		Vector velocity;
+		int width, height;
+
+		int x = int(g_ScreenInfo.width * g_Config.cvars.st_show_velocity_width_frac);
+		int y = int(g_ScreenInfo.height * g_Config.cvars.st_show_velocity_height_frac);
+
+		velocity = g_pPlayerMove->velocity;
+
+		g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Velocity:");
+
+		y += height;
+
+		g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "X: %.6f", velocity.x);
+
+		y += height;
+
+		g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Z: %.6f", velocity.y);
+
+		y += height;
+
+		g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Y: %.6f", velocity.z);
+
+		y += height;
+
+		g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "XY: %.6f", velocity.Length2D());
+
+		y += height;
+
+		g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "XYZ: %.6f", velocity.Length());
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Draw gauss info
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::ShowGaussBoostInfo(int r, int g, int b)
+{
+	static cvar_t *sk_plr_secondarygauss = NULL;
+	const float flGaussFullChargeTime = 3.f;
+
+	if ( g_Config.cvars.st_show_gauss_boost_info && Client()->GetCurrentWeaponID() == WEAPON_GAUSS )
+	{
+		if ( sk_plr_secondarygauss == NULL )
+		{
+			sk_plr_secondarygauss = CVar()->FindCvar("sk_plr_secondarygauss");
+
+			AssertFatal( sk_plr_secondarygauss != NULL );
+		}
+
+		int width, height;
+
+		int x = int(g_ScreenInfo.width * g_Config.cvars.st_show_gauss_boost_info_width_frac);
+		int y = int(g_ScreenInfo.height * g_Config.cvars.st_show_gauss_boost_info_height_frac);
+
+		Vector velocity = g_pPlayerMove->velocity;
+
+		g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Gauss boost info:");
+
+		y += height;
+
+		if ( velocity.Length2DSqr() > 0.f )
+		{
+			float flYaw = atan2f(velocity.y, velocity.x) * 180.f / static_cast<float>(M_PI);
+
+			if ( flYaw > 180.f )
+				flYaw -= 360.f;
+			else if ( flYaw < -180.f )
+				flYaw += 360.f;
+
+			g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Boost with optimal yaw: %.6f", flYaw);
+		}
+		else
+		{
+			g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Boost with optimal yaw: %.6f", g_pPlayerMove->angles.y);
+		}
+
+		y += height;
+
+		weapon_data_t *pWeaponData = ClientWeapon()->GetWeaponData();
+
+		int m_fInAttack = int( pWeaponData->fuser4 );
+		float m_flStartChargeTime = fabs( pWeaponData->fuser2 );
+
+		if ( m_fInAttack > 0 )
+		{
+			float flDamage;
+			float flBoost;
+			float flAmmoConsumed;
+
+			if ( m_fInAttack == 1 )
+			{
+				flDamage = sk_plr_secondarygauss->value * ( 0.5f / flGaussFullChargeTime );
+
+				flAmmoConsumed = 1.f;
+			}
+			else
+			{
+				if ( m_flStartChargeTime > flGaussFullChargeTime )
+				{
+					flDamage = sk_plr_secondarygauss->value;
+				}
+				else
+				{
+					flDamage = sk_plr_secondarygauss->value * ( m_flStartChargeTime / flGaussFullChargeTime );
+				}
+
+				flAmmoConsumed = ( m_flStartChargeTime - 0.5f ) / 0.3f;
+				flAmmoConsumed += 1.f;
+			}
+
+			flBoost = flDamage * 5;
+
+			g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Optimal resulting speed [back boost]: %.6f", velocity.Length2D() + flBoost);
+
+			y += height;
+
+			g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Overdose: %.6f", 10.f - m_flStartChargeTime);
+			
+			y += height;
+
+			g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Damage: %.6f", flDamage);
+
+			y += height;
+
+			g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Boost: %.6f", flBoost);
+
+			y += height;
+
+			g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Ammo consumed: %.2f", flAmmoConsumed);
+		}
+		else
+		{
+			g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Optimal resulting speed [back boost]: N/A");
+
+			y += height;
+
+			g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Overdose: 0.000000");
+
+			y += height;
+			
+			g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Damage: 0.000000");
+
+			y += height;
+			
+			g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Boost: 0.000000");
+
+			y += height;
+
+			g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Ammo consumed: 0.00");
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Draw selfgauss info
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::ShowSelfgaussInfo(int r, int g, int b)
+{
+	static const char *HITGROUP_STRING[] =
+	{
+			"Generic",
+			"Head",
+			"Chest",
+			"Stomach",
+			"Left Arm",
+			"Right Arm",
+			"Left Leg",
+			"Right Leg"
+	};
+
+	if ( g_Config.cvars.st_show_selfgauss_info && Client()->GetCurrentWeaponID() == WEAPON_GAUSS )
+	{
+		int width, height;
+
+		int x = int(g_ScreenInfo.width * g_Config.cvars.st_show_selfgauss_width_frac);
+		int y = int(g_ScreenInfo.height * g_Config.cvars.st_show_selfgauss_height_frac);
+
+		TraceResult tr;
+		Vector va, forward, right, up, start, end;
+
+		int iHitGroup;
+		float flThreshold;
+
+		bool bSelfgaussable = false;
+
+		start = g_pPlayerMove->origin + g_pPlayerMove->view_ofs;
+
+		g_pEngineFuncs->GetViewAngles( va );
+		g_pEngineFuncs->AngleVectors( va, forward, right, up );
+
+		end = start + forward * 8192.f;
+
+		edict_t *pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex(g_pPlayerMove->player_index + 1);
+		
+		Assert( pPlayer != NULL );
+
+		g_pServerEngineFuncs->pfnTraceLine( start, end, 0, pPlayer, &tr );
+
+		if ( tr.pHit != NULL && tr.pHit->pvPrivateData != NULL && tr.pHit->v.solid == SOLID_BSP && !tr.pHit->v.takedamage )
+		{
+			float theta = -DotProduct( forward, tr.vecPlaneNormal );
+
+			if ( theta >= 0.5f )
+			{
+				TraceResult beamTr;
+
+				g_pServerEngineFuncs->pfnTraceLine( tr.vecEndPos + forward * 8, end, 0, NULL, &beamTr );
+
+				if ( !beamTr.fAllSolid )
+				{
+					Vector vecBeamEndPos = beamTr.vecEndPos;
+
+					g_pServerEngineFuncs->pfnTraceLine( vecBeamEndPos, tr.vecEndPos, 0, NULL, &beamTr );
+					g_pServerEngineFuncs->pfnTraceLine( start, end, 0, NULL, &tr );
+
+					bSelfgaussable = true;
+
+					flThreshold = (beamTr.vecEndPos - tr.vecEndPos).Length();
+					iHitGroup = tr.iHitgroup;
+				}
+			}
+		}
+
+		if ( bSelfgaussable )
+		{
+			g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Selfgauss:");
+
+			y += height;
+
+			g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Threshold: %.6f", flThreshold);
+
+			y += height;
+
+			if ( iHitGroup < 0 || iHitGroup >= M_ARRAYSIZE(HITGROUP_STRING) )
+			{
+				iHitGroup = 0;
+			}
+
+			g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Hit Group: %s", HITGROUP_STRING[iHitGroup]);
+		}
+		else
+		{
+			g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Cannot selfgauss");
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Draw entity info
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::ShowEntityInfo(int r, int g, int b)
+{
+	if ( g_Config.cvars.st_show_entity_info )
+	{
+		int width, height;
+
+		int x = int(g_ScreenInfo.width * g_Config.cvars.st_show_entity_info_width_frac);
+		int y = int(g_ScreenInfo.height * g_Config.cvars.st_show_entity_info_height_frac);
+
+		Vector va, forward, start, end;
+
+		start = g_pPlayerMove->origin + g_pPlayerMove->view_ofs;
+
+		g_pEngineFuncs->GetViewAngles( va );
+		g_pEngineFuncs->AngleVectors( va, forward, NULL, NULL );
+
+		end = start + forward * 8192.f;
+
+		if ( Host_IsServerActive() )
+		{
+			TraceResult tr;
+			edict_t *pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( g_pPlayerMove->player_index + 1 );
+		
+			Assert( pPlayer != NULL );
+
+			g_pServerEngineFuncs->pfnTraceLine( start, end, 0, pPlayer, &tr );
+
+			if ( tr.pHit != NULL )
+			{
+				edict_t *pEntity = tr.pHit;
+				int ent = g_pServerEngineFuncs->pfnIndexOfEdict( pEntity );
+				bool bPlayer = ( ent >= 1 && ent <= g_pEngineFuncs->GetMaxClients() );
+
+				g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Entity: %d", ent);
+				y += height;
+
+				if ( bPlayer )
+				{
+					player_info_t *pPlayerInfo = g_pEngineStudio->PlayerInfo(ent - 1);
+
+					if ( pPlayerInfo != NULL )
+					{
+						g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, pPlayerInfo->name);
+						y += height;
+
+						g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "HP: %.6f", pEntity->v.health);
+						y += height;
+
+						g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Armor: %.6f", pEntity->v.armorvalue);
+						y += height;
+
+						g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Model: %s", pPlayerInfo->model);
+						y += height;
+							
+						g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Top Color: %d", pPlayerInfo->topcolor);
+						y += height;
+							
+						g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Bottom Color: %d", pPlayerInfo->bottomcolor);
+						y += height;
+							
+						g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Steam64ID: %llu", pPlayerInfo->m_nSteamID);
+						y += height;
+
+						g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Pitch: %.6f", pEntity->v.v_angle.x);
+						y += height;
+
+						g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Yaw: %.6f", pEntity->v.v_angle.y);
+						y += height;
+					}
+				}
+				else if ( pEntity->v.classname != 0 )
+				{
+					const char *pszClassname = gpGlobals->pStringBase + pEntity->v.classname;
+
+					g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, pszClassname);
+					y += height;
+					
+					if ( pEntity->v.target != 0 )
+					{
+						g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Target: %s", gpGlobals->pStringBase + pEntity->v.target);
+						y += height;
+					}
+					
+					if ( pEntity->v.targetname != 0 )
+					{
+						g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Name: %s", gpGlobals->pStringBase + pEntity->v.targetname);
+						y += height;
+					}
+
+					const char *pszModelName = ( ent == 0 ? "N/A" : (pEntity->v.model ? gpGlobals->pStringBase + pEntity->v.model : "N/A" ) );
+					
+					g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Model: %s", pszModelName);
+					y += height;
+
+					if ( strstr(pszClassname, "func_door") )
+					{
+						g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Usable: %s", pEntity->v.spawnflags & 256 ? "Yes" : "No");
+						y += height;
+						
+						g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Monsters: %s open", pEntity->v.spawnflags & 512 ? "Can't" : "Can");
+						y += height;
+					}
+
+					if ( strstr(pszClassname, "func_door") || !strncmp(pszClassname, "func_rotating", 13) || !strncmp(pszClassname, "func_train", 10) )
+					{
+						g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Damage: %.6f", pEntity->v.dmg);
+						y += height;
+					}
+					
+					g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "HP: %.6f", pEntity->v.health);
+					y += height;
+
+					g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Yaw: %.6f", pEntity->v.angles.y);
+					y += height;
+				}
+
+				Vector origin;
+
+				if ( pEntity->v.solid == SOLID_BSP || pEntity->v.movetype == MOVETYPE_PUSHSTEP )
+					origin = pEntity->v.origin + ( (pEntity->v.mins + pEntity->v.maxs ) / 2.f );
+				else
+					origin = pEntity->v.origin;
+
+				g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "X: %.6f", origin.x);
+				y += height;
+
+				g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Y: %.6f", origin.y);
+				y += height;
+
+				g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Z: %.6f", origin.z);
+				y += height;
+
+				g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "X Vel: %.6f", pEntity->v.velocity.x);
+				y += height;
+
+				g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Y Vel: %.6f", pEntity->v.velocity.y);
+				y += height;
+
+				g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Z Vel: %.6f", pEntity->v.velocity.z);
+			}
+			else
+			{
+				g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Entity: N/A");
+			}
+		}
+		else
+		{
+			pmtrace_t tr;
+
+			g_pEventAPI->EV_SetTraceHull( PM_HULL_POINT );
+			g_pEventAPI->EV_PlayerTrace( start, end, PM_NORMAL, g_pPlayerMove->player_index + 1, &tr );
+
+			int ent = g_pEventAPI->EV_IndexFromTrace(&tr);
+
+			if ( tr.fraction != 1.f )
+			{
+				if ( g_Config.cvars.st_show_entity_info_check_players )
+				{
+					struct eligible_player_t
+					{
+						float dist_sqr;
+						int index;
+					};
+
+					std::vector<eligible_player_t> eligible_players;
+
+					Vector traceEnd = tr.endpos;
+					CEntity *pEnts = g_EntityList.GetList();
+
+					auto IsLineIntersectingAABB = [](const Vector p1, const Vector p2, const Vector vecBoxMins, const Vector vecBoxMaxs) -> bool
+					{
+						Vector vecLineDir = (p2 - p1) * 0.5f;
+						Vector vecBoxMid = (vecBoxMaxs - vecBoxMins) * 0.5f;
+						Vector p3 = p1 + vecLineDir - (vecBoxMins + vecBoxMaxs) * 0.5f;
+						Vector vecAbsLineMid = Vector(abs(vecLineDir.x), abs(vecLineDir.y), abs(vecLineDir.z));
+
+						if ( abs(p3.x) > vecBoxMid.x + vecAbsLineMid.x || abs(p3.y) > vecBoxMid.y + vecAbsLineMid.y || abs(p3.z) > vecBoxMid.z + vecAbsLineMid.z )
+							return false;
+
+						if ( abs(vecLineDir.y * p3.z - vecLineDir.z * p3.y) > vecBoxMid.y * vecAbsLineMid.z + vecBoxMid.z * vecAbsLineMid.y )
+							return false;
+
+						if ( abs(vecLineDir.z * p3.x - vecLineDir.x * p3.z) > vecBoxMid.z * vecAbsLineMid.x + vecBoxMid.x * vecAbsLineMid.z )
+							return false;
+
+						if ( abs(vecLineDir.x * p3.y - vecLineDir.y * p3.x) > vecBoxMid.x * vecAbsLineMid.y + vecBoxMid.y * vecAbsLineMid.x )
+							return false;
+
+						return true;
+					};
+
+					for (int i = 1; i <= g_pEngineFuncs->GetMaxClients(); i++)
+					{
+						if ( i == g_pPlayerMove->player_index + 1 )
+							continue;
+
+						CEntity &ent = pEnts[i];
+
+						if ( !ent.m_bValid || !ent.m_bVisible || !ent.m_bAlive )
+							continue;
+
+						Vector vecMins, vecMaxs;
+
+						vecMins = vecMaxs = ent.m_vecOrigin;
+
+						if ( ent.m_bDucked )
+						{
+							vecMins += VEC_DUCK_HULL_MIN;
+							vecMaxs += VEC_DUCK_HULL_MAX;
+						}
+						else
+						{
+							vecMins += VEC_HULL_MIN;
+							vecMaxs += VEC_HULL_MAX;
+						}
+
+						if ( IsLineIntersectingAABB(start, traceEnd, vecMins, vecMaxs) )
+						{
+							eligible_players.push_back( { (start - ent.m_vecOrigin).LengthSqr(), i } );
+						}
+					}
+
+					if ( !eligible_players.empty() )
+					{
+						if ( eligible_players.size() > 1 )
+						{
+							std::sort(eligible_players.begin(), eligible_players.end(), [](const eligible_player_t &a, const eligible_player_t &b)
+							{
+								return a.dist_sqr < b.dist_sqr;
+							});
+						}
+
+						ent = eligible_players[0].index;
+
+						eligible_players.clear();
+					}
+				}
+
+				cl_entity_t *pEntity = g_pEngineFuncs->GetEntityByIndex(ent);
+
+				g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Entity: %d", ent);
+				y += height;
+
+				if ( ent == 0 || pEntity->player )
+				{
+					if ( ent != 0 )
+					{
+						player_info_t *pPlayerInfo = g_pEngineStudio->PlayerInfo(ent - 1);
+
+						if ( pPlayerInfo != NULL )
+						{
+							g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, pPlayerInfo->name);
+							y += height;
+
+							g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "HP: %.6f", PlayerUtils()->GetHealth(ent));
+							y += height;
+
+							g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Armor: %.6f", PlayerUtils()->GetArmor(ent));
+							y += height;
+
+							g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Model: %s", pPlayerInfo->model);
+							y += height;
+							
+							g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Top Color: %d", pPlayerInfo->topcolor);
+							y += height;
+							
+							g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Bottom Color: %d", pPlayerInfo->bottomcolor);
+							y += height;
+							
+							g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Steam64ID: %llu", pPlayerInfo->m_nSteamID);
+							y += height;
+						}
+					}
+					else
+					{
+						g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "worldspawn");
+						y += height;
+					}
+				}
+				
+				if ( !pEntity->player )
+				{
+					const char *pszModelName = ( ent == 0 ? "N/A" : ( pEntity->model ? pEntity->model->name : "N/A" ) );
+
+					g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Model: %s", pszModelName);
+					y += height;
+				}
+				else
+				{
+					g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Pitch: %.6f", pEntity->curstate.angles.x * (89.0f / 9.8876953125f) );
+					y += height;
+				}
+
+				g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Yaw: %.6f", pEntity->curstate.angles.y);
+				y += height;
+
+				g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "X: %.6f", pEntity->curstate.origin.x);
+				y += height;
+
+				g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Y: %.6f", pEntity->curstate.origin.y);
+				y += height;
+
+				g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Z: %.6f", pEntity->curstate.origin.z);
+				//y += height;
+
+				//g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "X Vel: 0.000000");
+				//y += height;
+
+				//g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Y Vel: 0.000000");
+				//y += height;
+
+				//g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Z Vel: 0.000000");
+			}
+			else
+			{
+				g_Drawing.DrawStringEx(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Entity: N/A");
+			}
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Find needed cvars
+//-----------------------------------------------------------------------------
 
 void CSpeedrunTools::FindCvars()
 {
@@ -1212,6 +1940,8 @@ CSpeedrunTools::CSpeedrunTools()
 	m_pfnHost_FilterTime = NULL;
 	m_pfnCbuf_AddText = NULL;
 	m_pfnServerCmd = NULL;
+
+	m_engineFont = 0;
 }
 
 bool CSpeedrunTools::Load()
@@ -1297,6 +2027,42 @@ bool CSpeedrunTools::Load()
 	if ( m_pfnCbuf_AddText == NULL )
 	{
 		Warning("Failed to get function \"Cbuf_AddText\"\n");
+		return false;
+	}
+
+	unsigned char *pCallOpcode;
+
+	iDisassembledBytes = 0;
+	void *pfnDrawConsoleString = g_pEngineFuncs->DrawConsoleString;
+
+	if ( *(unsigned char *)pfnDrawConsoleString == 0xE9 ) // JMP
+	{
+		pfnDrawConsoleString = MemoryUtils()->CalcAbsoluteAddress( pfnDrawConsoleString );
+	}
+	else
+	{
+		Warning("Failed to locate JMP op-code for function \"DrawConsoleString\"\n");
+		return false;
+	}
+
+	MemoryUtils()->InitDisasm(&inst, pfnDrawConsoleString, 32, 48);
+	
+	pCallOpcode = (unsigned char *)pfnDrawConsoleString;
+
+	while ( iDisassembledBytes = MemoryUtils()->Disassemble(&inst) )
+	{
+		if ( inst.mnemonic == UD_Icall )
+		{
+			VGUI2_GetEngineFont = (VGUI2_GetEngineFontFn)MemoryUtils()->CalcAbsoluteAddress( pCallOpcode );
+			break;
+		}
+
+		pCallOpcode += iDisassembledBytes;
+	}
+
+	if ( VGUI2_GetEngineFont == NULL )
+	{
+		Warning("Failed to get function \"VGUI2_GetEngineFont\"\n");
 		return false;
 	}
 

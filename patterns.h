@@ -24,6 +24,7 @@ namespace Patterns
 
 		EXTERN_PATTERN(V_RenderView);
 		EXTERN_PATTERN(R_RenderScene);
+		EXTERN_PATTERN(R_RenderScene_HOOKED);
 		EXTERN_PATTERN(R_SetupFrame);
 		EXTERN_PATTERN(R_LoadSkyboxInt);
 
