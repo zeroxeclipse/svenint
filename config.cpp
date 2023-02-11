@@ -573,6 +573,11 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam("PlayerHulls_R", cvars.st_player_hulls_color[0]);
 			ConfigManager()->ImportParam("PlayerHulls_G", cvars.st_player_hulls_color[1]);
 			ConfigManager()->ImportParam("PlayerHulls_B", cvars.st_player_hulls_color[2]);
+			ConfigManager()->ImportParam("PlayerHulls_A", cvars.st_player_hulls_color[3]);
+			ConfigManager()->ImportParam("PlayerHullsDead_R", cvars.st_player_hulls_dead_color[0]);
+			ConfigManager()->ImportParam("PlayerHullsDead_G", cvars.st_player_hulls_dead_color[1]);
+			ConfigManager()->ImportParam("PlayerHullsDead_B", cvars.st_player_hulls_dead_color[2]);
+			ConfigManager()->ImportParam("PlayerHullsDead_A", cvars.st_player_hulls_dead_color[3]);
 			ConfigManager()->ImportParam("HUDColor_R", cvars.st_hud_color[0]);
 			ConfigManager()->ImportParam("HUDColor_G", cvars.st_hud_color[1]);
 			ConfigManager()->ImportParam("HUDColor_B", cvars.st_hud_color[2]);
@@ -1205,6 +1210,11 @@ void CConfig::Save()
 			ConfigManager()->ExportParam("PlayerHulls_R", cvars.st_player_hulls_color[0]);
 			ConfigManager()->ExportParam("PlayerHulls_G", cvars.st_player_hulls_color[1]);
 			ConfigManager()->ExportParam("PlayerHulls_B", cvars.st_player_hulls_color[2]);
+			ConfigManager()->ExportParam("PlayerHulls_A", cvars.st_player_hulls_color[3]);
+			ConfigManager()->ExportParam("PlayerHullsDead_R", cvars.st_player_hulls_dead_color[0]);
+			ConfigManager()->ExportParam("PlayerHullsDead_G", cvars.st_player_hulls_dead_color[1]);
+			ConfigManager()->ExportParam("PlayerHullsDead_B", cvars.st_player_hulls_dead_color[2]);
+			ConfigManager()->ExportParam("PlayerHullsDead_A", cvars.st_player_hulls_dead_color[3]);
 			ConfigManager()->ExportParam("HUDColor_R", cvars.st_hud_color[0]);
 			ConfigManager()->ExportParam("HUDColor_G", cvars.st_hud_color[1]);
 			ConfigManager()->ExportParam("HUDColor_B", cvars.st_hud_color[2]);

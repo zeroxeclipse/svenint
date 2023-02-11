@@ -62,12 +62,13 @@ static int UserMsgHook_SvenInt(const char *pszUserMsg, int iSize, void *pBuffer)
             g_SpeedrunTools.SetTimescale_Comm( notify, framerate, fpsmax, min_frametime );
         }
     }
-    else if ( type == SVENINT_COMM_DISPLAY_DEAD_PLAYER )
+    else if ( type == SVENINT_COMM_DISPLAY_PLAYER_HULL )
     {
-        int client;
+        int client, dead;
         Vector vecOrigin, vecMins, vecMaxs;
 
         client = message.ReadByte();
+        dead = message.ReadByte();
 
         vecOrigin.x = Long32ToFloat( message.ReadLong() );
         vecOrigin.y = Long32ToFloat( message.ReadLong() );
@@ -83,7 +84,7 @@ static int UserMsgHook_SvenInt(const char *pszUserMsg, int iSize, void *pBuffer)
 
         if ( !g_pDemoAPI->IsPlayingback() )
         {
-            g_SpeedrunTools.DrawDeadPlayer_Comm( client, vecOrigin, vecMins, vecMaxs );
+            g_SpeedrunTools.DrawPlayerHull_Comm( client, dead, vecOrigin, vecMins, vecMaxs );
         }
     }
 

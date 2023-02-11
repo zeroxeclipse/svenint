@@ -2798,6 +2798,10 @@ void CMenuModule::DrawWindowUtility()
 					ImGui::ColorEdit4("Hull Color##st", g_Config.cvars.st_player_hulls_color);
 
 					ImGui::Spacing();
+
+					ImGui::ColorEdit4("Hull Dead Color##st", g_Config.cvars.st_player_hulls_dead_color);
+
+					ImGui::Spacing();
 					ImGui::Spacing();
 					
 					ImGui::Text("HUD");

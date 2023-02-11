@@ -414,6 +414,7 @@ public:
 		bool st_player_hulls = false;
 		bool st_server_player_hulls = false;
 		float st_player_hulls_color[4] = { 232.f / 255.f, 0.f / 255.f, 232.f / 255.f, 96.f / 255.f };
+		float st_player_hulls_dead_color[4] = { 189.f / 255.f, 134.f / 255.f, 240.f / 255.f, 96.f / 255.f };
 
 		float st_timer_color[3] = { 100.f / 255.f, 130.f / 255.f, 200.f / 255.f };
 		float st_timer_width_frac = 0.01f;

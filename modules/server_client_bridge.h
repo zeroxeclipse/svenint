@@ -10,7 +10,7 @@
 #define SVENINT_COMM_EXECUTE				( 1 )
 #define SVENINT_COMM_TIMER					( 2 )
 #define SVENINT_COMM_TIMESCALE				( 3 )
-#define SVENINT_COMM_DISPLAY_DEAD_PLAYER	( 4 )
+#define SVENINT_COMM_DISPLAY_PLAYER_HULL	( 4 )
 
 //-----------------------------------------------------------------------------
 // Initialize server-client bridge

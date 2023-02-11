@@ -37,8 +37,10 @@ struct input_frame_t
 	unsigned char	weaponselect;
 };
 
-struct deadplayer_display_info_t
+struct playerhull_display_info_t
 {
+	int dead;
+
 	Vector origin;
 
 	Vector mins;
@@ -75,10 +77,10 @@ public:
 	void StartTimer();
 	void StopTimer();
 
-	void CheckDeadPlayers();
-	void DrawDeadPlayersNickname();
-	void BroadcastDeadPlayer(int client, const Vector &vecOrigin, const Vector &vecMins, const Vector &vecMaxs);
-	void DrawDeadPlayer_Comm(int client, const Vector &vecOrigin, const Vector &vecMins, const Vector &vecMaxs);
+	void CheckPlayerHulls_Server();
+	void DrawPlayersHullsNickname_Server();
+	void BroadcastPlayerHull_Server(int client, int dead, const Vector &vecOrigin, const Vector &vecMins, const Vector &vecMaxs);
+	void DrawPlayerHull_Comm(int client, int dead, const Vector &vecOrigin, const Vector &vecMins, const Vector &vecMaxs);
 
 	void BroadcastTimescale();
 	void SendTimescale(edict_t *pPlayer);
@@ -96,7 +98,7 @@ public:
 	void OnFirstClientdataReceived(client_data_t *pcldata, float flTime);
 
 private:
-	std::vector<deadplayer_display_info_t> m_vDeadPlayers;
+	std::vector<playerhull_display_info_t> m_vPlayersHulls;
 
 	bool m_bSegmentStarted;
 
