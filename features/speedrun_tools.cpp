@@ -502,7 +502,7 @@ void CSpeedrunTools::OnBeginLoading()
 	iNihilanthIndex = 0;
 	pNihilanthVars = NULL;
 
-	if (im_file)
+	if ( im_file )
 	{
 		fclose(im_file);
 		Msg(im_record ? "Saved recorded inputs\n" : "Stopped playing back inputs\n");
@@ -672,20 +672,9 @@ void CSpeedrunTools::OnFirstClientdataReceived(client_data_t *pcldata, float flT
 
 void CSpeedrunTools::GameFrame()
 {
-	auto FixedUnsigned16 = [](float value, float scale) -> unsigned short
-	{
-		int output;
-
-		output = value * scale;
-		if (output < 0)
-			output = 0;
-		if (output > 0xFFFF)
-			output = 0xFFFF;
-
-		return (unsigned short)output;
-	};
-
 	BroadcastTimescale();
+
+	CheckDeadPlayers();
 
 	if ( is_hl_c17 && iNihilanthIndex != 0 )
 	{
@@ -877,7 +866,12 @@ void CSpeedrunTools::CreateMove(float frametime, struct usercmd_s *cmd, int acti
 
 void CSpeedrunTools::OnVideoInit()
 {
-	if (im_file)
+	for (int i = 0; i < MAXCLIENTS + 1; i++)
+	{
+		m_vDeadPlayers[i].time = -1.f;
+	}
+
+	if ( im_file )
 	{
 		fclose(im_file);
 	}
@@ -932,6 +926,24 @@ void CSpeedrunTools::V_CalcRefDef()
 			//}
 		}
 	}
+	else if ( g_Config.cvars.st_server_player_hulls )
+	{
+		for (int i = 1; i <= g_pEngineFuncs->GetMaxClients(); i++)
+		{
+			deadplayer_display_info_t &display_info = m_vDeadPlayers[i];
+
+			if ( display_info.time >= *dbRealtime )
+			{
+				Render()->DrawBox( display_info.origin,
+								 display_info.mins,
+								 display_info.maxs,
+								 g_Config.cvars.st_player_hulls_color[0],
+								 g_Config.cvars.st_player_hulls_color[1],
+								 g_Config.cvars.st_player_hulls_color[2],
+								 g_Config.cvars.st_player_hulls_color[3] );
+			}
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -949,16 +961,16 @@ void CSpeedrunTools::OnHUDRedraw(float time)
 		else
 			flSegmentTime = m_flSegmentTime;
 
-		ShowTimer(flSegmentTime, true);
+		ShowTimer( flSegmentTime, true );
 
-		g_pServerEngineFuncs->pfnMessageBegin(MSG_BROADCAST, SVC_SVENINT, NULL, NULL);
-		    g_pServerEngineFuncs->pfnWriteByte(SVENINT_COMM_TIMER);
-		    g_pServerEngineFuncs->pfnWriteCoord(flSegmentTime);
+		g_pServerEngineFuncs->pfnMessageBegin( MSG_BROADCAST, SVC_SVENINT, NULL, NULL );
+		    g_pServerEngineFuncs->pfnWriteByte( SVENINT_COMM_TIMER );
+		    g_pServerEngineFuncs->pfnWriteCoord( flSegmentTime );
 		g_pServerEngineFuncs->pfnMessageEnd();
 	}
 	else if ( m_flLastTimerUpdate > 0.f && *dbRealtime - m_flLastTimerUpdate <= 1.f )
 	{
-		ShowTimer(m_flTimerTime, false);
+		ShowTimer( m_flTimerTime, false );
 	}
 }
 
@@ -980,6 +992,8 @@ void CSpeedrunTools::Draw()
 	ShowGaussBoostInfo(r, g, b);
 	ShowSelfgaussInfo(r, g, b);
 	ShowEntityInfo(r, g, b);
+
+	DrawDeadPlayersNickname();
 }
 
 //-----------------------------------------------------------------------------
@@ -1104,7 +1118,7 @@ void CSpeedrunTools::StopTimer()
 			int seconds = static_cast<int>(flSegmentTime) % 60;
 			int ms = static_cast<int>((flSegmentTime - floorf(flSegmentTime)) * 1000.f);
 
-			snprintf(timer_buffer, sizeof(timer_buffer) / sizeof(*timer_buffer), "%d%d:%d%d,%d%d%d",
+			snprintf(timer_buffer, M_ARRAYSIZE(timer_buffer), "%d%d:%d%d,%d%d%d",
 					 minutes / 10, minutes % 10,
 					 seconds / 10, seconds % 10,
 					 ms / 100, (ms / 10) % 10, ms % 10);
@@ -1123,38 +1137,142 @@ void CSpeedrunTools::StopTimer()
 }
 
 //-----------------------------------------------------------------------------
+// Check existing corpses of dead players
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::CheckDeadPlayers()
+{
+	if ( g_Config.cvars.st_server_player_hulls )
+	{
+		auto FNullEnt = [](edict_t *pEntity) -> bool
+		{
+			return pEntity == NULL || g_pServerEngineFuncs->pfnEntOffsetOfPEntity( pEntity ) == 0;
+		};
+
+		class CBaseDeadPlayer
+		{
+		public:
+			void *vptr;
+			entvars_t *pev;
+
+		#ifdef _WIN32
+			char unknown[340];
+		#else
+			char unknown[356]; // 0x10 bytes
+		#endif
+
+			edict_t *m_pPlayer;
+			int m_iPlayerSerialNumber; // should be...
+		};
+
+		edict_t *pEntity = NULL;
+
+		while ( !FNullEnt( pEntity = g_pServerEngineFuncs->pfnFindEntityByString(pEntity, "classname", "deadplayer") ) )
+		{
+			if ( pEntity->v.effects & EF_NODRAW )
+				continue;
+
+			CBaseDeadPlayer *pDeadPlayer = reinterpret_cast<CBaseDeadPlayer *>( pEntity->pvPrivateData );
+
+			if ( pDeadPlayer == NULL )
+				continue;
+
+			edict_t *pPlayer = pDeadPlayer->m_pPlayer;
+
+			if ( pPlayer == NULL || pPlayer->serialnumber != pDeadPlayer->m_iPlayerSerialNumber || pPlayer->free || pPlayer->pvPrivateData == NULL )
+				continue;
+
+			int client = g_pServerEngineFuncs->pfnIndexOfEdict(pPlayer);
+
+			BroadcastDeadPlayer( client, pEntity->v.origin, pEntity->v.mins, pEntity->v.maxs );
+			DrawDeadPlayer_Comm( client, pEntity->v.origin, pEntity->v.mins, pEntity->v.maxs );
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Draws nicknames of dead players' corpses
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::DrawDeadPlayersNickname()
+{
+	if ( !g_Config.cvars.st_server_player_hulls || g_Config.cvars.st_player_hulls )
+		return;
+
+	for (int i = 1; i <= g_pEngineFuncs->GetMaxClients(); i++)
+	{
+		deadplayer_display_info_t &display_info = m_vDeadPlayers[i];
+
+		if ( display_info.time >= *dbRealtime )
+		{
+			float vecScreen[2];
+
+			if ( UTIL_WorldToScreen( display_info.origin, vecScreen ) )
+			{
+				player_info_t *pPlayerInfo = g_pEngineStudio->PlayerInfo(i - 1);
+
+				if ( pPlayerInfo != NULL )
+				{
+					g_Drawing.DrawStringF(g_hFontESP, vecScreen[0], vecScreen[1], 255, 255, 255, 255, FONT_ALIGN_CENTER, pPlayerInfo->name);
+				}
+			}
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Send dead player hull to everyone
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::BroadcastDeadPlayer(int client, const Vector &vecOrigin, const Vector &vecMins, const Vector &vecMaxs)
+{
+	//g_pServerEngineFuncs->pfnMessageBegin( MSG_PVS, SVC_SVENINT, NULL, NULL );
+	g_pServerEngineFuncs->pfnMessageBegin( MSG_BROADCAST, SVC_SVENINT, NULL, NULL );
+		g_pServerEngineFuncs->pfnWriteByte( SVENINT_COMM_DISPLAY_DEAD_PLAYER );
+		g_pServerEngineFuncs->pfnWriteByte( client );
+		g_pServerEngineFuncs->pfnWriteLong( FloatToLong32(vecOrigin.x) );
+		g_pServerEngineFuncs->pfnWriteLong( FloatToLong32(vecOrigin.y) );
+		g_pServerEngineFuncs->pfnWriteLong( FloatToLong32(vecOrigin.z) );
+		g_pServerEngineFuncs->pfnWriteLong( FloatToLong32(vecMins.x) );
+		g_pServerEngineFuncs->pfnWriteLong( FloatToLong32(vecMins.y) );
+		g_pServerEngineFuncs->pfnWriteLong( FloatToLong32(vecMins.z) );
+		g_pServerEngineFuncs->pfnWriteLong( FloatToLong32(vecMaxs.x) );
+		g_pServerEngineFuncs->pfnWriteLong( FloatToLong32(vecMaxs.y) );
+		g_pServerEngineFuncs->pfnWriteLong( FloatToLong32(vecMaxs.z) );
+	g_pServerEngineFuncs->pfnMessageEnd();
+}
+
+//-----------------------------------------------------------------------------
+// Draw dead player's corpse
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::DrawDeadPlayer_Comm(int client, const Vector &vecOrigin, const Vector &vecMins, const Vector &vecMaxs)
+{
+	if ( !g_Config.cvars.st_server_player_hulls )
+		return;
+
+	deadplayer_display_info_t &display_info = m_vDeadPlayers[client];
+
+	display_info.origin = vecOrigin;
+	display_info.mins = vecMins;
+	display_info.maxs = vecMaxs;
+	display_info.time = *dbRealtime + 1.f;
+}
+
+//-----------------------------------------------------------------------------
 // Send timescale to everyone
 //-----------------------------------------------------------------------------
 
 void CSpeedrunTools::BroadcastTimescale()
 {
 	if ( Host_IsServerActive() )
-	//if ( false )
 	{
-		union
-		{
-			float un_fl;
-			unsigned long un_ul;
-		};
-
-		FindCvars();
-
 		g_pServerEngineFuncs->pfnMessageBegin( MSG_BROADCAST, SVC_SVENINT, NULL, NULL );
 			g_pServerEngineFuncs->pfnWriteByte( SVENINT_COMM_TIMESCALE );
 			g_pServerEngineFuncs->pfnWriteByte( s_bNotifyTimescaleChanged ? 1 : 0 );
-
-			//g_pServerEngineFuncs->pfnWriteShort( FixedUnsigned16( host_framerate->value, 1 << 3 ) );
-			//g_pServerEngineFuncs->pfnWriteShort( FixedUnsigned16( fps_max->value, 1 << 3 ) );
-			//g_pServerEngineFuncs->pfnWriteShort( FixedUnsigned16( sc_st_min_frametime.GetFloat(), 1 << 3 ) );
-			
-			un_fl = host_framerate->value;
-			g_pServerEngineFuncs->pfnWriteLong( un_ul );
-
-			un_fl = fps_max->value;
-			g_pServerEngineFuncs->pfnWriteLong( un_ul );
-
-			un_fl = sc_st_min_frametime.GetFloat();
-			g_pServerEngineFuncs->pfnWriteLong( un_ul );
+			g_pServerEngineFuncs->pfnWriteLong( FloatToLong32(host_framerate->value) );
+			g_pServerEngineFuncs->pfnWriteLong( FloatToLong32(fps_max->value) );
+			g_pServerEngineFuncs->pfnWriteLong( FloatToLong32(sc_st_min_frametime.GetFloat()) );
 		g_pServerEngineFuncs->pfnMessageEnd();
 
 		s_bNotifyTimescaleChanged = false;
@@ -1168,32 +1286,13 @@ void CSpeedrunTools::BroadcastTimescale()
 void CSpeedrunTools::SendTimescale(edict_t *pPlayer)
 {
 	if ( Host_IsServerActive() )
-	//if ( false )
 	{
-		union
-		{
-			float un_fl;
-			unsigned long un_ul;
-		};
-
-		FindCvars();
-
 		g_pServerEngineFuncs->pfnMessageBegin( MSG_ONE_UNRELIABLE, SVC_SVENINT, NULL, pPlayer );
 			g_pServerEngineFuncs->pfnWriteByte( SVENINT_COMM_TIMESCALE );
 			g_pServerEngineFuncs->pfnWriteByte( 1 );
-
-			//g_pServerEngineFuncs->pfnWriteShort( FixedUnsigned16( host_framerate->value, 1 << 3 ) );
-			//g_pServerEngineFuncs->pfnWriteShort( FixedUnsigned16( fps_max->value, 1 << 3 ) );
-			//g_pServerEngineFuncs->pfnWriteShort( FixedUnsigned16( sc_st_min_frametime.GetFloat(), 1 << 3 ) );
-			
-			un_fl = host_framerate->value;
-			g_pServerEngineFuncs->pfnWriteLong( un_ul );
-
-			un_fl = fps_max->value;
-			g_pServerEngineFuncs->pfnWriteLong( un_ul );
-
-			un_fl = sc_st_min_frametime.GetFloat();
-			g_pServerEngineFuncs->pfnWriteLong( un_ul );
+			g_pServerEngineFuncs->pfnWriteLong( FloatToLong32(host_framerate->value) );
+			g_pServerEngineFuncs->pfnWriteLong( FloatToLong32(fps_max->value) );
+			g_pServerEngineFuncs->pfnWriteLong( FloatToLong32(sc_st_min_frametime.GetFloat()) );
 		g_pServerEngineFuncs->pfnMessageEnd();
 
 		s_bNotifyTimescaleChanged = false;
@@ -1206,8 +1305,6 @@ void CSpeedrunTools::SendTimescale(edict_t *pPlayer)
 
 void CSpeedrunTools::SetTimescale(float timescale)
 {
-	FindCvars();
-
 	if ( timescale == 1.f )
 	{
 		sc_st_min_frametime.SetValue( 0.f );
@@ -1240,8 +1337,6 @@ void CSpeedrunTools::SetTimescale(float timescale)
 void CSpeedrunTools::SetTimescale_Comm(bool notify, float framerate, float fpsmax, float min_frametime)
 {
 	s_bIgnoreCvarChange = true;
-
-	FindCvars();
 
 	CVar()->SetValue( host_framerate, framerate );
 	//CVar()->SetValue( fps_max, fpsmax );
@@ -1505,7 +1600,7 @@ void CSpeedrunTools::ShowSelfgaussInfo(int r, int g, int b)
 			"Right Leg"
 	};
 
-	if ( g_Config.cvars.st_show_selfgauss_info && Client()->GetCurrentWeaponID() == WEAPON_GAUSS )
+	if ( g_Config.cvars.st_show_selfgauss_info && Host_IsServerActive() && Client()->GetCurrentWeaponID() == WEAPON_GAUSS)
 	{
 		int width, height;
 
@@ -1908,24 +2003,18 @@ void CSpeedrunTools::ShowEntityInfo(int r, int g, int b)
 }
 
 //-----------------------------------------------------------------------------
-// Find needed cvars
-//-----------------------------------------------------------------------------
-
-void CSpeedrunTools::FindCvars()
-{
-	if ( host_framerate == NULL )
-		host_framerate = CVar()->FindCvar("host_framerate");
-	
-	if ( fps_max == NULL )
-		fps_max = CVar()->FindCvar("fps_max");
-}
-
-//-----------------------------------------------------------------------------
 // Init
 //-----------------------------------------------------------------------------
 
 CSpeedrunTools::CSpeedrunTools()
 {
+	m_vDeadPlayers.reserve( MAXCLIENTS + 1 );
+
+	for (int i = 0; i < MAXCLIENTS + 1; i++)
+	{
+		m_vDeadPlayers.push_back( { Vector(), Vector(), Vector(), -1.f } );
+	}
+
 	m_bSegmentStarted = false;
 
 	m_flSegmentTime = 0.f;
@@ -2073,6 +2162,12 @@ bool CSpeedrunTools::Load()
 
 void CSpeedrunTools::PostLoad()
 {
+	if ( host_framerate == NULL )
+		host_framerate = CVar()->FindCvar("host_framerate");
+	
+	if ( fps_max == NULL )
+		fps_max = CVar()->FindCvar("fps_max");
+
 	g_WhitelistCommands.Insert( "kill" );
 	g_WhitelistCommands.Insert( "stuck_kill" );
 	g_WhitelistCommands.Insert( "gibme" );
@@ -2089,7 +2184,7 @@ void CSpeedrunTools::PostLoad()
 	g_WhitelistCommands.Insert( "grenade" );
 	g_WhitelistCommands.Insert( "takecover" );
 
-	Hooks()->HookCvarChange( CVar()->FindCvar("fps_max"), CvarChangeHook_fps_max );
+	Hooks()->HookCvarChange( fps_max, CvarChangeHook_fps_max );
 
 	 m_hUTIL_GetCircularGaussianSpread = DetoursAPI()->DetourFunction( m_pfnUTIL_GetCircularGaussianSpread, HOOKED_UTIL_GetCircularGaussianSpread, GET_FUNC_PTR(ORIG_UTIL_GetCircularGaussianSpread) );
 	 m_hHost_FilterTime = DetoursAPI()->DetourFunction( m_pfnHost_FilterTime, HOOKED_Host_FilterTime, GET_FUNC_PTR(ORIG_Host_FilterTime) );
@@ -2103,7 +2198,7 @@ void CSpeedrunTools::Unload()
 {
 	*(unsigned short *)m_pJumpOpCode = m_PatchedJumpOpCode;
 
-	Hooks()->UnhookCvarChange( CVar()->FindCvar("fps_max"), CvarChangeHook_fps_max );
+	Hooks()->UnhookCvarChange( fps_max, CvarChangeHook_fps_max );
 
 	DetoursAPI()->RemoveDetour( m_hUTIL_GetCircularGaussianSpread );
 	DetoursAPI()->RemoveDetour( m_hHost_FilterTime );

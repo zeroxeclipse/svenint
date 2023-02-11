@@ -537,7 +537,7 @@ bool CUserVotePopup::OnVoteStart(const char *pszUserMsg, int iSize, void *pBuffe
 
 	default: // custom vote
 	{
-		if (pszVoteMessage)
+		if ( pszVoteMessage )
 			vgui::localize()->ConvertANSIToUnicode(pszVoteMessage, m_wszVoteMessage, sizeof(m_wszVoteMessage));
 
 		break;
@@ -551,9 +551,9 @@ bool CUserVotePopup::OnVoteStart(const char *pszUserMsg, int iSize, void *pBuffe
 		AssertFatal( iYesKey >= 0 && iYesKey <= 255 );
 
 		vgui::localize()->ConvertANSIToUnicode(pszVoteYes, wszBuffer, sizeof(wszBuffer));
-		vgui::localize()->ConstructString(m_wszVoteYes, sizeof(m_wszVoteYes), (wchar_t *)L"%s1: %s1", 2, s_wszVoteFormats[iYesKey], wszBuffer);
+		vgui::localize()->ConstructString(m_wszVoteYes, sizeof(m_wszVoteYes), (wchar_t *)L"%s1: %s2", 2, s_wszVoteKeys[iYesKey], wszBuffer);
 
-		m_wszVoteYes[(sizeof(m_wszVoteYes) / sizeof(wchar_t)) - 1] = 0;
+		m_wszVoteYes[M_ARRAYSIZE(m_wszVoteYes) - 1] = 0;
 	}
 
 	if ( pszVoteNo )
@@ -563,13 +563,13 @@ bool CUserVotePopup::OnVoteStart(const char *pszUserMsg, int iSize, void *pBuffe
 		AssertFatal( iNoKey >= 0 && iNoKey <= 255 );
 
 		vgui::localize()->ConvertANSIToUnicode(pszVoteNo, wszBuffer, sizeof(wszBuffer));
-		vgui::localize()->ConstructString(m_wszVoteNo, sizeof(m_wszVoteNo), (wchar_t *)L"%s1: %s1", 2, s_wszVoteFormats[iNoKey], wszBuffer);
+		vgui::localize()->ConstructString(m_wszVoteNo, sizeof(m_wszVoteNo), (wchar_t *)L"%s1: %s2", 2, s_wszVoteKeys[iNoKey], wszBuffer);
 
-		m_wszVoteNo[(sizeof(m_wszVoteNo) / sizeof(wchar_t)) - 1] = 0;
+		m_wszVoteNo[M_ARRAYSIZE(m_wszVoteNo) - 1] = 0;
 	}
 
 	// is it really needed?
-	m_wszVoteMessage[(sizeof(m_wszVoteMessage) / sizeof(wchar_t)) - 1] = 0;
+	m_wszVoteMessage[M_ARRAYSIZE(m_wszVoteMessage) - 1] = 0;
 
 	if ( pszVoteMessage )
 		free((void *)pszVoteMessage);

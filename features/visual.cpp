@@ -10,6 +10,7 @@
 #include <IClient.h>
 #include <IClientWeapon.h>
 #include <IPlayerUtils.h>
+#include <ISvenModAPI.h>
 
 #include <hl_sdk/engine/studio.h>
 #include <hl_sdk/cl_dll/cl_dll.h>
@@ -28,6 +29,7 @@
 #include "../game/class_table.h"
 
 #include "../config.h"
+#include "../patterns.h"
 
 //#define PROCESS_PLAYER_BONES_ONLY
 
@@ -50,8 +52,10 @@ Hitbox g_Bones[MAXCLIENTS + 1];
 bone_s g_Bones[MAXENTS + 1];
 #endif
 
+DECLARE_CLASS_HOOK(void, CClient_SoundEngine__PlayFMODSound, void *thisptr, int a2, int a3, float *pos, int a5, char *name, float a7, float a8, int a9, int a10, int a11, float a12);
+
 //-----------------------------------------------------------------------------
-// Global Vars
+// Vars
 //-----------------------------------------------------------------------------
 
 CVisual g_Visual;
@@ -59,8 +63,11 @@ bone_matrix3x4_t *g_pBoneTransform = NULL;
 
 cvar_t *r_drawentities = NULL;
 
+UserMsgHookFn ORIG_UserMsgHook_StartSound = NULL;
 UserMsgHookFn ORIG_UserMsgHook_ScreenShake = NULL;
 UserMsgHookFn ORIG_UserMsgHook_ScreenFade = NULL;
+
+static bool bInStartSound = false;
 
 //-----------------------------------------------------------------------------
 // Console Commands
@@ -135,12 +142,13 @@ void CVisual::OnHUDRedraw(float flTime)
 	ShowGrenadeTimer();
 }
 
-void CVisual::Process()
+void CVisual::Draw()
 {
 	m_iScreenWidth = g_ScreenInfo.width;
 	m_iScreenHeight = g_ScreenInfo.height;
 
 	Lightmap();
+	ShowSounds();
 
 	ESP();
 
@@ -457,6 +465,37 @@ void CVisual::DrawCrosshair()
 								g_Config.cvars.crosshair_size,
 								g_Config.cvars.crosshair_gap,
 								g_Config.cvars.crosshair_thickness);
+	}
+}
+
+void CVisual::ShowSounds()
+{
+	for (size_t i = 0; i < m_vSounds.size(); i++)
+	{
+		display_sound_origin_t &snd = m_vSounds[i];
+
+		if ( snd.time < *dbRealtime )
+		{
+			m_vSounds.erase( m_vSounds.begin() + i );
+			i--;
+
+			continue;
+		}
+
+		float vecScreen[2];
+
+		if ( UTIL_WorldToScreen(snd.origin, vecScreen) )
+		{
+			int x, y, w, h;
+
+			w = 10;
+			h = 10;
+
+			x = int(vecScreen[0]) - w / 2;
+			y = int(vecScreen[1]) - h / 2;
+
+			g_Drawing.FillArea(x, y, w, h, 255, 255, 255, 128);
+		}
 	}
 }
 
@@ -1348,13 +1387,61 @@ bool CVisual::StudioRenderModel()
 	return false;
 }
 
+void CVisual::AddSound(const Vector &vecOrigin)
+{
+	m_vSounds.push_back( { vecOrigin, (float)*dbRealtime + 2.f});
+}
+
+//-----------------------------------------------------------------------------
+// Hooks
+//-----------------------------------------------------------------------------
+
+DECLARE_CLASS_FUNC(void, HOOKED_CClient_SoundEngine__PlayFMODSound, void *thisptr, int a2, int a3, float *pos, int a5, char *name, float a7, float a8, int a9, int a10, int a11, float a12)
+{
+	auto StringStartsWith = [](const char *prefix, const char *str) -> bool
+	{
+		size_t prefix_len = strlen(prefix), str_len = strlen(str);
+		return str_len < prefix_len ? false : memcmp(prefix, str, prefix_len) == 0;
+	};
+
+	ORIG_CClient_SoundEngine__PlayFMODSound(thisptr, a2, a3, pos, a5, name, a7, a8, a9, a10, a11, a12);
+
+	if ( !g_Config.cvars.show_sound_origin )
+		return;
+
+	if ( pos == NULL || name == NULL || *name == '\0' || (pos[0] == 0.f && pos[1] == 0.f && pos[2] == 0.f) )
+		return;
+
+	if ( !StringStartsWith("debris", name) && !StringStartsWith("weapons", name) &&  !StringStartsWith("hlclassic/weapons", name) && !StringStartsWith("buttons", name) &&
+		!StringStartsWith("common", name) && !StringStartsWith("ambience", name) /* && !StringStartsWith("player/pl_shell", name) */ && !StringStartsWith("player", name) &&
+		!StringStartsWith("items", name) )
+	{
+		//Msg("CClient_SoundEngine::PlayFMODSound(%X, %d, %d, Vector(%.6f, %.6f, %.6f), %d, %s, %.2f, %.2f, %d, %d, %d, %.2f)\n",
+		//	thisptr, a2, a3, VectorExpand(*(Vector *)pos), a5, name, a7, a8, a9, a10, a11, a12);
+
+		//Render()->DrawBox( pos, Vector(-2, -2, -2), Vector(2, 2, 2), { 232, 0, 232, 128 }, 5.f );
+		g_Visual.AddSound( pos );
+	}
+}
+
 //-----------------------------------------------------------------------------
 // Hooked user messages
 //-----------------------------------------------------------------------------
 
+int UserMsgHook_StartSound(const char *pszUserMsg, int iSize, void *pBuffer)
+{
+	bInStartSound = true;
+
+	auto result = ORIG_UserMsgHook_StartSound(pszUserMsg, iSize, pBuffer);
+
+	bInStartSound = false;
+
+	return result;
+}
+
 int UserMsgHook_ScreenShake(const char *pszUserMsg, int iSize, void *pBuffer)
 {
-	if (g_Config.cvars.no_shake)
+	if ( g_Config.cvars.no_shake )
 		return 0;
 
 	return ORIG_UserMsgHook_ScreenShake(pszUserMsg, iSize, pBuffer);
@@ -1362,7 +1449,7 @@ int UserMsgHook_ScreenShake(const char *pszUserMsg, int iSize, void *pBuffer)
 
 int UserMsgHook_ScreenFade(const char *pszUserMsg, int iSize, void *pBuffer)
 {
-	if (g_Config.cvars.no_fade)
+	if ( g_Config.cvars.no_fade )
 		return 0;
 
 	return ORIG_UserMsgHook_ScreenFade(pszUserMsg, iSize, pBuffer);
@@ -1385,6 +1472,9 @@ CVisual::CVisual()
 
 	m_bOnGround = true;
 
+	m_pfnCClient_SoundEngine__PlayFMODSound = NULL;
+
+	m_hUserMsgHook_StartSound = 0;
 	m_hUserMsgHook_ScreenShake = 0;
 	m_hUserMsgHook_ScreenFade = 0;
 
@@ -1402,6 +1492,14 @@ bool CVisual::Load()
 		return false;
 	}
 
+	m_pfnCClient_SoundEngine__PlayFMODSound = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Client, Patterns::Client::CClient_SoundEngine__PlayFMODSound );
+
+	if ( m_pfnCClient_SoundEngine__PlayFMODSound == NULL )
+	{
+		Warning("Failed to find function \"CClient_SoundEngine::PlayFMODSound\"\n");
+		return false;
+	}
+
 	return true;
 }
 
@@ -1411,12 +1509,18 @@ void CVisual::PostLoad()
 
 	g_pBoneTransform = (bone_matrix3x4_t *)g_pEngineStudio->StudioGetLightTransform();
 
+	m_hCClient_SoundEngine__PlayFMODSound = DetoursAPI()->DetourFunction( m_pfnCClient_SoundEngine__PlayFMODSound, HOOKED_CClient_SoundEngine__PlayFMODSound, GET_FUNC_PTR(ORIG_CClient_SoundEngine__PlayFMODSound) );
+
+	m_hUserMsgHook_StartSound = Hooks()->HookUserMessage( "StartSound", UserMsgHook_StartSound, &ORIG_UserMsgHook_StartSound );
 	m_hUserMsgHook_ScreenShake = Hooks()->HookUserMessage( "ScreenShake", UserMsgHook_ScreenShake, &ORIG_UserMsgHook_ScreenShake );
 	m_hUserMsgHook_ScreenFade = Hooks()->HookUserMessage( "ScreenFade", UserMsgHook_ScreenFade, &ORIG_UserMsgHook_ScreenFade );
 }
 
 void CVisual::Unload()
 {
+	DetoursAPI()->RemoveDetour( m_hCClient_SoundEngine__PlayFMODSound );
+	
+	Hooks()->UnhookUserMessage( m_hUserMsgHook_StartSound );
 	Hooks()->UnhookUserMessage( m_hUserMsgHook_ScreenShake );
 	Hooks()->UnhookUserMessage( m_hUserMsgHook_ScreenFade );
 }

@@ -52,6 +52,7 @@ namespace Patterns
 		DEFINE_PATTERN(CVoiceStatus__SetPlayerBlockedState, "81 EC ? ? 00 00 A1 ? ? ? ? 33 C4 89 84 24 ? ? 00 00 53 68 ? ? ? ? 8B D9 FF 15 ? ? ? ? D9 5C 24 08");
 		DEFINE_PATTERN(CVoiceStatus__UpdateServerState, "81 EC ? ? 00 00 A1 ? ? ? ? 33 C4 89 84 24 ? ? 00 00 53 8B D9 89 5C 24 08");
 
+		DEFINE_PATTERN(CClient_SoundEngine__PlayFMODSound, "55 8B EC 83 E4 ? 81 EC ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 B4 00 00 00 8B 45 18");
 		DEFINE_PATTERN(CClient_SoundEngine__Play2DSound, "83 EC ? F3 0F 10 44 24 14");
 		DEFINE_PATTERN(CClient_SoundEngine__LoadSoundList, "81 EC ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 A8 08 00 00");
 

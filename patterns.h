@@ -59,6 +59,7 @@ namespace Patterns
 		EXTERN_PATTERN(CVoiceStatus__SetPlayerBlockedState);
 		EXTERN_PATTERN(CVoiceStatus__UpdateServerState);
 
+		EXTERN_PATTERN(CClient_SoundEngine__PlayFMODSound);
 		EXTERN_PATTERN(CClient_SoundEngine__Play2DSound);
 		EXTERN_PATTERN(CClient_SoundEngine__LoadSoundList);
 

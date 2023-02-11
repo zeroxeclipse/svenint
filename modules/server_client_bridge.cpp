@@ -9,6 +9,7 @@
 #include <dbg.h>
 
 #include "../features/speedrun_tools.h"
+#include "../game/utils.h"
 
 //-----------------------------------------------------------------------------
 // Vars
@@ -50,26 +51,39 @@ static int UserMsgHook_SvenInt(const char *pszUserMsg, int iSize, void *pBuffer)
     }
     else if ( type == SVENINT_COMM_TIMESCALE )
     {
-        union
-        {
-            float un_fl;
-            unsigned long un_ul;
-        };
-
         bool notify = !!message.ReadByte();
 
-        un_ul = message.ReadLong();
-        float framerate = un_fl;
-        
-        un_ul = message.ReadLong();
-        float fpsmax = un_fl;
-        
-        un_ul = message.ReadLong();
-        float min_frametime = un_fl;
+        float framerate = Long32ToFloat( message.ReadLong() );
+        float fpsmax = Long32ToFloat( message.ReadLong() );
+        float min_frametime = Long32ToFloat( message.ReadLong() );
 
         if ( !g_pDemoAPI->IsPlayingback() && !Host_IsServerActive() )
         {
             g_SpeedrunTools.SetTimescale_Comm( notify, framerate, fpsmax, min_frametime );
+        }
+    }
+    else if ( type == SVENINT_COMM_DISPLAY_DEAD_PLAYER )
+    {
+        int client;
+        Vector vecOrigin, vecMins, vecMaxs;
+
+        client = message.ReadByte();
+
+        vecOrigin.x = Long32ToFloat( message.ReadLong() );
+        vecOrigin.y = Long32ToFloat( message.ReadLong() );
+        vecOrigin.z = Long32ToFloat( message.ReadLong() );
+        
+        vecMins.x = Long32ToFloat( message.ReadLong() );
+        vecMins.y = Long32ToFloat( message.ReadLong() );
+        vecMins.z = Long32ToFloat( message.ReadLong() );
+        
+        vecMaxs.x = Long32ToFloat( message.ReadLong() );
+        vecMaxs.y = Long32ToFloat( message.ReadLong() );
+        vecMaxs.z = Long32ToFloat( message.ReadLong() );
+
+        if ( !g_pDemoAPI->IsPlayingback() )
+        {
+            g_SpeedrunTools.DrawDeadPlayer_Comm( client, vecOrigin, vecMins, vecMaxs );
         }
     }
 

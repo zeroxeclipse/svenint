@@ -5,6 +5,8 @@
 #pragma once
 #endif
 
+#include <vector>
+
 #include <base_feature.h>
 #include <IDetoursAPI.h>
 #include <IVGUI.h>
@@ -35,6 +37,16 @@ struct input_frame_t
 	unsigned char	weaponselect;
 };
 
+struct deadplayer_display_info_t
+{
+	Vector origin;
+
+	Vector mins;
+	Vector maxs;
+
+	float time;
+};
+
 //-----------------------------------------------------------------------------
 // CSpeedrunTools
 //-----------------------------------------------------------------------------
@@ -63,6 +75,11 @@ public:
 	void StartTimer();
 	void StopTimer();
 
+	void CheckDeadPlayers();
+	void DrawDeadPlayersNickname();
+	void BroadcastDeadPlayer(int client, const Vector &vecOrigin, const Vector &vecMins, const Vector &vecMaxs);
+	void DrawDeadPlayer_Comm(int client, const Vector &vecOrigin, const Vector &vecMins, const Vector &vecMaxs);
+
 	void BroadcastTimescale();
 	void SendTimescale(edict_t *pPlayer);
 	void SetTimescale(float timescale);
@@ -79,9 +96,8 @@ public:
 	void OnFirstClientdataReceived(client_data_t *pcldata, float flTime);
 
 private:
-	void FindCvars();
+	std::vector<deadplayer_display_info_t> m_vDeadPlayers;
 
-private:
 	bool m_bSegmentStarted;
 
 	float m_flSegmentStart;

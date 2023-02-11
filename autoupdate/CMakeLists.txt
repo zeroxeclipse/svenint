@@ -24,7 +24,11 @@ set(AUTOUPDATER_SOURCE_FILES
 
 add_subdirectory(server)
 
-add_executable(${AUTOUPDATER} ${AUTOUPDATER_SOURCE_FILES})
+if (MSVC)
+	add_executable(${AUTOUPDATER} WIN32 ${AUTOUPDATER_SOURCE_FILES})
+else()
+	add_executable(${AUTOUPDATER} ${AUTOUPDATER_SOURCE_FILES})
+endif()
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_DEPRECATE)
 

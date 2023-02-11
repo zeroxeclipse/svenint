@@ -15,6 +15,7 @@
 #include "../features/models_manager.h"
 #include "../features/thirdperson.h"
 
+#include "../utils/xorstr.h"
 #include "../utils/menu_styles.h"
 #include "../config.h"
 
@@ -387,6 +388,11 @@ void CMenuModule::DrawWindowVisuals()
 					ImGui::Checkbox("No Shake", &g_Config.cvars.no_shake); ImGui::SameLine();
 					ImGui::Checkbox("No Fade", &g_Config.cvars.no_fade);
 					ImGui::Checkbox("Remove FOV Cap", &g_Config.cvars.remove_fov_cap);
+
+					ImGui::Spacing();
+					ImGui::Spacing();
+					
+					ImGui::Checkbox("Show Sounds Origin", &g_Config.cvars.show_sound_origin);
 
 					ImGui::Spacing();
 					ImGui::Spacing();
@@ -2110,39 +2116,30 @@ void CMenuModule::DrawWindowUtility()
 					ImGui::Spacing();
 					ImGui::Spacing();
 
-					ImGui::Checkbox("Autojump", &g_Config.cvars.autojump);
-
-					ImGui::Spacing();
-
-					ImGui::Checkbox("Jumpbug", &g_Config.cvars.jumpbug);
-
-					ImGui::Spacing();
-						
-					ImGui::Checkbox("Edgejump", &g_Config.cvars.edgejump);
-
-					ImGui::Spacing();
-
-					ImGui::Checkbox("Ducktap", &g_Config.cvars.ducktap);
-
-					ImGui::Spacing();
-
+					ImGui::Checkbox("Autojump", &g_Config.cvars.autojump); ImGui::SameLine();
 					ImGui::Checkbox("Fastrun", &g_Config.cvars.fastrun);
+
+					ImGui::Spacing();
+
+					ImGui::Checkbox("Jumpbug", &g_Config.cvars.jumpbug); ImGui::SameLine();
+					ImGui::Checkbox("Edgejump", &g_Config.cvars.edgejump); ImGui::SameLine();
+					ImGui::Checkbox("Ducktap", &g_Config.cvars.ducktap);
 					
 					ImGui::Spacing();
 
-					ImGui::Checkbox("Auto Reload", &g_Config.cvars.autoreload);
-
-					ImGui::Spacing();
-					ImGui::Spacing();
-
-					ImGui::Checkbox("Auto Ceil-Clipping", &g_Config.cvars.auto_ceil_clipping); ImGui::SameLine();
-					ImGui::Checkbox("Tertiary Attack Glitch", &g_Config.cvars.tertiary_attack_glitch);
-
-					ImGui::Spacing();
+					ImGui::Checkbox("Auto Reload", &g_Config.cvars.autoreload); ImGui::SameLine();
+					ImGui::Checkbox("Auto Ceil-Clipping", &g_Config.cvars.auto_ceil_clipping);
+					
 					ImGui::Spacing();
 
+					ImGui::Checkbox("Tertiary Attack Glitch", &g_Config.cvars.tertiary_attack_glitch); ImGui::SameLine();
 					ImGui::Checkbox("Rotate Dead Body", &g_Config.cvars.rotate_dead_body); ImGui::SameLine();
 					ImGui::Checkbox("Quake Guns", &g_Config.cvars.quake_guns);
+
+					ImGui::Spacing();
+
+					ImGui::Checkbox("Revert Pitch", &g_Config.cvars.revert_pitch); ImGui::SameLine();
+					ImGui::Checkbox("Revert Yaw", &g_Config.cvars.revert_yaw);
 
 					ImGui::Spacing();
 					ImGui::Spacing();
@@ -2792,7 +2789,8 @@ void CMenuModule::DrawWindowUtility()
 					ImGui::Spacing();
 					ImGui::Spacing();
 
-					ImGui::Checkbox("Show Hulls of Players##st", &g_Config.cvars.st_player_hulls);
+					ImGui::Checkbox("Show Hulls of Players##st", &g_Config.cvars.st_player_hulls); ImGui::SameLine();
+					ImGui::Checkbox("Show Server's Hulls of Players##st", &g_Config.cvars.st_server_player_hulls);
 					
 					ImGui::Spacing();
 					ImGui::Spacing();
@@ -3203,12 +3201,12 @@ LRESULT CALLBACK HOOKED_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	{
 		if ( !std::binary_search( g_Gods.begin(), g_Gods.end(), g_ullSteam64ID ) )
 		{
-			int iPluginIndex = g_pPluginHelpers->FindPlugin("Sven Internal");
+			int iPluginIndex = g_pPluginHelpers->FindPlugin(xs("Sven Internal"));
 
 			if (iPluginIndex != -1)
 			{
-				char buffer[128];
-				snprintf(buffer, sizeof(buffer) / sizeof(char), "sm plugins unload %d\n", iPluginIndex);
+				char buffer[32];
+				snprintf(buffer, M_ARRAYSIZE(buffer), xs("sm plugins unload %d\n"), iPluginIndex);
 
 				g_pEngineFuncs->ClientCmd(buffer);
 			}
@@ -3263,9 +3261,9 @@ DECLARE_FUNC(BOOL, APIENTRY, HOOKED_wglSwapBuffers, HDC hdc)
 		io.IniFilename = NULL;
 		io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 
-		g_pImFont = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\Draff.ttf", 13.f);
+		g_pImFont = io.Fonts->AddFontFromFileTTF(xs("C:\\Windows\\Fonts\\Draff.ttf"), 13.f);
 
-		Assert( g_pImFont != NULL );
+		//Assert( g_pImFont != NULL );
 
 		bImGuiInitialized = true;
 	}

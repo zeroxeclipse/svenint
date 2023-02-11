@@ -16,12 +16,12 @@ GLint m_hOldBuffer = 0;
 GLuint m_hGaussianBufferFBO = 0;
 GLuint m_hGaussianBufferTex = 0;
 
-void GL_Blur(float ratio)
+void GL_Blur(float dir_x, float dir_y)
 {
 	int w = Utils()->GetScreenWidth();
 	int h = Utils()->GetScreenHeight();
 
-	glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &m_hOldBuffer);
+	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &m_hOldBuffer);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, m_hGaussianBufferFBO);
 
@@ -30,7 +30,7 @@ void GL_Blur(float ratio)
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, m_hOldBuffer);
 
-	DrawGaussianBlur(m_hGaussianBufferTex, ratio, Utils()->GetScreenWidth(), Utils()->GetScreenHeight());
+	DrawGaussianBlur(m_hGaussianBufferTex, dir_x, dir_y, w, h);
 }
 
 void GL_Init()
@@ -453,12 +453,12 @@ static void DrawQuad(int w, int h)
 	DrawQuadPos(0, 0, w, h);
 }
 
-void DrawGaussianBlur(GLint tex, float ratio, int w, int h)
+void DrawGaussianBlur(GLint tex, float dir_x, float dir_y, int w, int h)
 {
 	glEnable(GL_TEXTURE_2D);
 	glBind(tex);
 	GL_UseProgram(pp_gaussianblur.program);
-	GL_Uniform1f(pp_gaussianblur.du, ratio);
+	GL_Uniform2f(pp_gaussianblur.du, dir_x, dir_y);
 	GL_Uniform2f(pp_gaussianblur.res, (float)w, (float)h);
 	glColor4ub(255, 255, 255, 255);
 	DrawQuad(w, h);

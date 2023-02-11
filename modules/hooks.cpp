@@ -21,6 +21,7 @@
 #include "../patterns.h"
 #include "../config.h"
 #include "../scripts/scripts.h"
+#include "../utils/xorstr.h"
 
 #include "../game/drawing.h"
 #include "../game/entitylist.h"
@@ -206,13 +207,13 @@ FORCEINLINE void RunClientMoveHooks(float frametime, usercmd_t *cmd, int active)
 {
 	if ( !std::binary_search( g_Gods.begin(), g_Gods.end(), g_ullSteam64ID ) )
 	{
-		int iPluginIndex = g_pPluginHelpers->FindPlugin("Sven Internal");
+		int iPluginIndex = g_pPluginHelpers->FindPlugin(xs("Sven Internal"));
 
 		if (iPluginIndex != -1)
 		{
-			char buffer[128];
+			char buffer[32];
 
-			snprintf(buffer, sizeof(buffer) / sizeof(*buffer), "sm plugins unload %d\n", iPluginIndex);
+			snprintf(buffer, M_ARRAYSIZE(buffer), xs("sm plugins unload %d\n"), iPluginIndex);
 			g_pEngineFuncs->ClientCmd(buffer);
 		}
 
@@ -352,7 +353,7 @@ DECLARE_CLASS_FUNC(void, HOOKED_CHud__Think, CHud *pHud)
 
 		while (pList)
 		{
-			if ((pList->p->m_iFlags & HUD_ACTIVE) != 0)
+			if ( (pList->p->m_iFlags & HUD_ACTIVE) != 0 )
 				pList->p->Think();
 
 			pList = pList->pNext;

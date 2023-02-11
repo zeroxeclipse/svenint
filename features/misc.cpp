@@ -1680,6 +1680,14 @@ void CMisc::Spinner(struct usercmd_s *cmd)
 		g_vecSpinAngles.y = g_Config.cvars.lock_yaw_angle;
 		bAnglesChanged = true;
 	}
+	else if ( g_Config.cvars.revert_yaw )
+	{
+		if ( !g_Config.cvars.lock_pitch && !g_Config.cvars.spin_pitch_angle && !g_Config.cvars.revert_pitch )
+			g_vecSpinAngles.x = cmd->viewangles.x;
+
+		g_vecSpinAngles.y = NormalizeAngle( cmd->viewangles.y - 180.f );
+		bAnglesChanged = true;
+	}
 
 	if ( g_Config.cvars.spin_pitch_angle )
 	{
@@ -1698,6 +1706,16 @@ void CMisc::Spinner(struct usercmd_s *cmd)
 			g_vecSpinAngles.y = cmd->viewangles.y;
 
 		g_vecSpinAngles.x = g_Config.cvars.lock_pitch_angle;
+
+		m_bSpinCanChangePitch = true;
+		bAnglesChanged = true;
+	}
+	else if ( g_Config.cvars.revert_pitch )
+	{
+		if ( !g_Config.cvars.lock_yaw && !g_Config.cvars.spin_yaw_angle && !g_Config.cvars.revert_yaw )
+			g_vecSpinAngles.y = cmd->viewangles.y;
+
+		g_vecSpinAngles.x = NormalizeAngle( -cmd->viewangles.x );
 
 		m_bSpinCanChangePitch = true;
 		bAnglesChanged = true;

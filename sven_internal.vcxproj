@@ -62,6 +62,7 @@
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>SvenMod\public;imgui;imgui_impl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/GR- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -85,6 +86,7 @@
       <AdditionalIncludeDirectories>svenmod\public;glew\include;imgui;imgui_impl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>false</OpenMPSupport>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <AdditionalOptions>/GR- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -194,8 +196,10 @@
     <ClCompile Include="SvenMod\shared\mathlib.cpp" />
     <ClCompile Include="svenmod\shared\messagebuffer.cpp" />
     <ClCompile Include="svenmod\shared\sys.cpp" />
+    <ClCompile Include="utils\antidebug.cpp" />
     <ClCompile Include="utils\menu_styles.cpp" />
     <ClCompile Include="utils\patcher.cpp" />
+    <ClCompile Include="utils\shaders.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ADVobfuscator\Indexes.h" />
@@ -295,8 +299,10 @@
     <ClInclude Include="strafe\strafe.h" />
     <ClInclude Include="strafe\strafe_utils.h" />
     <ClInclude Include="SvenMod\public\hl_sdk\cl_dll\interpolation.h" />
+    <ClInclude Include="utils\antidebug.h" />
     <ClInclude Include="utils\menu_styles.h" />
     <ClInclude Include="utils\patcher.h" />
+    <ClInclude Include="utils\shaders.h" />
     <ClInclude Include="utils\xorstr.h" />
   </ItemGroup>
   <ItemGroup>

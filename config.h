@@ -122,6 +122,8 @@ public:
 		bool skip_frames = false;
 		int skip_frames_count = 1;
 
+		bool show_sound_origin = false;
+
 		bool show_players_push_direction = false;
 		float push_direction_length = 16.0f;
 		float push_direction_width = 1.0f;
@@ -379,6 +381,9 @@ public:
 		bool color_pulsator_bottom = true;
 		float color_pulsator_delay = 0.5f;
 
+		bool revert_pitch = false;
+		bool revert_yaw = false;
+
 		bool lock_pitch = false;
 		bool lock_yaw = false;
 		float lock_pitch_angle = 0.0f;
@@ -407,6 +412,7 @@ public:
 		bool st_timer = false;
 
 		bool st_player_hulls = false;
+		bool st_server_player_hulls = false;
 		float st_player_hulls_color[4] = { 232.f / 255.f, 0.f / 255.f, 232.f / 255.f, 96.f / 255.f };
 
 		float st_timer_color[3] = { 100.f / 255.f, 130.f / 255.f, 200.f / 255.f };

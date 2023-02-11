@@ -1,3 +1,9 @@
+#ifdef _CPPRTTI
+#error "RTTI enabled"
+#endif
+
+#define ANTIDEBUG 0
+
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -42,6 +48,7 @@
 #include "features/bsp.h"
 
 #include "steam/steam_api.h"
+#include "utils/antidebug.h"
 #include "utils/xorstr.h"
 
 //-----------------------------------------------------------------------------
@@ -110,10 +117,28 @@ private:
 
 private:
 	float m_flPlatTime;
+
+#if ANTIDEBUG
+	float m_flAntiDebugTime;
+#endif
 };
 
 CSvenInternal g_SvenInternal;
 IClientPlugin *g_pClientPlugin = &g_SvenInternal;
+
+//-----------------------------------------------------------------------------
+// Debugging countermeasures
+//-----------------------------------------------------------------------------
+
+#if ANTIDEBUG
+FORCEINLINE void CheckDebug()
+{
+	if ( AntiDebug::Check() )
+	{
+		PostQuitMessage( 0 );
+	}
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Implement plugin methods
@@ -156,11 +181,15 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 
 	//if ( status != GLEW_OK )
 	//{
-	//	Warning("[Sven Internal] Failed to initialize GLEW. Reason: %s\n", glewGetErrorString(status));
+	//	Warning(xs("[Sven Internal] Failed to initialize GLEW. Reason: %s\n"), glewGetErrorString(status));
 	//	return false;
 	//}
 
 	//SteamScreenshots()->HookScreenshots( true );
+
+#if ANTIDEBUG
+	CheckDebug();
+#endif
 
 	g_ullSteam64ID = SteamUser()->GetSteamID().ConvertToUint64();
 
@@ -211,7 +240,11 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 	g_Visual.ResetJumpSpeed();
 
 	g_pEngineFuncs->ClientCmd(xs("cl_timeout 999999;exec sven_internal.cfg"));
+
 	m_flPlatTime = g_pEngineFuncs->Sys_FloatTime();
+#if ANTIDEBUG
+	m_flAntiDebugTime = g_pEngineFuncs->Sys_FloatTime();
+#endif
 
 	ConColorMsg({ 40, 255, 40, 255 }, xs("[Sven Internal] Successfully loaded\n"));
 
@@ -264,6 +297,8 @@ void CSvenInternal::Unpause(void)
 
 void CSvenInternal::OnFirstClientdataReceived(client_data_t *pcldata, float flTime)
 {
+	g_ullSteam64ID = SteamUser()->GetSteamID().ConvertToUint64();
+
 	g_ScriptCallbacks.OnFirstClientdataReceived(flTime);
 	g_SpeedrunTools.OnFirstClientdataReceived(pcldata, flTime);
 	g_AntiAFK.OnEnterToServer();
@@ -292,29 +327,48 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 {
 	extern bool g_bScreenshot;
 	static bool s_bRemoveAntiScreen = false;
+	static float s_flRemoveAntiScreenDuration = -1.f;
+
+#if ANTIDEBUG
+	static int s_iAntiDebugChecks = 0;
+#endif
+
+	float flPlatTime = g_pEngineFuncs->Sys_FloatTime();
 
 	g_ScriptVM.Frame(state, frametime, bPostRunCmd);
 
-	if (bPostRunCmd)
+	if ( bPostRunCmd )
 	{
-		if (g_pEngineFuncs->Sys_FloatTime() - m_flPlatTime >= 0.5f)
+		if ( flPlatTime - m_flPlatTime >= 0.5f )
 		{
 			g_Config.UpdateConfigs();
 
-			m_flPlatTime = g_pEngineFuncs->Sys_FloatTime();
+			m_flPlatTime = flPlatTime;
 		}
+
+	#if ANTIDEBUG
+		if ( s_iAntiDebugChecks < 10 && flPlatTime - m_flAntiDebugTime >= 2.0f )
+		{
+			CheckDebug();
+
+			s_iAntiDebugChecks++;
+			m_flAntiDebugTime = flPlatTime;
+		}
+	#endif
 	}
 	else
 	{
-		if ( s_bRemoveAntiScreen )
+		if ( s_bRemoveAntiScreen && s_flRemoveAntiScreenDuration <= flPlatTime )
 		{
 			g_bScreenshot = false;
 			s_bRemoveAntiScreen = false;
+			s_flRemoveAntiScreenDuration = -1.f;
 		}
 		
 		if ( g_bScreenshot )
 		{
 			s_bRemoveAntiScreen = true;
+			s_flRemoveAntiScreenDuration = flPlatTime + 0.1f;
 		}
 
 		// Auto Update debugging messages
@@ -386,57 +440,91 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 
 void CSvenInternal::Draw(void)
 {
-	g_Bsp.Draw();
-	g_SpeedrunTools.Draw();
-	g_Visual.Process();
-	g_Radar.Draw();
-	g_VotePopup.Draw();
+	//g_Bsp.Draw();
+	//g_SpeedrunTools.Draw();
+	//g_Visual.Process();
+	//g_Radar.Draw();
+	//g_VotePopup.Draw();
 }
 
-//ConVar sc_blur("sc_blur", "0", FCVAR_CLIENTDLL, "");
+//ConVar sc_blur_x("sc_blur_x", "0", FCVAR_CLIENTDLL, "");
+//ConVar sc_blur_y("sc_blur_y", "0", FCVAR_CLIENTDLL, "");
 
 void CSvenInternal::DrawHUD(float time, int intermission)
 {
-	//if (sc_blur.GetFloat() > 0.f)
-	//	GL_Blur(sc_blur.GetFloat());
-
 	g_Visual.OnHUDRedraw(time);
 	g_SpeedrunTools.OnHUDRedraw(time);
+
+	g_Bsp.Draw();
+	g_SpeedrunTools.Draw();
+	g_Visual.Draw();
+	g_Radar.Draw();
+	g_VotePopup.Draw();
+
+	//if ( sc_blur_x.GetFloat() > 0.f || sc_blur_y.GetFloat() > 0.f )
+	//	GL_Blur( sc_blur_x.GetFloat(), sc_blur_y.GetFloat() );
 }
+
+FORCEINLINE void copy_obfuscated_str(const char *from, char *to, int size)
+{
+	memcpy(to, from, size);
+}
+
+static char svenint_name[ sizeof("SvenInt") ];
+static char svenint_author[ sizeof("Sw1ft / yessu / kolokola777") ];
+static char svenint_version[ sizeof(SVENINT_MAJOR_VERSION_STRING "." SVENINT_MINOR_VERSION_STRING "." SVENINT_PATCH_VERSION_STRING) ];
+static char svenint_desc[ sizeof("Provides various cheats and gameplay enhances") ];
+static char svenint_url[ sizeof("https://steamcommunity.com/profiles/76561198397776991") ];
+static char svenint_date[ sizeof(SVENMOD_BUILD_TIMESTAMP) ];
+static char svenint_tag[ sizeof("SVENINT")];
 
 const char *CSvenInternal::GetName(void)
 {
-	return "SvenInt";
+	copy_obfuscated_str(xs("SvenInt"), svenint_name, sizeof(svenint_name));
+
+	return svenint_name;
 }
 
 const char *CSvenInternal::GetAuthor(void)
 {
-	return "Sw1ft / yessu / kolokola777";
+	copy_obfuscated_str(xs("Sw1ft / yessu / kolokola777"), svenint_author, sizeof(svenint_author));
+
+	return svenint_author;
 }
 
 const char *CSvenInternal::GetVersion(void)
 {
-	return SVENINT_MAJOR_VERSION_STRING "." SVENINT_MINOR_VERSION_STRING "." SVENINT_PATCH_VERSION_STRING;
+	copy_obfuscated_str(xs(SVENINT_MAJOR_VERSION_STRING "." SVENINT_MINOR_VERSION_STRING "." SVENINT_PATCH_VERSION_STRING), svenint_version, sizeof(svenint_version));
+
+	return svenint_version;
 }
 
 const char *CSvenInternal::GetDescription(void)
 {
-	return "Provides various cheats and gameplay enhances";
+	copy_obfuscated_str(xs("Provides various cheats and gameplay enhances"), svenint_desc, sizeof(svenint_desc));
+
+	return svenint_desc;
 }
 
 const char *CSvenInternal::GetURL(void)
 {
-	return "https://steamcommunity.com/profiles/76561198397776991";
+	copy_obfuscated_str(xs("https://steamcommunity.com/profiles/76561198397776991"), svenint_url, sizeof(svenint_url));
+
+	return svenint_url;
 }
 
 const char *CSvenInternal::GetDate(void)
 {
-	return SVENMOD_BUILD_TIMESTAMP;
+	copy_obfuscated_str(xs(SVENMOD_BUILD_TIMESTAMP), svenint_date, sizeof(svenint_date));
+
+	return svenint_date;
 }
 
 const char *CSvenInternal::GetLogTag(void)
 {
-	return "SVENINT";
+	copy_obfuscated_str(xs("SVENINT"), svenint_tag, sizeof(svenint_tag));
+
+	return svenint_tag;
 }
 
 //-----------------------------------------------------------------------------

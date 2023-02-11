@@ -62,8 +62,8 @@ void GL_Init();
 void GL_Shutdown();
 
 void GL_ShaderInit();
-void GL_Blur(float ratio);
-void DrawGaussianBlur(GLint tex, float ratio, int w, int h);
+void GL_Blur(float dir_x, float dir_y);
+void DrawGaussianBlur(GLint tex, float dir_x, float dir_y, int w, int h);
 
 void GL_UploadDepthStencilTexture(int texId, int w, int h);
 GLuint GL_GenTexture(void);

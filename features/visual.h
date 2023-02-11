@@ -5,12 +5,25 @@
 #pragma once
 #endif
 
+#include <vector>
+
 #include <base_feature.h>
 #include <IHooks.h>
+#include <math/vector.h>
 
 #include "../game/class_table.h"
 
 typedef float bone_matrix3x4_t[MAXSTUDIOBONES][3][4];
+
+//-----------------------------------------------------------------------------
+// Structs
+//-----------------------------------------------------------------------------
+
+struct display_sound_origin_t
+{
+	Vector origin;
+	float time;
+};
 
 //-----------------------------------------------------------------------------
 // Visuals
@@ -27,7 +40,7 @@ public:
 	virtual void Unload();
 
 public:
-	void Process();
+	void Draw();
 	void ProcessBones();
 	bool StudioRenderModel();
 
@@ -35,9 +48,11 @@ public:
 	void OnHUDRedraw(float flTime);
 
 	void ResetJumpSpeed();
+	void AddSound(const Vector &vecOrigin);
 
 private:
 	void ESP();
+	void ShowSounds();
 	void DrawCrosshair();
 	void ShowSpeed();
 	void ShowGrenadeTimer();
@@ -56,6 +71,8 @@ private:
 	void DrawBones(int index, studiohdr_t *pStudioHeader);
 
 private:
+	std::vector<display_sound_origin_t> m_vSounds;
+
 	float m_flTime;
 
 	float m_flPrevTime;
@@ -66,6 +83,10 @@ private:
 
 	bool m_bOnGround;
 
+	void *m_pfnCClient_SoundEngine__PlayFMODSound;
+
+	DetourHandle_t m_hCClient_SoundEngine__PlayFMODSound;
+	DetourHandle_t m_hUserMsgHook_StartSound;
 	DetourHandle_t m_hUserMsgHook_ScreenShake;
 	DetourHandle_t m_hUserMsgHook_ScreenFade;
 

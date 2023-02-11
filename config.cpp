@@ -533,6 +533,8 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam("AutoWallstrafing", cvars.auto_wallstrafing);
 			ConfigManager()->ImportParam("WallstrafingAngle", cvars.wallstrafing_angle);
 			ConfigManager()->ImportParam("WallstrafingDistance", cvars.wallstrafing_dist);
+			ConfigManager()->ImportParam("RevertPitch", cvars.revert_pitch);
+			ConfigManager()->ImportParam("RevertYaw", cvars.revert_yaw);
 			ConfigManager()->ImportParam("LockPitch", cvars.lock_pitch);
 			ConfigManager()->ImportParam("LockYaw", cvars.lock_yaw);
 			ConfigManager()->ImportParam("LockPitchAngle", cvars.lock_pitch_angle);
@@ -567,6 +569,7 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam("TimerColor_G", cvars.st_timer_color[1]);
 			ConfigManager()->ImportParam("TimerColor_B", cvars.st_timer_color[2]);
 			ConfigManager()->ImportParam("ShowPlayerHulls", cvars.st_player_hulls);
+			ConfigManager()->ImportParam("ShowServerPlayerHulls", cvars.st_server_player_hulls);
 			ConfigManager()->ImportParam("PlayerHulls_R", cvars.st_player_hulls_color[0]);
 			ConfigManager()->ImportParam("PlayerHulls_G", cvars.st_player_hulls_color[1]);
 			ConfigManager()->ImportParam("PlayerHulls_B", cvars.st_player_hulls_color[2]);
@@ -1162,6 +1165,8 @@ void CConfig::Save()
 			ConfigManager()->ExportParam("AutoWallstrafing", cvars.auto_wallstrafing);
 			ConfigManager()->ExportParam("WallstrafingAngle", cvars.wallstrafing_angle);
 			ConfigManager()->ExportParam("WallstrafingDistance", cvars.wallstrafing_dist);
+			ConfigManager()->ExportParam("RevertPitch", cvars.revert_pitch);
+			ConfigManager()->ExportParam("RevertYaw", cvars.revert_yaw);
 			ConfigManager()->ExportParam("LockPitch", cvars.lock_pitch);
 			ConfigManager()->ExportParam("LockYaw", cvars.lock_yaw);
 			ConfigManager()->ExportParam("LockPitchAngle", cvars.lock_pitch_angle);
@@ -1196,6 +1201,7 @@ void CConfig::Save()
 			ConfigManager()->ExportParam("TimerColor_G", cvars.st_timer_color[1]);
 			ConfigManager()->ExportParam("TimerColor_B", cvars.st_timer_color[2]);
 			ConfigManager()->ExportParam("ShowPlayerHulls", cvars.st_player_hulls);
+			ConfigManager()->ExportParam("ShowServerPlayerHulls", cvars.st_server_player_hulls);
 			ConfigManager()->ExportParam("PlayerHulls_R", cvars.st_player_hulls_color[0]);
 			ConfigManager()->ExportParam("PlayerHulls_G", cvars.st_player_hulls_color[1]);
 			ConfigManager()->ExportParam("PlayerHulls_B", cvars.st_player_hulls_color[2]);
