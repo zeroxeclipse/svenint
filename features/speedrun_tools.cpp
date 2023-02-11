@@ -1539,6 +1539,9 @@ void CSpeedrunTools::ShowGaussBoostInfo(int r, int g, int b)
 				flAmmoConsumed += 1.f;
 			}
 
+			if ( flDamage <= 0.f )
+				flDamage = 190.f; // default sven cope value
+
 			flBoost = flDamage * 5;
 
 			g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Optimal resulting speed [back boost]: %.6f", velocity.Length2D() + flBoost);
