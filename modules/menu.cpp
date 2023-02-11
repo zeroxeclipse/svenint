@@ -2893,7 +2893,8 @@ void CMenuModule::DrawWindowUtility()
 					ImGui::Spacing();
 					ImGui::Spacing();
 					
-					ImGui::Checkbox("Show Entity Info##st", &g_Config.cvars.st_show_entity_info);
+					ImGui::Checkbox("Show Entity Info##st", &g_Config.cvars.st_show_entity_info); ImGui::SameLine();
+					ImGui::Checkbox("Check Players##st_entinfo", &g_Config.cvars.st_show_entity_info_check_players);
 
 					ImGui::Spacing();
 
