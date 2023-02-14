@@ -1603,9 +1603,14 @@ void CSpeedrunTools::ShowGaussBoostInfo(int r, int g, int b)
 			float flBoost;
 			float flAmmoConsumed;
 
+			float flSecondaryGaussDamage = sk_plr_secondarygauss->value;
+
+			if ( flSecondaryGaussDamage <= 0.f )
+				flSecondaryGaussDamage = 190.f; // default sven cope value
+
 			if ( m_fInAttack == 1 )
 			{
-				flDamage = sk_plr_secondarygauss->value * ( 0.5f / flGaussFullChargeTime );
+				flDamage = flSecondaryGaussDamage * ( 0.5f / flGaussFullChargeTime );
 
 				flAmmoConsumed = 1.f;
 			}
@@ -1613,19 +1618,16 @@ void CSpeedrunTools::ShowGaussBoostInfo(int r, int g, int b)
 			{
 				if ( m_flStartChargeTime > flGaussFullChargeTime )
 				{
-					flDamage = sk_plr_secondarygauss->value;
+					flDamage = flSecondaryGaussDamage;
 				}
 				else
 				{
-					flDamage = sk_plr_secondarygauss->value * ( m_flStartChargeTime / flGaussFullChargeTime );
+					flDamage = flSecondaryGaussDamage * ( m_flStartChargeTime / flGaussFullChargeTime );
 				}
 
 				flAmmoConsumed = ( m_flStartChargeTime - 0.5f ) / 0.3f;
 				flAmmoConsumed += 1.f;
 			}
-
-			if ( flDamage <= 0.f )
-				flDamage = 190.f; // default sven cope value
 
 			flBoost = flDamage * 5;
 
