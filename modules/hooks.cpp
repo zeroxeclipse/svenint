@@ -12,6 +12,10 @@
 #include <ISvenModAPI.h>
 #include <IMemoryUtils.h>
 
+#ifdef SVENINT_SHADERS
+#include "../utils/shaders.h"
+#endif
+
 #include <gl/GL.h>
 #include <vector>
 #include <algorithm>
@@ -876,7 +880,15 @@ DECLARE_FUNC(void, __cdecl, HOOKED_V_RenderView)
 
 DECLARE_FUNC(void, __cdecl, HOOKED_R_RenderScene)
 {
+#ifdef SVENINT_SHADERS
+	GL_PreRenderScene();
+#endif
+
 	ORIG_R_RenderScene();
+
+#ifdef SVENINT_SHADERS
+	GL_PostRenderScene();
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -967,8 +979,54 @@ HOOK_RESULT CClientHooks::HUD_VidInit(void)
 	return HOOK_CONTINUE;
 }
 
+#ifdef SVENINT_SHADERS
+ConVar sc_gl_depth_buffer("sc_gl_depth_buffer", "0", FCVAR_CLIENTDLL, "");
+ConVar sc_gl_depth_buffer_z("sc_gl_depth_buffer_z", "4 4096", FCVAR_CLIENTDLL, "");
+ConVar sc_gl_depth_buffer_factor("sc_gl_depth_buffer_factor", "1", FCVAR_CLIENTDLL, "");
+ConVar sc_gl_blur_gaussian_radius("sc_gl_blur_gaussian_radius", "0", FCVAR_CLIENTDLL, "");
+ConVar sc_gl_blur_gaussian_fast_radius("sc_gl_blur_gaussian_fast_radius", "0", FCVAR_CLIENTDLL, "");
+ConVar sc_gl_blur_bokeh("sc_gl_blur_bokeh", "", FCVAR_CLIENTDLL, "");
+ConVar sc_gl_blur_dof("sc_gl_blur_dof", "", FCVAR_CLIENTDLL, "");
+#endif
+
 HOOK_RESULT CClientHooks::HUD_Redraw(float time, int intermission)
 {
+#ifdef SVENINT_SHADERS
+	if ( sc_gl_depth_buffer.GetBool() )
+	{
+		float znear, zfar;
+
+		if ( sscanf( sc_gl_depth_buffer_z.GetString(), "%f %f", &znear, &zfar ) == 2 )
+			GL_DepthBuffer( znear, zfar, sc_gl_depth_buffer_factor.GetFloat() );
+	}
+
+	if ( *(sc_gl_blur_dof.GetString()) != '\0' )
+	{
+		float minDistance, maxDistance, radius, samples, bokeh;
+
+		if ( sscanf( sc_gl_blur_dof.GetString(), "%f %f %f %f %f", &minDistance, &maxDistance, &radius, &samples, &bokeh ) == 5 )
+			GL_DoFBlur( minDistance, maxDistance, radius, samples, bokeh );
+	}
+	
+	if ( *(sc_gl_blur_bokeh.GetString()) != '\0' )
+	{
+		float radius, samples, bokeh;
+
+		if ( sscanf( sc_gl_blur_bokeh.GetString(), "%f %f %f", &radius, &samples, &bokeh ) == 3 )
+			GL_Bokeh( radius, samples, bokeh );
+	}
+
+	if ( sc_gl_blur_gaussian_radius.GetFloat() > 0.f )
+	{
+		GL_GaussianBlur( sc_gl_blur_gaussian_radius.GetFloat() );
+	}
+
+	if ( sc_gl_blur_gaussian_fast_radius.GetFloat() > 0.f )
+	{
+		GL_GaussianBlurFast( sc_gl_blur_gaussian_fast_radius.GetFloat() );
+	}
+#endif
+
 	g_DynamicGlow.OnHUDRedraw();
 
 	return HOOK_CONTINUE;
@@ -1486,13 +1544,13 @@ bool CHooksModule::Load()
 		return false;
 	}
 	
-	//m_pfnR_RenderScene = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::R_RenderScene_HOOKED );
+	m_pfnR_RenderScene = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::R_RenderScene_HOOKED );
 
-	//if ( !m_pfnR_RenderScene )
-	//{
-	//	Warning("Couldn't find function \"R_RenderScene\"\n");
-	//	return false;
-	//}
+	if ( !m_pfnR_RenderScene )
+	{
+		Warning("Couldn't find function \"R_RenderScene\"\n");
+		return false;
+	}
 	
 	m_pfnR_SetupFrame = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::R_SetupFrame );
 
@@ -1639,7 +1697,7 @@ void CHooksModule::PostLoad()
 	m_hglColor4f = DetoursAPI()->DetourFunction( m_pfnglColor4f, HOOKED_glColor4f, GET_FUNC_PTR(ORIG_glColor4f) );
 	m_hSCR_UpdateScreen = DetoursAPI()->DetourFunction( m_pfnSCR_UpdateScreen, HOOKED_SCR_UpdateScreen, GET_FUNC_PTR(ORIG_SCR_UpdateScreen) );
 	m_hV_RenderView = DetoursAPI()->DetourFunction( m_pfnV_RenderView, HOOKED_V_RenderView, GET_FUNC_PTR(ORIG_V_RenderView) );
-	//m_hR_RenderScene = DetoursAPI()->DetourFunction( m_pfnR_RenderScene, HOOKED_R_RenderScene, GET_FUNC_PTR(ORIG_R_RenderScene) );
+	m_hR_RenderScene = DetoursAPI()->DetourFunction( m_pfnR_RenderScene, HOOKED_R_RenderScene, GET_FUNC_PTR(ORIG_R_RenderScene) );
 	m_hR_SetupFrame = DetoursAPI()->DetourFunction( m_pfnR_SetupFrame, HOOKED_R_SetupFrame, GET_FUNC_PTR(ORIG_R_SetupFrame) );
 	m_hCRC_MapFile = DetoursAPI()->DetourFunction( m_pfnCRC_MapFile, HOOKED_CRC_MapFile, GET_FUNC_PTR(ORIG_CRC_MapFile) );
 
@@ -1674,7 +1732,7 @@ void CHooksModule::Unload()
 	DetoursAPI()->RemoveDetour( m_hglColor4f );
 	DetoursAPI()->RemoveDetour( m_hSCR_UpdateScreen );
 	DetoursAPI()->RemoveDetour( m_hV_RenderView );
-	//DetoursAPI()->RemoveDetour( m_hR_RenderScene );
+	DetoursAPI()->RemoveDetour( m_hR_RenderScene );
 	DetoursAPI()->RemoveDetour( m_hR_SetupFrame );
 	DetoursAPI()->RemoveDetour( m_hCRC_MapFile );
 

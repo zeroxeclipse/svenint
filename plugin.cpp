@@ -8,8 +8,10 @@
 #include <vector>
 #include <algorithm>
 
-//#include <GL/glew.h>
-//#include "utils/shaders.h"
+#ifdef SVENINT_SHADERS
+#include <GL/glew.h>
+#include "utils/shaders.h"
+#endif
 
 #include <ISvenModAPI.h>
 #include <IClientPlugin.h>
@@ -177,13 +179,15 @@ api_version_t CSvenInternal::GetAPIVersion()
 
 bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSvenModAPI, IPluginHelpers *pPluginHelpers)
 {
-	//GLenum status = glewInit();
+#ifdef SVENINT_SHADERS
+	GLenum status = glewInit();
 
-	//if ( status != GLEW_OK )
-	//{
-	//	Warning(xs("[Sven Internal] Failed to initialize GLEW. Reason: %s\n"), glewGetErrorString(status));
-	//	return false;
-	//}
+	if ( status != GLEW_OK )
+	{
+		Warning(xs("[Sven Internal] Failed to initialize GLEW. Reason: %s\n"), glewGetErrorString(status));
+		return false;
+	}
+#endif
 
 	//SteamScreenshots()->HookScreenshots( true );
 
@@ -209,7 +213,9 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 	BindApiToGlobals(pSvenModAPI);
 	InitFolders(pSvenModAPI);
 
-	//GL_Init();
+#ifdef SVENINT_SHADERS
+	GL_Init();
+#endif
 
 	if ( !InitServerDLL() )
 	{
@@ -274,7 +280,9 @@ void CSvenInternal::PostLoad(bool bGlobalLoad)
 
 void CSvenInternal::Unload(void)
 {
-	//GL_Shutdown();
+#ifdef SVENINT_SHADERS
+	GL_Shutdown();
+#endif
 
 	UnloadFeatures();
 
@@ -447,9 +455,6 @@ void CSvenInternal::Draw(void)
 	//g_VotePopup.Draw();
 }
 
-//ConVar sc_blur_x("sc_blur_x", "0", FCVAR_CLIENTDLL, "");
-//ConVar sc_blur_y("sc_blur_y", "0", FCVAR_CLIENTDLL, "");
-
 void CSvenInternal::DrawHUD(float time, int intermission)
 {
 	g_Visual.OnHUDRedraw(time);
@@ -460,9 +465,6 @@ void CSvenInternal::DrawHUD(float time, int intermission)
 	g_Visual.Draw();
 	g_Radar.Draw();
 	g_VotePopup.Draw();
-
-	//if ( sc_blur_x.GetFloat() > 0.f || sc_blur_y.GetFloat() > 0.f )
-	//	GL_Blur( sc_blur_x.GetFloat(), sc_blur_y.GetFloat() );
 }
 
 FORCEINLINE void copy_obfuscated_str(const char *from, char *to, int size)
