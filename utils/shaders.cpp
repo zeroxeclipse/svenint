@@ -773,15 +773,6 @@ void GL_DoFBlur(float minDistance, float maxDistance, float radius, float sample
 	{
 		glGetIntegerv(GL_FRAMEBUFFER_BINDING, &m_hOldBuffer);
 
-		glBindFramebuffer(GL_FRAMEBUFFER, m_hBokehBufferFBO);
-
-			glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, m_hBokehBufferTex, 0);
-			GL_BlitFrameBufferToFrameBufferColorOnly(m_hOldBuffer, m_hBokehBufferFBO, w, h, w, h);
-	
-		glBindFramebuffer(GL_FRAMEBUFFER, m_hOldBuffer);
-
-		glGetIntegerv(GL_FRAMEBUFFER_BINDING, &m_hOldBuffer);
-
 		glBindFramebuffer(GL_FRAMEBUFFER, m_hDoFBlurBufferFBO);
 
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, m_hOldBuffer);
