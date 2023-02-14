@@ -73,12 +73,14 @@ IMGUI_IMPL_API void         ImGui_ImplVulkan_DestroyFontUploadObjects();
 IMGUI_IMPL_API void         ImGui_ImplVulkan_SetMinImageCount(uint32_t min_image_count); // To override MinImageCount after initialization (e.g. if swap chain is recreated)
 
 // Register a texture (VkDescriptorSet == ImTextureID)
-// FIXME: This is experimental in the sense that we are unsure how to best design/tackle this problem, please post to https://github.com/ocornut/imgui/pull/914 if you have suggestions.
+// FIXME: This is experimental in the sense that we are unsure how to best design/tackle this problem
+// Please post to https://github.com/ocornut/imgui/pull/914 if you have suggestions.
 IMGUI_IMPL_API VkDescriptorSet ImGui_ImplVulkan_AddTexture(VkSampler sampler, VkImageView image_view, VkImageLayout image_layout);
+IMGUI_IMPL_API void            ImGui_ImplVulkan_RemoveTexture(VkDescriptorSet descriptor_set);
 
 // Optional: load Vulkan functions with a custom function loader
 // This is only useful with IMGUI_IMPL_VULKAN_NO_PROTOTYPES / VK_NO_PROTOTYPES
-IMGUI_IMPL_API bool         ImGui_ImplVulkan_LoadFunctions(PFN_vkVoidFunction(*loader_func)(const char* function_name, void* user_data), void* user_data = NULL);
+IMGUI_IMPL_API bool         ImGui_ImplVulkan_LoadFunctions(PFN_vkVoidFunction(*loader_func)(const char* function_name, void* user_data), void* user_data = nullptr);
 
 //-------------------------------------------------------------------------
 // Internal / Miscellaneous Vulkan Helpers
@@ -148,7 +150,7 @@ struct ImGui_ImplVulkanH_Window
     ImGui_ImplVulkanH_Window()
     {
         memset((void*)this, 0, sizeof(*this));
-        PresentMode = VK_PRESENT_MODE_MAX_ENUM_KHR;
+        PresentMode = (VkPresentModeKHR)~0;     // Ensure we get an error if user doesn't set this.
         ClearEnable = true;
     }
 };

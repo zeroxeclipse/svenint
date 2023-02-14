@@ -347,6 +347,9 @@
     <ClCompile Include="utils\shaders.cpp">
       <Filter>Sven Internal\Utils</Filter>
     </ClCompile>
+    <ClCompile Include="imgui_custom\imgui_custom.cpp">
+      <Filter>Sven Internal</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">
@@ -655,6 +658,7 @@
     <ClInclude Include="utils\shaders.h">
       <Filter>Sven Internal\Utils</Filter>
     </ClInclude>
+    <ClInclude Include="imgui_custom\imgui_custom.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -28,12 +28,22 @@ public:
 	void Draw();
 
 private:
-	void DrawWindowAim();
-	void DrawWindowVisuals();
-	void DrawWindowHUD();
-	void DrawWindowUtility();
-	void DrawWindowConfig();
-	void DrawWindowSettings();
+	void DrawLogo();
+	void DrawMainTabs();
+	void DrawMenuImage();
+	void DrawStats();
+
+	void DrawVisualsSubTabs();
+	void DrawHUDSubTabs();
+	void DrawUtilitySubTabs();
+	void DrawConfigsSubTabs();
+	void DrawSettingsSubTabs();
+
+	void DrawVisualsTabContent();
+	void DrawHUDTabContent();
+	void DrawUtilityTabContent();
+	void DrawTabConfigsContent();
+	void DrawSettingsTabContent();
 
 private:
 	void *m_pfnwglSwapBuffers;

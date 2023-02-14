@@ -145,6 +145,12 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam("AutoResize", cvars.menu_auto_resize);
 			ConfigManager()->ImportParam("Theme", cvars.menu_theme);
 			ConfigManager()->ImportParam("Opacity", cvars.menu_opacity);
+			ConfigManager()->ImportParam("SvenIntLogoColor_R", cvars.logo_color[0]);
+			ConfigManager()->ImportParam("SvenIntLogoColor_G", cvars.logo_color[1]);
+			ConfigManager()->ImportParam("SvenIntLogoColor_B", cvars.logo_color[2]);
+			ConfigManager()->ImportParam("RainbowLogo", cvars.rainbow[0]);
+			ConfigManager()->ImportParam("RainbowSeparator", cvars.rainbow[1]);
+			ConfigManager()->ImportParam("RainbowSpeed", cvars.rainbow_speed);
 
 			ConfigManager()->EndSectionImport();
 		}
@@ -782,6 +788,12 @@ void CConfig::Save()
 			ConfigManager()->ExportParam("AutoResize", cvars.menu_auto_resize);
 			ConfigManager()->ExportParam("Theme", cvars.menu_theme);
 			ConfigManager()->ExportParam("Opacity", cvars.menu_opacity);
+			ConfigManager()->ExportParam("SvenIntLogoColor_R", cvars.logo_color[0]);
+			ConfigManager()->ExportParam("SvenIntLogoColor_G", cvars.logo_color[1]);
+			ConfigManager()->ExportParam("SvenIntLogoColor_B", cvars.logo_color[2]);
+			ConfigManager()->ExportParam("RainbowLogo", cvars.rainbow[0]);
+			ConfigManager()->ExportParam("RainbowSeparator", cvars.rainbow[1]);
+			ConfigManager()->ExportParam("RainbowSpeed", cvars.rainbow_speed);
 
 			ConfigManager()->EndSectionExport();
 		}
