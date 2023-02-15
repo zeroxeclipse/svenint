@@ -510,7 +510,7 @@ void CMenuModule::DrawStats()
 
 void CMenuModule::DrawVisualsSubTabs()
 {
-	std::string SubTabNames[] = { "Render", "ESP", "Chams", "Glow", "Wallhack", "Models Manager", "Misc" };
+	std::string SubTabNames[] = { "Render", "ESP", "Chams", "Glow", "Flashlight", "Wallhack", "BSP", "Models Manager", "Misc" };
 
 	for (int i = 0; i < ARRAYSIZE(SubTabNames); i++)
 	{
@@ -528,7 +528,7 @@ void CMenuModule::DrawVisualsSubTabs()
 
 void CMenuModule::DrawHUDSubTabs()
 {
-	std::string SubTabNames[] = { "General", "Speedometer", "Chat Colors", "Custom Vote Popup" };
+	std::string SubTabNames[] = { "General", "Speedometer", "Radar", "Chat Colors", "Custom Vote Popup" };
 
 	for (int i = 0; i < ARRAYSIZE(SubTabNames); i++)
 	{
@@ -607,7 +607,7 @@ void CMenuModule::DrawVisualsTabContent()
 	{
 	case 0: // Render
 	{
-		ImGui::BeginChild("render", ImVec2(328, 350), true);
+		ImGui::BeginChild("render", ImVec2(328, 430), true);
 
 		ImGui::PushItemWidth(180);
 
@@ -665,6 +665,16 @@ void CMenuModule::DrawVisualsTabContent()
 		ImGui::Combo("##no_weap_anims", &g_Config.cvars.no_weapon_anim, no_weap_anim_items, IM_ARRAYSIZE(no_weap_anim_items));
 
 		ImGuiCustom.Spacing(4);
+
+		ImGui::Text("Skip Frames");
+
+		ImGui::Spacing();
+
+		ImGui::Checkbox("Skip Frames", &g_Config.cvars.skip_frames);
+
+		ImGui::Spacing();
+
+		ImGui::SliderInt("Skip Frames Count", &g_Config.cvars.skip_frames_count, 1, 60);
 
 		ImGui::EndTabItem();
 
@@ -1016,15 +1026,120 @@ void CMenuModule::DrawVisualsTabContent()
 		ImGui::PopItemWidth();
 		break;
 	}
-	case 4: // Wallhack
+	case 4: // Flashlight
 	{
-		ImGui::BeginChild("wallhack", ImVec2(328, 205), true);
+		ImGui::BeginChild("esp", ImVec2(328, 410), true);
 
 		ImGui::PushItemWidth(150);
 
-		ImGui::Text("Wallhack");
+		ImGui::Checkbox("Custom Flashlight", &g_Config.cvars.custom_flashlight);
 
 		ImGuiCustom.Spacing(4);
+
+		ImGui::Text("Local Player Flashlight");
+
+		ImGui::Spacing();
+
+		ImGui::Checkbox("Flashlight##localp", &g_Config.cvars.flashlight_localplayer);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Flashlight Distance##localp", &g_Config.cvars.flashlight_localplayer_flashlight_distance, 1.f, 8192.f);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Flashlight Falloff Distance##localp", &g_Config.cvars.flashlight_localplayer_falloff_distance, 1.f, 8192.f);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Flashlight Radius##localp", &g_Config.cvars.flashlight_localplayer_radius, 1.f, 1024.f);
+
+		ImGui::Spacing();
+
+		ImGui::ColorEdit3("Flashlight Color##localp", g_Config.cvars.flashlight_localplayer_color);
+
+		ImGuiCustom.Spacing(4);
+
+		ImGui::Text("Other Players Flashlight");
+
+		ImGui::Spacing();
+
+		ImGui::Checkbox("Flashlight##plr", &g_Config.cvars.flashlight_players);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Flashlight Distance##plr", &g_Config.cvars.flashlight_players_flashlight_distance, 1.f, 8192.f);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Flashlight Falloff Distance##plr", &g_Config.cvars.flashlight_players_falloff_distance, 1.f, 8192.f);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Flashlight Radius##plr", &g_Config.cvars.flashlight_players_radius, 1.f, 1024.f);
+
+		ImGui::Spacing();
+
+		ImGui::ColorEdit3("Flashlight Color##plr", g_Config.cvars.flashlight_players_color);
+
+		ImGui::PopItemWidth();
+
+		ImGui::EndChild();
+
+		ImGui::NextColumn();
+
+		ImGui::SetCursorPosX(332);
+
+		ImGui::BeginChild("ESP2", ImVec2(328.5, 315), true);
+
+		ImGui::PushItemWidth(140);
+
+		ImGui::Text("Local Player Flashlight Lighting");
+
+		ImGui::Spacing();
+
+		ImGui::Checkbox("Flashlight Lighting##llocalp", &g_Config.cvars.flashlight_lighting_localplayer);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Flashlight Lighting Distance##llocalp", &g_Config.cvars.flashlight_lighting_localplayer_distance, 1.f, 1024.f);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Flashlight Lighting Radius##llocalp", &g_Config.cvars.flashlight_lighting_localplayer_radius, 1.f, 1024.f);
+
+		ImGui::Spacing();
+
+		ImGui::ColorEdit3("Flashlight Lighting Color##llocalp", g_Config.cvars.flashlight_lighting_localplayer_color);
+
+		ImGuiCustom.Spacing(4);
+
+		ImGui::Text("Other Players Flashlight Lighting");
+
+		ImGui::Spacing();
+
+		ImGui::Checkbox("Flashlight Lighting##lplr", &g_Config.cvars.flashlight_lighting_players);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Flashlight Lighting Distance##lplr", &g_Config.cvars.flashlight_lighting_players_distance, 1.f, 1024.f);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Flashlight Lighting Radius##lplr", &g_Config.cvars.flashlight_lighting_players_radius, 1.f, 1024.f);
+
+		ImGui::Spacing();
+
+		ImGui::ColorEdit3("Flashlight Lighting Color##lplr", g_Config.cvars.flashlight_lighting_players_color);
+
+		ImGui::PopItemWidth();
+		break;
+	}
+	case 5: // Wallhack
+	{
+		ImGui::BeginChild("wallhack", ImVec2(328, 170), true);
+
+		ImGui::PushItemWidth(150);
 
 		ImGui::Checkbox("Simple Wallhack", &g_Config.cvars.wallhack); ImGui::SameLine();
 		ImGui::Checkbox("Lambert Wallhack", &g_Config.cvars.wallhack_white_walls);
@@ -1050,7 +1165,100 @@ void CMenuModule::DrawVisualsTabContent()
 		ImGui::EndChild();
 		break;
 	}
-	case 5: // Models Manager
+	case 6: // BSP
+	{
+		ImGui::BeginChild("bsp", ImVec2(328, 160), true);
+
+		ImGui::PushItemWidth(250);
+
+		ImGui::Text("BSP Info");
+
+		ImGui::Spacing();
+
+		ImGui::Checkbox("Show Spawns", &g_Config.cvars.show_spawns);
+
+		ImGui::Spacing();
+
+		ImGui::Checkbox("Enable Triggers", &g_Config.cvars.show_triggers);
+
+		ImGui::Spacing();
+
+		ImGui::Checkbox("Enable Triggers Info", &g_Config.cvars.show_triggers_info);
+
+		ImGui::Spacing();
+		
+		if (ImGui::BeginCombo("", "Triggers To Show", ImGuiComboFlags_HeightLargest))
+		{
+			ImGui::Checkbox("Show Trigger Once", &g_Config.cvars.show_trigger_once);
+
+			ImGui::Spacing();
+
+			ImGui::ColorEdit4("Trigger Once Color", g_Config.cvars.trigger_once_color);
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox("Show Trigger Multiple", &g_Config.cvars.show_trigger_multiple);
+
+			ImGui::Spacing();
+
+			ImGui::ColorEdit4("Trigger Multiple Color", g_Config.cvars.trigger_multiple_color);
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox("Show Trigger Hurt", &g_Config.cvars.show_trigger_hurt);
+
+			ImGui::Spacing();
+
+			ImGui::ColorEdit4("Trigger Hurt Color", g_Config.cvars.trigger_hurt_color);
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox("Show Trigger Hurt (Heal)", &g_Config.cvars.show_trigger_hurt_heal);
+
+			ImGui::Spacing();
+
+			ImGui::ColorEdit4("Trigger Hurt (Heal) Color", g_Config.cvars.trigger_hurt_heal_color);
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox("Show Trigger Push", &g_Config.cvars.show_trigger_push);
+
+			ImGui::Spacing();
+
+			ImGui::ColorEdit4("Trigger Push Color", g_Config.cvars.trigger_push_color);
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox("Show Trigger Teleport", &g_Config.cvars.show_trigger_teleport);
+
+			ImGui::Spacing();
+
+			ImGui::ColorEdit4("Trigger Teleport Color", g_Config.cvars.trigger_teleport_color);
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox("Show Trigger Changelevel", &g_Config.cvars.show_trigger_changelevel);
+
+			ImGui::Spacing();
+
+			ImGui::ColorEdit4("Trigger Changelevel Color", g_Config.cvars.trigger_changelevel_color);
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox("Show Anti-Rush Trigger", &g_Config.cvars.show_trigger_antirush);
+
+			ImGui::Spacing();
+
+			ImGui::ColorEdit4("Anti-Rush Trigger Color", g_Config.cvars.trigger_antirush_color);
+
+			ImGui::EndCombo();
+		}
+
+		ImGui::PopItemWidth();
+		ImGui::EndChild();
+		break;
+	}
+	case 7: // Models Manager
 	{
 		ImGui::BeginChild("models-manager", ImVec2(328, 380), true);
 
@@ -1133,10 +1341,10 @@ void CMenuModule::DrawVisualsTabContent()
 		ImGui::EndChild();
 		break;
 	}
-	case 6: // Misc
+	case 8: // Misc
 	{
 
-		ImGui::BeginChild("misc", ImVec2(328, 265), true);
+		ImGui::BeginChild("misc", ImVec2(328, 410), true);
 
 		ImGui::PushItemWidth(160);
 
@@ -1171,7 +1379,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Text("Player's Push Direction");
 
-		ImGuiCustom.Spacing(4);
+		ImGui::Spacing();
 
 		ImGui::Checkbox("Show Player's Push Direction", &g_Config.cvars.show_players_push_direction);
 
@@ -1186,6 +1394,26 @@ void CMenuModule::DrawVisualsTabContent()
 		ImGui::Spacing();
 
 		ImGui::ColorEdit3("Push Direction Color", g_Config.cvars.push_direction_color);
+
+		ImGuiCustom.Spacing(4);
+
+		ImGui::Text("Player's Sight Direction");
+
+		ImGui::Spacing();
+
+		ImGui::Checkbox("Show Players Sight Direction", &g_Config.cvars.show_players_sight_direction);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Sight Direction Length", &g_Config.cvars.players_sight_direction_length, 0.0f, 256.0f);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Sight Direction Width", &g_Config.cvars.players_sight_direction_width, 0.01f, 100.0f);
+
+		ImGui::Spacing();
+
+		ImGui::ColorEdit3("Sight Direction Color", g_Config.cvars.players_sight_direction_color);
 
 		ImGui::PopItemWidth();
 		ImGui::EndChild();
@@ -1290,6 +1518,7 @@ void CMenuModule::DrawHUDTabContent()
 		ImGuiCustom.Spacing(4);
 
 		ImGui::PopItemWidth();
+
 		ImGui::PushItemWidth(160);
 
 		ImGui::ColorEdit4("Crosshair Color", g_Config.cvars.crosshair_color);
@@ -1299,7 +1528,41 @@ void CMenuModule::DrawHUDTabContent()
 		ImGui::ColorEdit4("Crosshair Outline Color", g_Config.cvars.crosshair_outline_color);
 
 		ImGui::PopItemWidth();
+
 		ImGui::EndChild();
+
+		ImGui::NextColumn();
+
+		ImGui::SetCursorPosX(332);
+
+		ImGui::BeginChild("ESP2", ImVec2(328.5, 195), true);
+
+		ImGui::PushItemWidth(160);
+
+		ImGui::Text("Grenade's Timer");
+
+		ImGui::Spacing();
+
+		ImGui::Checkbox("Show Grenade's Timer", &g_Config.cvars.grenade_timer);
+
+		ImGui::Spacing();
+
+		ImGui::ColorEdit3("Timer Color##nade_t", g_Config.cvars.grenade_timer_color);
+
+		ImGui::Spacing();
+
+		ImGui::ColorEdit3("Explosion Time Color##nade_t", g_Config.cvars.grenade_explosive_time_color);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Width Fraction##nade_t", &g_Config.cvars.grenade_timer_width_frac, 0.f, 1.f);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Height Fraction##nade_t", &g_Config.cvars.grenade_timer_height_frac, 0.f, 1.f);
+
+		ImGui::EndChild();
+		ImGui::PopItemWidth();
 		break;
 	}
 	case 1: // Speedometer
@@ -1378,7 +1641,48 @@ void CMenuModule::DrawHUDTabContent()
 		ImGui::EndChild();
 		break;
 	}
-	case 2: // Chat Colors
+	case 2: // Radar
+	{
+		ImGui::BeginChild("radar", ImVec2(328, 265), true);
+
+		ImGui::PushItemWidth(180);
+
+		ImGui::Checkbox("Enable Radar", &g_Config.cvars.radar);
+
+		ImGui::Spacing();
+
+		ImGui::Checkbox("Show Player Name##radar", &g_Config.cvars.radar_show_player_name);
+
+		ImGui::Spacing();
+
+		ImGui::Checkbox("Show Entity Name##radar", &g_Config.cvars.radar_show_entity_name);
+
+		ImGuiCustom.Spacing(4);
+
+		static const char* radar_type[] = { "0 - Round", "1 - Square" };
+		ImGui::SliderInt("Type##rdr", &g_Config.cvars.radar_type, 0, 1, radar_type[g_Config.cvars.radar_type]);
+
+		ImGui::Spacing();
+
+		ImGui::SliderInt("Size##rdr", &g_Config.cvars.radar_size, 1, 1000);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Distance##rdr", &g_Config.cvars.radar_distance, 1.f, 16384.f);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Width Fraction##rdr", &g_Config.cvars.radar_width_frac, 0.f, 1.f);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Height Fraction##rdr", &g_Config.cvars.radar_height_frac, 0.f, 1.f);
+
+		ImGui::PopItemWidth();
+		ImGui::EndChild();
+		break;
+	}
+	case 3: // Chat Colors
 	{
 		ImGui::BeginChild("chat-colors", ImVec2(328, 525), true);
 
@@ -1467,15 +1771,23 @@ void CMenuModule::DrawHUDTabContent()
 		ImGui::EndChild();
 		break;
 	}
-	case 3: // Custom Vote Popup 
+	case 4: // Custom Vote Popup 
 	{
-		ImGui::BeginChild("custom-vote-popup", ImVec2(328, 275), true);
+		ImGui::BeginChild("custom-vote-popup", ImVec2(328, 325), true);
 
 		ImGui::PushItemWidth(180);
 
 		ImGui::Checkbox("Enable Custom Vote Popup", &g_Config.cvars.vote_popup);
 
-		ImGuiCustom.Spacing(4);
+		ImGui::Spacing();
+
+		ImGui::InputInt("Yes Key##votepopup", &g_Config.cvars.vote_popup_yes_key);
+
+		ImGui::Spacing();
+
+		ImGui::InputInt("No Key##votepopup", &g_Config.cvars.vote_popup_no_key);
+
+		ImGui::Spacing();
 
 		ImGui::SliderInt("Width Size##cvp", &g_Config.cvars.vote_popup_width_size, 0, 1000);
 
@@ -1483,7 +1795,7 @@ void CMenuModule::DrawHUDTabContent()
 
 		ImGui::SliderInt("Height Size##cvp", &g_Config.cvars.vote_popup_height_size, 0, 1000);
 
-		ImGuiCustom.Spacing(4);
+		ImGui::Spacing();
 
 		ImGui::SliderInt("Width Border Pixels##cvp", &g_Config.cvars.vote_popup_w_border_pix, 0, 100);
 
@@ -1491,7 +1803,7 @@ void CMenuModule::DrawHUDTabContent()
 
 		ImGui::SliderInt("Height Border Pixels##cvp", &g_Config.cvars.vote_popup_h_border_pix, 0, 100);
 
-		ImGuiCustom.Spacing(4);
+		ImGui::Spacing();
 
 		ImGui::SliderFloat("Width Fraction##cvp", &g_Config.cvars.vote_popup_width_frac, 0.0f, 1.0f);
 
@@ -1625,7 +1937,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::SetCursorPosX(332);
 
-		ImGui::BeginChild("player2", ImVec2(328.5, 435), true);
+		ImGui::BeginChild("player2", ImVec2(328.5, 500), true);
 
 		static const char* strafe_dir_items[] = { "0 - To the left", "1 - To the right", "2 - Best strafe", "3 - View angles" };
 		static const char* strafe_type_items[] = { "0 - Max. acceleration", "1 - Max. angle", "2 - Max. deceleration", "3 - Const speed" };
@@ -1666,11 +1978,25 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGuiCustom.Spacing(4);
 
-		ImGui::PushItemWidth(180);
+		if (ImGui::BeginCombo("", "Aim Type", 0))
+		{
+			ImGui::Checkbox("Aim to Hitboxes", &g_Config.cvars.aimbot_aim_hitboxes);
+			ImGui::Checkbox("Aim to Head", &g_Config.cvars.aimbot_aim_head);
+			ImGui::Checkbox("Aim to Neck", &g_Config.cvars.aimbot_aim_neck);
+			ImGui::Checkbox("Aim to Chest", &g_Config.cvars.aimbot_aim_chest);
+			ImGui::Checkbox("Aim to Unknown Entities", &g_Config.cvars.aimbot_aim_unknown_ents);
 
-		ImGui::Text("Advanced");
+			ImGui::EndCombo();
+		}
 
 		ImGui::Spacing();
+
+		ImGui::Checkbox("Ignore Glass", &g_Config.cvars.aimbot_ignore_glass);
+		ImGui::Checkbox("Ignore Studio Models", &g_Config.cvars.aimbot_ignore_blockers);
+
+		ImGui::Spacing();
+
+		ImGui::PushItemWidth(180);
 
 		ImGui::Checkbox("Consider FOV", &g_Config.cvars.aimbot_consider_fov);
 
@@ -1857,7 +2183,7 @@ void CMenuModule::DrawUtilityTabContent()
 	}
 	case 5: // Speedrun Tools
 	{
-		ImGui::BeginChild("speedrun-tools", ImVec2(328, 295), true);
+		ImGui::BeginChild("speedrun-tools", ImVec2(328, 325), true);
 
 		ImGui::Text("Timer");
 
@@ -1865,8 +2191,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::Checkbox("Enable Timer##st", &g_Config.cvars.st_timer);
 
-		ImGui::Spacing();
-		ImGui::Spacing();
+		ImGuiCustom.Spacing(4);
 
 		ImGui::SliderFloat("Width Fraction##st", &g_Config.cvars.st_timer_width_frac, 0.f, 1.f);
 
@@ -1874,23 +2199,20 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::SliderFloat("Height Fraction##st", &g_Config.cvars.st_timer_height_frac, 0.f, 1.f);
 
-		ImGui::Spacing();
-		ImGui::Spacing();
+		ImGuiCustom.Spacing(4);
 
 		ImGui::ColorEdit3("Timer Color##st", g_Config.cvars.st_timer_color);
 
-		ImGui::Spacing();
-		ImGui::Spacing();
+		ImGuiCustom.Spacing(4);
 
 		ImGui::Text("Player Hulls");
 
 		ImGui::Spacing();
 
-		ImGui::Checkbox("Show Hulls of Players##st", &g_Config.cvars.st_player_hulls); ImGui::SameLine();
+		ImGui::Checkbox("Show Hulls of Players##st", &g_Config.cvars.st_player_hulls); 
 		ImGui::Checkbox("Show Server's Hulls of Players##st", &g_Config.cvars.st_server_player_hulls);
 
-		ImGui::Spacing();
-		ImGui::Spacing();
+		ImGuiCustom.Spacing(4);
 
 		ImGui::ColorEdit4("Hull Color##st", g_Config.cvars.st_player_hulls_color);
 
@@ -1928,7 +2250,7 @@ float st_show_entity_info_height_frac = 0.6f;
 
 		ImGui::SetCursorPosX(332);
 
-		ImGui::BeginChild("speedrun-tools2", ImVec2(328.5, 270), true);
+		ImGui::BeginChild("speedrun-tools2", ImVec2(328.5, 260), true);
 
 		ImGui::Text("HUD Info");
 
@@ -1976,7 +2298,7 @@ float st_show_entity_info_height_frac = 0.6f;
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("   ", "Gauss Boost Info", 0))
+		if (ImGui::BeginCombo("   ", "Gauss Boost", 0))
 		{
 			ImGui::Checkbox("Show Gauss Boost Info##st", &g_Config.cvars.st_show_gauss_boost_info);
 
@@ -1988,7 +2310,7 @@ float st_show_entity_info_height_frac = 0.6f;
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("    ", "Selfgauss Info", 0))
+		if (ImGui::BeginCombo("    ", "Selfgauss", 0))
 		{
 			ImGui::Checkbox("Show Selfgauss Info##st", &g_Config.cvars.st_show_selfgauss_info);
 
@@ -2000,7 +2322,7 @@ float st_show_entity_info_height_frac = 0.6f;
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("     ", "Entity Info", 0))
+		if (ImGui::BeginCombo("     ", "Entity", 0))
 		{
 			ImGui::Checkbox("Show Entity Info##st", &g_Config.cvars.st_show_entity_info); ImGui::SameLine();
 			ImGui::Checkbox("Check Players##st_entinfo", &g_Config.cvars.st_show_entity_info_check_players);

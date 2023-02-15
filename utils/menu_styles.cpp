@@ -20,18 +20,18 @@ static void StyleColors_SvenInt(ImGuiStyle* dst = NULL)
 	colors[ImGuiCol_Border] = ImColor(0, 0, 0, 0);
 	colors[ImGuiCol_Button] = ImColor(31, 30, 31, 255);
 	colors[ImGuiCol_ButtonActive] = ImColor(101, 164, 212, 255);
-	colors[ImGuiCol_ButtonHovered] = ImColor(144, 182, 212, 255);
-	colors[ImGuiCol_FrameBg] = ImColor(31, 30, 31, 255);
-	colors[ImGuiCol_FrameBgActive] = ImColor(37, 36, 37, 255);
-	colors[ImGuiCol_FrameBgHovered] = ImColor(37, 36, 37, 255);
+	colors[ImGuiCol_ButtonHovered] = ImColor(114, 187, 242, 255);
+	colors[ImGuiCol_FrameBg] = ImColor(56, 58, 74, 255);
+	colors[ImGuiCol_FrameBgActive] = ImColor(94, 140, 166, 255);
+	colors[ImGuiCol_FrameBgHovered] = ImColor(114, 187, 242, 255);
 	colors[ImGuiCol_Text] = ImColor(255, 255, 255, 255);
 	colors[ImGuiCol_ChildBg] = ImColor(33, 34, 45, 255);
 	colors[ImGuiCol_CheckMark] = ImColor(255, 255, 255, 255);
-	colors[ImGuiCol_SliderGrab] = ImColor(217, 238, 255, 255);
-	colors[ImGuiCol_SliderGrabActive] = ImColor(20, 50, 66, 255);
-	colors[ImGuiCol_Header] = ImColor(20, 50, 66, 255);
-	colors[ImGuiCol_HeaderHovered] = ImColor(217, 238, 255, 255);
-	colors[ImGuiCol_HeaderActive] = ImColor(20, 50, 66, 255);
+	colors[ImGuiCol_SliderGrab] = ImColor(255, 255, 255, 255);
+	colors[ImGuiCol_SliderGrabActive] = ImColor(255, 255, 255, 255);
+	colors[ImGuiCol_Header] = ImColor(101, 164, 212, 255);
+	colors[ImGuiCol_HeaderHovered] = ImColor(114, 187, 242, 255);
+	colors[ImGuiCol_HeaderActive] = ImColor(101, 164, 212, 255);
 	colors[ImGuiCol_ResizeGrip] = ImColor(220, 50, 66, 120);
 	colors[ImGuiCol_ResizeGripHovered] = ImColor(250, 50, 66, 140);
 	colors[ImGuiCol_ResizeGripActive] = ImColor(20, 50, 66, 255);
@@ -269,7 +269,7 @@ static void StyleColors_Berserk(ImGuiStyle* dst = NULL)
 	colors[ImGuiCol_Header] = ImVec4(0.33f, 0.33f, 0.33f, 0.45f);
 	colors[ImGuiCol_HeaderHovered] = ImVec4(0.30f, 0.30f, 0.30f, 0.80f);
 	colors[ImGuiCol_HeaderActive] = ImVec4(0.60f, 0.00f, 0.00f, 0.80f);
-	colors[ImGuiCol_Separator] = ImVec4(0.50f, 0.50f, 0.50f, 0.60f);
+	colors[ImGuiCol_Separator] = ImVec4(1.00f, 0.00f, 0.00f, 0.50f);
 	colors[ImGuiCol_SeparatorHovered] = ImVec4(0.60f, 0.60f, 0.70f, 1.00f);
 	colors[ImGuiCol_SeparatorActive] = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
 	colors[ImGuiCol_ResizeGrip] = ImVec4(1.00f, 1.00f, 1.00f, 0.10f);
@@ -331,7 +331,7 @@ static void StyleColors_DeepDark()
 	colors[ImGuiCol_Header] = ImVec4(0.00f, 0.00f, 0.00f, 0.52f);
 	colors[ImGuiCol_HeaderHovered] = ImVec4(0.00f, 0.00f, 0.00f, 0.36f);
 	colors[ImGuiCol_HeaderActive] = ImVec4(0.20f, 0.22f, 0.23f, 0.33f);
-	colors[ImGuiCol_Separator] = ImVec4(0.28f, 0.28f, 0.28f, 0.29f);
+	colors[ImGuiCol_Separator] = ImVec4(0.19f, 0.19f, 0.19f, 0.29f);
 	colors[ImGuiCol_SeparatorHovered] = ImVec4(0.44f, 0.44f, 0.44f, 0.29f);
 	colors[ImGuiCol_SeparatorActive] = ImVec4(0.40f, 0.44f, 0.47f, 1.00f);
 	colors[ImGuiCol_ResizeGrip] = ImVec4(0.28f, 0.28f, 0.28f, 0.29f);
@@ -397,7 +397,7 @@ static void StyleColors_Carbon()
 	colors[ImGuiCol_Header] = ImVec4(0.12, 0.12, 0.12, 1.00);
 	colors[ImGuiCol_HeaderHovered] = ImVec4(0.20, 0.20, 0.20, 1.00);
 	colors[ImGuiCol_HeaderActive] = ImVec4(0.47, 0.47, 0.47, 1.00);
-	colors[ImGuiCol_Separator] = ImVec4(0.12, 0.12, 0.12, 1.00);
+	colors[ImGuiCol_Separator] = ImVec4(0.25, 0.25, 0.26, 0.54);
 	colors[ImGuiCol_SeparatorHovered] = ImVec4(0.12, 0.12, 0.12, 1.00);
 	colors[ImGuiCol_SeparatorActive] = ImVec4(0.12, 0.12, 0.12, 1.00);
 	colors[ImGuiCol_ResizeGrip] = ImVec4(1.00, 1.00, 1.00, 0.25);
@@ -459,7 +459,7 @@ static void StyleColors_CorporateGrey()
 	colors[ImGuiCol_Tab] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
 	colors[ImGuiCol_TabHovered] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
 	colors[ImGuiCol_TabActive] = ImVec4(0.80f, 0.80f, 0.80f, 1.00f);
-	colors[ImGuiCol_Separator] = ImVec4(0.000f, 0.000f, 0.000f, 0.137f);
+	colors[ImGuiCol_Separator] = ImVec4(0.12f, 0.12f, 0.12f, 0.71f);
 	colors[ImGuiCol_SeparatorHovered] = ImVec4(0.700f, 0.671f, 0.600f, 0.290f);
 	colors[ImGuiCol_SeparatorActive] = ImVec4(0.702f, 0.671f, 0.600f, 0.674f);
 	colors[ImGuiCol_ResizeGrip] = ImVec4(0.26f, 0.59f, 0.98f, 0.25f);
@@ -511,7 +511,7 @@ static void StyleColors_Grey()
 	style.Colors[ImGuiCol_Header] = ImVec4(0.22f, 0.22f, 0.22f, 1.00f);
 	style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
 	style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.67f, 0.67f, 0.67f, 0.39f);
-	style.Colors[ImGuiCol_Separator] = style.Colors[ImGuiCol_Border];
+	style.Colors[ImGuiCol_Separator] = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
 	style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.41f, 0.42f, 0.44f, 1.00f);
 	style.Colors[ImGuiCol_SeparatorActive] = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
 	style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
@@ -522,8 +522,6 @@ static void StyleColors_Grey()
 	style.Colors[ImGuiCol_TabActive] = ImVec4(0.23f, 0.23f, 0.24f, 1.00f);
 	style.Colors[ImGuiCol_TabUnfocused] = ImVec4(0.08f, 0.08f, 0.09f, 1.00f);
 	style.Colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.13f, 0.14f, 0.15f, 1.00f);
-	//style.Colors[ImGuiCol_DockingPreview] = ImVec4(0.26f, 0.59f, 0.98f, 0.70f);
-	//style.Colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
 	style.Colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
 	style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
 	style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
@@ -534,7 +532,6 @@ static void StyleColors_Grey()
 	style.Colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
 	style.Colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
 	style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
-	style.GrabRounding = style.FrameRounding = 2.3f;
 }
 
 //-----------------------------------------------------------------------------
@@ -573,7 +570,7 @@ static void StyleColors_GoldBlack()
 	colors[ImGuiCol_Header] = ImVec4(0.51f, 0.36f, 0.15f, 1.00f);
 	colors[ImGuiCol_HeaderHovered] = ImVec4(0.91f, 0.64f, 0.13f, 1.00f);
 	colors[ImGuiCol_HeaderActive] = ImVec4(0.93f, 0.65f, 0.14f, 1.00f);
-	colors[ImGuiCol_Separator] = ImVec4(0.21f, 0.21f, 0.21f, 1.00f);
+	colors[ImGuiCol_Separator] = ImVec4(0.51f, 0.36f, 0.15f, 1.00f);
 	colors[ImGuiCol_SeparatorHovered] = ImVec4(0.91f, 0.64f, 0.13f, 1.00f);
 	colors[ImGuiCol_SeparatorActive] = ImVec4(0.78f, 0.55f, 0.21f, 1.00f);
 	colors[ImGuiCol_ResizeGrip] = ImVec4(0.21f, 0.21f, 0.21f, 1.00f);
@@ -642,6 +639,7 @@ static void StyleColors_Monochrome()
 	colors[ImGuiCol_PlotHistogram] = ImVec4(0.00, 1.00, 1.00, 1.00);
 	colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.00, 1.00, 1.00, 1.00);
 	colors[ImGuiCol_TextSelectedBg] = ImVec4(0.00, 1.00, 1.00, 0.22);
+	colors[ImGuiCol_Separator] = ImVec4(0.00, 1.00, 1.00, 0.65);
 }
 
 //-----------------------------------------------------------------------------
@@ -684,7 +682,7 @@ static void StyleColors_DarkLight()
 	colors[ImGuiCol_Tab] = ImVec4(0.35, 0.35, 0.35, 1.00);
 	colors[ImGuiCol_TabHovered] = ImVec4(0.45, 0.45, 0.45, 1.00f);
 	colors[ImGuiCol_TabActive] = ImVec4(0.67, 0.67, 0.67, 1.00f);
-	colors[ImGuiCol_Separator] = ImVec4(1.73, 1.73, 1.73, 1.00);
+	colors[ImGuiCol_Separator] = ImVec4(0.82, 0.77, 0.78, 1.00);
 	colors[ImGuiCol_SeparatorHovered] = ImVec4(0.81, 0.81, 0.81, 1.00);
 	colors[ImGuiCol_SeparatorActive] = ImVec4(0.74, 0.74, 0.74, 1.00);
 	colors[ImGuiCol_ResizeGrip] = ImVec4(0.80, 0.80, 0.80, 0.30);
@@ -744,6 +742,7 @@ static void StyleColors_SoftDark()
 	colors[ImGuiCol_PlotHistogram] = ImVec4(0.90, 0.70, 0.00, 1.00);
 	colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00, 0.60, 0.00, 1.00);
 	colors[ImGuiCol_TextSelectedBg] = ImVec4(0.25, 1.00, 0.00, 0.43);
+	colors[ImGuiCol_Separator] = ImVec4(0.43, 0.43, 0.50, 0.50);
 }
 
 //-----------------------------------------------------------------------------
@@ -785,7 +784,7 @@ static void StyleColors_Pink()
 	colors[ImGuiCol_Tab] = ImVec4(0.74, 0.61, 0.69, 1.00);
 	colors[ImGuiCol_TabHovered] = ImVec4(0.45, 0.45, 0.45, 1.00f);
 	colors[ImGuiCol_TabActive] = ImVec4(0.67, 0.67, 0.67, 1.00f);
-	colors[ImGuiCol_Separator] = ImVec4(0.43, 0.43, 0.50, 0.50);
+	colors[ImGuiCol_Separator] = ImVec4(1.00, 1.00, 1.00, 0.50);
 	colors[ImGuiCol_SeparatorHovered] = ImVec4(0.79, 0.44, 0.65, 0.64);
 	colors[ImGuiCol_SeparatorActive] = ImVec4(0.79, 0.17, 0.54, 0.77);
 	colors[ImGuiCol_ResizeGrip] = ImVec4(0.87, 0.36, 0.66, 0.54);
@@ -834,10 +833,10 @@ static void StyleColors_HalfLife(ImGuiStyle* dst = NULL)
 	colors[ImGuiCol_Header] = ImVec4(0.35f, 0.42f, 0.31f, 1.00f);
 	colors[ImGuiCol_HeaderHovered] = ImVec4(0.35f, 0.42f, 0.31f, 0.6f);
 	colors[ImGuiCol_HeaderActive] = ImVec4(0.54f, 0.57f, 0.51f, 0.50f);
-	colors[ImGuiCol_Separator] = ImVec4(0.14f, 0.16f, 0.11f, 1.00f);
+	colors[ImGuiCol_Separator] = ImVec4(0.54f, 0.57f, 0.51f, 0.50f);
 	colors[ImGuiCol_SeparatorHovered] = ImVec4(0.54f, 0.57f, 0.51f, 1.00f);
 	colors[ImGuiCol_SeparatorActive] = ImVec4(0.59f, 0.54f, 0.18f, 1.00f);
-	colors[ImGuiCol_ResizeGrip] = ImVec4(0.19f, 0.23f, 0.18f, 0.00f); // grip invis
+	colors[ImGuiCol_ResizeGrip] = ImVec4(0.19f, 0.23f, 0.18f, 0.00f);
 	colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.54f, 0.57f, 0.51f, 1.00f);
 	colors[ImGuiCol_ResizeGripActive] = ImVec4(0.59f, 0.54f, 0.18f, 1.00f);
 	colors[ImGuiCol_Tab] = ImVec4(0.35f, 0.42f, 0.31f, 1.00f);
@@ -845,8 +844,6 @@ static void StyleColors_HalfLife(ImGuiStyle* dst = NULL)
 	colors[ImGuiCol_TabActive] = ImVec4(0.59f, 0.54f, 0.18f, 1.00f);
 	colors[ImGuiCol_TabUnfocused] = ImVec4(0.24f, 0.27f, 0.20f, 1.00f);
 	colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.35f, 0.42f, 0.31f, 1.00f);
-	//colors[ImGuiCol_DockingPreview] = ImVec4(0.59f, 0.54f, 0.18f, 1.00f);
-	//colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
 	colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
 	colors[ImGuiCol_PlotLinesHovered] = ImVec4(0.59f, 0.54f, 0.18f, 1.00f);
 	colors[ImGuiCol_PlotHistogram] = ImVec4(1.00f, 0.78f, 0.28f, 1.00f);
@@ -857,7 +854,6 @@ static void StyleColors_HalfLife(ImGuiStyle* dst = NULL)
 	colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
 	colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
 	colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
-
 }
 
 //-----------------------------------------------------------------------------
@@ -896,7 +892,7 @@ static void StyleColors_SvenCope(ImGuiStyle* dst = NULL)
 	colors[ImGuiCol_Header] = ImVec4(0.47f, 0.49f, 0.59f, 1.00f);
 	colors[ImGuiCol_HeaderHovered] = ImVec4(0.22f, 0.23f, 0.29f, 1.00f);
 	colors[ImGuiCol_HeaderActive] = ImVec4(0.54f, 0.57f, 0.51f, 0.50f);
-	colors[ImGuiCol_Separator] = ImVec4(0.14f, 0.16f, 0.11f, 1.00f);
+	colors[ImGuiCol_Separator] = ImVec4(0.47f, 0.49f, 0.59f, 0.50f);
 	colors[ImGuiCol_SeparatorHovered] = ImVec4(0.54f, 0.57f, 0.51f, 1.00f);
 	colors[ImGuiCol_SeparatorActive] = ImVec4(0.59f, 0.54f, 0.18f, 1.00f);
 	colors[ImGuiCol_ResizeGrip] = ImVec4(0.19f, 0.23f, 0.18f, 0.00f);
