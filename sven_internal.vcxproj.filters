@@ -42,6 +42,9 @@
     <Filter Include="Sven Internal\AutoUpdate\shared">
       <UniqueIdentifier>{a01ef630-f6fb-4b62-b8b9-f02bb6c51b17}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Sven Internal\Utils\Shaders">
+      <UniqueIdentifier>{6e38941a-3392-47ca-86ec-3dbe87233f08}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="plugin.cpp">
@@ -344,11 +347,44 @@
     <ClCompile Include="utils\antidebug.cpp">
       <Filter>Sven Internal\Utils</Filter>
     </ClCompile>
-    <ClCompile Include="utils\shaders.cpp">
-      <Filter>Sven Internal\Utils</Filter>
-    </ClCompile>
     <ClCompile Include="imgui_custom\imgui_custom.cpp">
       <Filter>Sven Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="features\shaders.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="modules\opengl.cpp">
+      <Filter>Sven Internal\Modules</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\shaders\bloom_raw.c">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\shaders\bokeh_raw.c">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\shaders\chromatic_aberration_raw.c">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\shaders\depth_buffer_raw.c">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\shaders\dof_blur_raw.c">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\shaders\gaussian_blur_fast_raw.c">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\shaders\gaussian_blur_raw.c">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\shaders\godrays_raw.c">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\shaders\pp_fullscreen_raw.c">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\shaders\radial_blur_raw.c">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -655,10 +691,46 @@
     <ClInclude Include="utils\antidebug.h">
       <Filter>Sven Internal\Utils</Filter>
     </ClInclude>
-    <ClInclude Include="utils\shaders.h">
-      <Filter>Sven Internal\Utils</Filter>
-    </ClInclude>
     <ClInclude Include="imgui_custom\imgui_custom.h" />
+    <ClInclude Include="features\shaders.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="modules\opengl.h">
+      <Filter>Sven Internal\Modules</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\shaders\bloom_raw.h">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\shaders\bokeh_raw.h">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\shaders\chromatic_aberration_raw.h">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\shaders\depth_buffer_raw.h">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\shaders\dof_blur_raw.h">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\shaders\gaussian_blur_fast_raw.h">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\shaders\gaussian_blur_raw.h">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\shaders\godrays_raw.h">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\shaders\pp_fullscreen_raw.h">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\shaders\radial_blur_raw.h">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\shaders\shaders_raw.h">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

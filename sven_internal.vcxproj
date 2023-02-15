@@ -120,6 +120,7 @@
     <ClCompile Include="features\misc.cpp" />
     <ClCompile Include="features\models_manager.cpp" />
     <ClCompile Include="features\radar.cpp" />
+    <ClCompile Include="features\shaders.cpp" />
     <ClCompile Include="features\skybox.cpp" />
     <ClCompile Include="features\speedrun_tools.cpp" />
     <ClCompile Include="features\strafer.cpp" />
@@ -139,6 +140,7 @@
     <ClCompile Include="imgui_custom\imgui_custom.cpp" />
     <ClCompile Include="imgui_impl\imgui_impl_opengl2.cpp" />
     <ClCompile Include="imgui_impl\imgui_impl_win32.cpp" />
+    <ClCompile Include="modules\opengl.cpp" />
     <ClCompile Include="modules\hooks.cpp" />
     <ClCompile Include="modules\menu.cpp" />
     <ClCompile Include="modules\patches.cpp" />
@@ -200,7 +202,16 @@
     <ClCompile Include="utils\antidebug.cpp" />
     <ClCompile Include="utils\menu_styles.cpp" />
     <ClCompile Include="utils\patcher.cpp" />
-    <ClCompile Include="utils\shaders.cpp" />
+    <ClCompile Include="utils\shaders\bloom_raw.c" />
+    <ClCompile Include="utils\shaders\bokeh_raw.c" />
+    <ClCompile Include="utils\shaders\chromatic_aberration_raw.c" />
+    <ClCompile Include="utils\shaders\depth_buffer_raw.c" />
+    <ClCompile Include="utils\shaders\dof_blur_raw.c" />
+    <ClCompile Include="utils\shaders\gaussian_blur_fast_raw.c" />
+    <ClCompile Include="utils\shaders\gaussian_blur_raw.c" />
+    <ClCompile Include="utils\shaders\godrays_raw.c" />
+    <ClCompile Include="utils\shaders\pp_fullscreen_raw.c" />
+    <ClCompile Include="utils\shaders\radial_blur_raw.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ADVobfuscator\Indexes.h" />
@@ -236,6 +247,7 @@
     <ClInclude Include="features\misc.h" />
     <ClInclude Include="features\models_manager.h" />
     <ClInclude Include="features\radar.h" />
+    <ClInclude Include="features\shaders.h" />
     <ClInclude Include="features\skybox.h" />
     <ClInclude Include="features\speedrun_tools.h" />
     <ClInclude Include="features\strafer.h" />
@@ -256,6 +268,7 @@
     <ClInclude Include="imgui_custom\imgui_custom.h" />
     <ClInclude Include="imgui_impl\imgui_impl_opengl2.h" />
     <ClInclude Include="imgui_impl\imgui_impl_win32.h" />
+    <ClInclude Include="modules\opengl.h" />
     <ClInclude Include="modules\hooks.h" />
     <ClInclude Include="modules\menu.h" />
     <ClInclude Include="modules\server.h" />
@@ -304,7 +317,17 @@
     <ClInclude Include="utils\antidebug.h" />
     <ClInclude Include="utils\menu_styles.h" />
     <ClInclude Include="utils\patcher.h" />
-    <ClInclude Include="utils\shaders.h" />
+    <ClInclude Include="utils\shaders\bloom_raw.h" />
+    <ClInclude Include="utils\shaders\bokeh_raw.h" />
+    <ClInclude Include="utils\shaders\chromatic_aberration_raw.h" />
+    <ClInclude Include="utils\shaders\depth_buffer_raw.h" />
+    <ClInclude Include="utils\shaders\dof_blur_raw.h" />
+    <ClInclude Include="utils\shaders\gaussian_blur_fast_raw.h" />
+    <ClInclude Include="utils\shaders\gaussian_blur_raw.h" />
+    <ClInclude Include="utils\shaders\godrays_raw.h" />
+    <ClInclude Include="utils\shaders\pp_fullscreen_raw.h" />
+    <ClInclude Include="utils\shaders\radial_blur_raw.h" />
+    <ClInclude Include="utils\shaders\shaders_raw.h" />
     <ClInclude Include="utils\xorstr.h" />
   </ItemGroup>
   <ItemGroup>

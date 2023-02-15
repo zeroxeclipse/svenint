@@ -1,4 +1,5 @@
 varying vec2 vet0;
+
 void main() 
 {
 	gl_TexCoord[0] = gl_MultiTexCoord0;

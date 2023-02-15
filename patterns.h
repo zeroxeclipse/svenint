@@ -18,6 +18,8 @@ namespace Patterns
 
 		EXTERN_PATTERN(Sys_InitializeGameDLL);
 
+		EXTERN_PATTERN(GL_Bind);
+
 		EXTERN_PATTERN(SCR_UpdateScreen);
 		EXTERN_PATTERN(SCR_BeginLoadingPlaque);
 		EXTERN_PATTERN(SCR_EndLoadingPlaque);
@@ -32,6 +34,8 @@ namespace Patterns
 		EXTERN_PATTERN(CL_ParseConsistencyInfo);
 		EXTERN_PATTERN(CL_BatchResourceRequest);
 		EXTERN_PATTERN(CL_PlayerFlashlight);
+
+		EXTERN_PATTERN(ClientDLL_HudRedraw);
 
 		EXTERN_PATTERN(IsSafeFileToDownload);
 

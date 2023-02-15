@@ -8,11 +8,6 @@
 #include <vector>
 #include <algorithm>
 
-#ifdef SVENINT_SHADERS
-#include <GL/glew.h>
-#include "utils/shaders.h"
-#endif
-
 #include <ISvenModAPI.h>
 #include <IClientPlugin.h>
 #include <IVideoMode.h>
@@ -29,6 +24,8 @@
 #include "scripts/scripts.h"
 #include "game/utils.h"
 #include "game/drawing.h"
+
+#include "modules/opengl.h"
 #include "modules/server.h"
 #include "modules/patches.h"
 #include "modules/server_client_bridge.h"
@@ -179,17 +176,13 @@ api_version_t CSvenInternal::GetAPIVersion()
 
 bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSvenModAPI, IPluginHelpers *pPluginHelpers)
 {
-#ifdef SVENINT_SHADERS
-	GLenum status = glewInit();
+	//SteamScreenshots()->HookScreenshots( true );
 
-	if ( status != GLEW_OK )
+	if ( !GL_Init() )
 	{
-		Warning(xs("[Sven Internal] Failed to initialize GLEW. Reason: %s\n"), glewGetErrorString(status));
+		Warning(xs("[Sven Internal] Failed to initialize OpenGL module\n"));
 		return false;
 	}
-#endif
-
-	//SteamScreenshots()->HookScreenshots( true );
 
 #if ANTIDEBUG
 	CheckDebug();
@@ -212,10 +205,6 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 
 	BindApiToGlobals(pSvenModAPI);
 	InitFolders(pSvenModAPI);
-
-#ifdef SVENINT_SHADERS
-	GL_Init();
-#endif
 
 	if ( !InitServerDLL() )
 	{
@@ -280,9 +269,7 @@ void CSvenInternal::PostLoad(bool bGlobalLoad)
 
 void CSvenInternal::Unload(void)
 {
-#ifdef SVENINT_SHADERS
 	GL_Shutdown();
-#endif
 
 	UnloadFeatures();
 

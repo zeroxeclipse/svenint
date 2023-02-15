@@ -5,7 +5,7 @@
 
 #pragma warning(disable : 418)
 #pragma warning(disable : 4244)
-#pragma warning(disable : 4305)static void StyleColors_SvenInt(ImGuiStyle* dst = NULL)
+#pragma warning(disable : 4305)
 
 //-----------------------------------------------------------------------------
 // SvenInt

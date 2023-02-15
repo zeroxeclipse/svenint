@@ -10,6 +10,16 @@
 #include <IDetoursAPI.h>
 #include <IMemoryUtils.h>
 
+extern int g_iMenuState;
+
+extern bool g_bMenuEnabled;
+extern bool g_bMenuClosed;
+
+extern float g_bMenuOpenTime;
+extern float g_bMenuCloseTime;
+extern float g_bMenuOpenTimePrev;
+extern float g_bMenuCloseTimePrev;
+
 //-----------------------------------------------------------------------------
 // Menu feature
 //-----------------------------------------------------------------------------
@@ -62,5 +72,7 @@ private:
 	bool m_bMenuHud;
 	bool m_bMenuUtility;
 };
+
+extern CMenuModule g_MenuModule;
 
 #endif // MENU_MODULE_H

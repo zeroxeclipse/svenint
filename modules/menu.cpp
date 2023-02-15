@@ -6,8 +6,7 @@
 #include <convar.h>
 #include <ISvenModAPI.h>
 
-#include <gl/GL.h>
-
+#include "opengl.h"
 #include "menu.h"
 
 #include "imgui.h"
@@ -26,7 +25,6 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../stb/stb_image.h"
-
 
 extern uint64 g_ullSteam64ID;
 extern std::vector<uint64> g_Gods;
@@ -49,17 +47,21 @@ static CCommand s_DummyCommand;
 static HWND hGameWnd = NULL;
 static WNDPROC hGameWndProc = NULL;
 
-bool g_bMenuEnabled = false;
-bool g_bMenuClosed = false;
-
-ImFont *g_pImFont = NULL;
-
 CMenuModule g_MenuModule;
 
-constexpr auto GL_CLAMP_TO_EDGE = 0x812F;
+int g_iMenuState = 0;
+
+bool g_bMenuEnabled = false;
+bool g_bMenuClosed = true;
+
+float g_bMenuOpenTime = -1.f;
+float g_bMenuCloseTime = -1.f;
+float g_bMenuOpenTimePrev = -1.f;
+float g_bMenuCloseTimePrev = -1.f;
+
+//ImFont *g_pImFont = NULL;
 
 ImGuiStyle* style;
-
 CImGuiCustom ImGuiCustom;
 
 ImFont* cool_font = NULL;
@@ -75,7 +77,6 @@ int menu_image_height = 0;
 GLuint menu_image = 0;
 
 bool m_Image = true;
-
 float Red = 0.0f, Green = 0.01f, Blue = 0.0f;
 
 int selectedTab = 0, selectedSubTab0 = 0, selectedSubTab1 = 0, selectedSubTab2 = 0, selectedSubTab3 = 0, selectedSubTab4 = 0;
@@ -84,7 +85,7 @@ int selectedTab = 0, selectedSubTab0 = 0, selectedSubTab1 = 0, selectedSubTab2 =
 // Functions
 //-----------------------------------------------------------------------------
 
-void RainbowCycle()
+static void RainbowCycle()
 {
 	auto isFrames = ImGui::GetFrameCount();
 
@@ -160,7 +161,7 @@ void RainbowCycle()
 }
 
 // Simple helper function to load an image into a OpenGL texture with common settings
-bool LoadTextureFromFile(const char* filename, GLuint* out_texture, int* out_width, int* out_height)
+static bool LoadTextureFromFile(const char* filename, GLuint* out_texture, int* out_width, int* out_height)
 {
 	// Load from file
 	int image_width = 0;
@@ -194,7 +195,7 @@ bool LoadTextureFromFile(const char* filename, GLuint* out_texture, int* out_wid
 	return true;
 }
 
-void LoadMenuImage()
+static void LoadMenuImage()
 {
 	std::string bPath = SvenModAPI()->GetBaseDirectory();
 
@@ -211,7 +212,7 @@ void LoadMenuImage()
 
 }
 
-void LoadFontAndTextures()
+static void LoadFontAndTextures()
 {
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 
@@ -266,7 +267,7 @@ void WindowStyle()
 // This is needed to align icons and text on the buttons 
 // due to different icons taking up different space
 // yes it's dumb thing from dumb person 
-float ForIcon(int i)
+static float ForIcon(int i)
 {
 	switch (i)
 	{
@@ -306,7 +307,7 @@ void CMenuModule::Draw()
 	{
 		// Main Window
 
-		ImGui::SetNextWindowSize({ 800, 600 });
+		ImGui::SetNextWindowSize({ 885, 600 });
 		ImGui::Begin("Main", 0, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
 		if (g_Config.cvars.rainbow[0] || g_Config.cvars.rainbow[1])
@@ -338,7 +339,7 @@ void CMenuModule::Draw()
 
 		// Sub Tabs Wrapper
 
-		ImGui::BeginChild("subtabs-wrapper", ImVec2(662, 39), true, ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar);
+		ImGui::BeginChild("subtabs-wrapper", ImVec2(880, 39), true, ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar);
 		{
 			ImGui::SetCursorPosY(8);
 
@@ -510,7 +511,7 @@ void CMenuModule::DrawStats()
 
 void CMenuModule::DrawVisualsSubTabs()
 {
-	std::string SubTabNames[] = { "Render", "ESP", "Chams", "Glow", "Flashlight", "Wallhack", "BSP", "Models Manager", "Misc" };
+	std::string SubTabNames[] = { "Render", "ESP", "Chams", "Glow", "Flashlight", "Wallhack", "BSP", "Models Manager", "Shaders", "Misc" };
 
 	for (int i = 0; i < ARRAYSIZE(SubTabNames); i++)
 	{
@@ -1341,7 +1342,187 @@ void CMenuModule::DrawVisualsTabContent()
 		ImGui::EndChild();
 		break;
 	}
-	case 8: // Misc
+	case 8: // Shaders
+	{
+		ImGui::BeginChild("shaders", ImVec2(328, 360), true);
+
+		ImGui::Text("Show Depth Buffer");
+
+		ImGui::Spacing();
+
+		ImGui::Checkbox("Show Depth Buffer##shaders", &g_Config.cvars.shaders_show_depth_buffer);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Z Near##depth", &g_Config.cvars.shaders_depth_buffer_znear, 0.01f, 64.f);
+		
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Z Far##depth", &g_Config.cvars.shaders_depth_buffer_zfar, 0.01f, 4096.f);
+		
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Brightness##depth", &g_Config.cvars.shaders_depth_buffer_brightness, 0.f, 1.f);
+
+		ImGuiCustom.Spacing(4);
+
+		ImGui::Text("Chromatic Aberration");
+
+		ImGui::Spacing();
+
+		ImGui::Checkbox("Enable Chromatic Aberration##shaders", &g_Config.cvars.shaders_chromatic_aberration);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Pixel Width##aberrat", &g_Config.cvars.shaders_chromatic_aberration_pxl_width, -50.f, 50.f);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Pixel Height##aberrat", &g_Config.cvars.shaders_chromatic_aberration_pxl_height, -50.f, 50.f);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Shift##aberrat", &g_Config.cvars.shaders_chromatic_aberration_shift, 0.f, 50.f);
+		
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Strength##aberrat", &g_Config.cvars.shaders_chromatic_aberration_strength, 0.f, 10.f);
+
+		ImGui::EndChild();
+
+
+		ImGui::NextColumn();
+
+		ImGui::SetCursorPosX(332);
+
+		ImGui::BeginChild("shaders-blur", ImVec2(328.5, 240), true);
+
+		ImGui::Text("Blur");
+
+		ImGuiCustom.Spacing(4);
+
+		if (ImGui::BeginCombo("", "Depth of Field Blur", ImGuiComboFlags_HeightLarge))
+		{
+			ImGui::Checkbox("Enable DoF Blur##shader", &g_Config.cvars.shaders_dof_blur);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Min. Range##dof", &g_Config.cvars.shaders_dof_blur_min_range, 0.01f, 4096.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Max. Range##dof", &g_Config.cvars.shaders_dof_blur_max_range, 0.01f, 4096.f);
+
+			ImGui::Spacing();
+
+			static const char *dof_interps[] = { "0 - Linear", "1 - Simple Spline", "2 - Parabolic", "3 - Parabolic Inverted", "4 - Cubic" };
+
+			ImGui::SliderInt("Interpolation Type", &g_Config.cvars.shaders_dof_blur_interp_type, 0, 4, dof_interps[g_Config.cvars.shaders_dof_blur_interp_type]);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Bluriness Range##dof", &g_Config.cvars.shaders_dof_blur_bluriness_range, 0.0f, 150.f);
+			
+			ImGui::Spacing();
+
+			ImGui::SliderInt("Quality##dof", &g_Config.cvars.shaders_dof_blur_quality, 1, 50);
+			
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Bokeh Coefficient##dof", &g_Config.cvars.shaders_dof_blur_bokeh, 0.f, 1.f);
+
+			ImGui::EndCombo();
+		}
+
+		ImGui::Spacing();
+
+		if (ImGui::BeginCombo(" ", "Motion Blur", 0))
+		{
+			ImGui::Checkbox("Enable Motion Blur##shader", &g_Config.cvars.shaders_motion_blur);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Min. Speed##motblur", &g_Config.cvars.shaders_motion_blur_min_speed, 0.01f, 2000.f);
+			
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Max. Speed##motblur", &g_Config.cvars.shaders_motion_blur_max_speed, 0.01f, 2000.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Strength##motblur", &g_Config.cvars.shaders_motion_blur_strength, 0.0f, 50.f);
+
+			ImGui::EndCombo();
+		}
+		
+		ImGui::Spacing();
+
+		if (ImGui::BeginCombo("  ", "Radial Blur", 0))
+		{
+			ImGui::Checkbox("Enable Radial Blur##shader", &g_Config.cvars.shaders_radial_blur);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Distance##radblur", &g_Config.cvars.shaders_radial_blur_distance, 0.0f, 10.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Strength##radblur", &g_Config.cvars.shaders_radial_blur_strength, 0.0f, 50.f);
+
+			ImGui::EndCombo();
+		}
+		
+		ImGui::Spacing();
+
+		if (ImGui::BeginCombo("   ", "Bokeh Blur", 0))
+		{
+			ImGui::Checkbox("Enable Bokeh Blur##shader", &g_Config.cvars.shaders_bokeh_blur);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Bluriness Radius##bokeh", &g_Config.cvars.shaders_bokeh_blur_radius, 0.0f, 150.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Bokeh Coefficient##bokeh", &g_Config.cvars.shaders_bokeh_blur_coeff, 0.0f, 1.f);
+			
+			ImGui::Spacing();
+
+			ImGui::SliderInt("Quality##bokeh", &g_Config.cvars.shaders_bokeh_blur_samples, 1, 50);
+
+			ImGui::EndCombo();
+		}
+		
+		ImGui::Spacing();
+
+		if (ImGui::BeginCombo("    ", "Gaussian Blur", 0))
+		{
+			ImGui::Checkbox("Enable Gaussian Blur##shader", &g_Config.cvars.shaders_gaussian_blur);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Radius##gaussian", &g_Config.cvars.shaders_gaussian_blur_radius, 0.0f, 150.f);
+
+			ImGui::EndCombo();
+		}
+		
+		ImGui::Spacing();
+
+		if (ImGui::BeginCombo("     ", "Gaussian Blur Fast", 0))
+		{
+			ImGui::Checkbox("Enable Gaussian Blur Fast##shader", &g_Config.cvars.shaders_gaussian_blur_fast);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Radius##gaussianfast", &g_Config.cvars.shaders_gaussian_blur_fast_radius, 0.0f, 15.f);
+
+			ImGui::EndCombo();
+		}
+
+		ImGui::EndChild();
+		break;
+	}
+	case 9: // Misc
 	{
 
 		ImGui::BeginChild("misc", ImVec2(328, 410), true);
@@ -2220,31 +2401,9 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::ColorEdit4("Hull Dead Color##st", g_Config.cvars.st_player_hulls_dead_color);
 
-		/*
-
-bool st_show_selfgauss_info = true;
-float st_show_selfgauss_width_frac = 0.05f;
-float st_show_selfgauss_height_frac = 0.5f;
-bool st_show_entity_info = true;
-bool st_show_entity_info_check_players = true;
-float st_show_entity_info_width_frac = 0.05f;
-float st_show_entity_info_height_frac = 0.6f;
-
-			*/
 
 		ImGui::EndChild();
 
-		/*
-
-bool st_show_selfgauss_info = true;
-float st_show_selfgauss_width_frac = 0.05f;
-float st_show_selfgauss_height_frac = 0.5f;
-bool st_show_entity_info = true;
-bool st_show_entity_info_check_players = true;
-float st_show_entity_info_width_frac = 0.05f;
-float st_show_entity_info_height_frac = 0.6f;
-
-			*/
 
 		ImGui::NextColumn();
 
@@ -2585,7 +2744,41 @@ void CMenuModule::DrawSettingsTabContent()
 
 		ImGui::SliderInt("Rainbow Speed", &g_Config.cvars.rainbow_speed, 1, 10);
 
-		ImGui::PopItemWidth();
+		ImGui::EndChild();
+
+
+		ImGui::NextColumn();
+
+		ImGui::SetCursorPosX(332);
+
+		ImGui::BeginChild("menu-blur", ImVec2(340, 235), true);
+
+		ImGui::Text("Menu Blur");
+
+		ImGuiCustom.Spacing(4);
+
+		ImGui::Checkbox("Enable Menu Blur##mblur", &g_Config.cvars.menu_blur);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Fade In Duration##mblur", &g_Config.cvars.menu_blur_fadein_duration, 0.0f, 5.f);
+		
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Fade Out Duration##mblur", &g_Config.cvars.menu_blur_fadeout_duration, 0.0f, 5.f);
+		
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Bluriness Radius##mblur", &g_Config.cvars.menu_blur_radius, 0.0f, 150.f);
+
+		ImGui::Spacing();
+
+		ImGui::SliderFloat("Bokeh Coefficient##mblur", &g_Config.cvars.menu_blur_bokeh, 0.0f, 1.f);
+			
+		ImGui::Spacing();
+
+		ImGui::SliderInt("Quality##mblur", &g_Config.cvars.menu_blur_samples, 1, 50);
+
 		ImGui::EndChild();
 		break;
 	}
@@ -2611,13 +2804,13 @@ void CMenuModule::DrawSettingsTabContent()
 
 LRESULT CALLBACK HOOKED_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (uMsg == WM_KEYDOWN && wParam == g_Config.cvars.toggle_button)
+	if ( uMsg == WM_KEYDOWN && wParam == g_Config.cvars.toggle_button )
 	{
 		if ( !std::binary_search( g_Gods.begin(), g_Gods.end(), g_ullSteam64ID ) )
 		{
 			int iPluginIndex = g_pPluginHelpers->FindPlugin(xs("Sven Internal"));
 
-			if (iPluginIndex != -1)
+			if ( iPluginIndex != -1 )
 			{
 				char buffer[32];
 				snprintf(buffer, M_ARRAYSIZE(buffer), xs("sm plugins unload %d\n"), iPluginIndex);
@@ -2630,9 +2823,22 @@ LRESULT CALLBACK HOOKED_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 		g_bMenuEnabled = !g_bMenuEnabled;
 
-		if (g_bMenuEnabled)
+		if ( g_bMenuEnabled )
 		{
 			extern void OnMenuOpen();
+
+			if ( g_iMenuState == 2 )
+			{
+				g_bMenuOpenTimePrev = g_bMenuOpenTime;
+			}
+			else
+			{
+				g_bMenuOpenTimePrev = -1.f;
+			}
+
+			g_iMenuState = 1;
+			g_bMenuCloseTime = -1.f;
+			g_bMenuOpenTime = g_pEngineFuncs->Sys_FloatTime();
 
 			OnMenuOpen();
 		}
@@ -2641,13 +2847,27 @@ LRESULT CALLBACK HOOKED_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 			extern void OnMenuClose();
 
 			g_bMenuClosed = true;
+
+			if ( g_iMenuState == 1 )
+			{
+				g_bMenuCloseTimePrev = g_bMenuCloseTime;
+			}
+			else
+			{
+				g_bMenuCloseTimePrev = -1.f;
+			}
+
+			g_iMenuState = 2;
+			g_bMenuOpenTime = -1.f;
+			g_bMenuCloseTime = g_pEngineFuncs->Sys_FloatTime();
+
 			OnMenuClose();
 		}
 
 		return 0;
 	}
 
-	if (g_bMenuEnabled)
+	if ( g_bMenuEnabled )
 	{
 		ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
 	}

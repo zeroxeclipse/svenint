@@ -52,6 +52,56 @@ public:
 		bool rainbow[2] = { false, false };
 		int rainbow_speed = 3;
 
+		bool menu_blur = true;
+		float menu_blur_fadein_duration = 0.5f;
+		float menu_blur_fadeout_duration = 0.4f;
+		float menu_blur_radius = 20.f;
+		float menu_blur_bokeh = 0.7f;
+		int menu_blur_samples = 20;
+
+		//-----------------------------------------------------------------------------
+		// Shaders
+		//-----------------------------------------------------------------------------
+		
+		bool shaders_show_depth_buffer = false;
+		float shaders_depth_buffer_znear = 4.f;
+		float shaders_depth_buffer_zfar = 4096.f;
+		float shaders_depth_buffer_brightness = 1.f;
+
+		bool shaders_chromatic_aberration = false;
+		float shaders_chromatic_aberration_pxl_width = 1.f;
+		float shaders_chromatic_aberration_pxl_height = 1.f;
+		float shaders_chromatic_aberration_shift = 2.f;
+		float shaders_chromatic_aberration_strength = 1.f;
+
+		bool shaders_dof_blur = false;
+		float shaders_dof_blur_min_range = 1024.f;
+		float shaders_dof_blur_max_range = 4096.f;
+		int shaders_dof_blur_interp_type = 1;
+		float shaders_dof_blur_bluriness_range = 20.f;
+		int shaders_dof_blur_quality = 20;
+		float shaders_dof_blur_bokeh = 0.7f;
+
+		bool shaders_motion_blur = true;
+		float shaders_motion_blur_strength = 2.f;
+		float shaders_motion_blur_min_speed = 270.f;
+		float shaders_motion_blur_max_speed = 700.f;
+		
+		bool shaders_radial_blur = false;
+		float shaders_radial_blur_distance = 1.f;
+		float shaders_radial_blur_strength = 2.f;
+
+		bool shaders_bokeh_blur = false;
+		float shaders_bokeh_blur_radius = 20.f;
+		float shaders_bokeh_blur_coeff = 0.7f;
+		int shaders_bokeh_blur_samples = 20;
+
+		bool shaders_gaussian_blur = false;
+		float shaders_gaussian_blur_radius = 10.f;
+
+		bool shaders_gaussian_blur_fast = false;
+		float shaders_gaussian_blur_fast_radius = 1.f;
+
 		//-----------------------------------------------------------------------------
 		// Aim
 		//-----------------------------------------------------------------------------
