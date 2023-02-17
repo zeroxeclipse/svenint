@@ -1657,7 +1657,7 @@ void CMenuModule::DrawHUDTabContent()
 
 		ImGui::Spacing();
 
-		ImGui::Checkbox("Remap HUD Color", &g_Config.cvars.remap_hud_color);
+		ImGui::Checkbox("Remap HUD Color", &g_Config.cvars.remap_hud_color); g_Config.cvars.tooltips ? ImGui::SameLine(), ImGuiCustom.ToolTip("Let's you change your HUD color") : void(nullptr);
 
 		ImGui::Spacing();
 
@@ -1725,7 +1725,7 @@ void CMenuModule::DrawHUDTabContent()
 
 		ImGui::Spacing();
 
-		ImGui::Checkbox("Show Grenade's Timer", &g_Config.cvars.grenade_timer);
+		ImGui::Checkbox("Show Grenade's Timer", &g_Config.cvars.grenade_timer); g_Config.cvars.tooltips ? ImGui::SameLine(), ImGuiCustom.ToolTip("Shows a timer that indicates the relative time left to a player held grenade explosion") : void(nullptr);
 
 		ImGui::Spacing();
 
@@ -2776,7 +2776,6 @@ void CMenuModule::DrawTabConfigsContent()
 		if (ImGui::Button("Delete"))
 			g_Config.Remove();
 
-
 		ImGui::EndChild();
 		break;
 	}
@@ -2788,7 +2787,7 @@ void CMenuModule::DrawSettingsTabContent()
 	{
 	case 0: // Menu
 	{
-		ImGui::BeginChild("menu", ImVec2(328, 395), true);
+		ImGui::BeginChild("menu", ImVec2(328, 430), true);
 
 		ImGui::Text("Toggle Key");
 
@@ -2838,7 +2837,12 @@ void CMenuModule::DrawSettingsTabContent()
 			"Sven-Cope",
 		};
 
+		ImGui::Checkbox("Show Tooltips", &g_Config.cvars.tooltips);
+
+		ImGuiCustom.Spacing(4);
+
 		ImGui::PushItemWidth(150);
+
 		if (ImGui::Combo("Theme", &g_Config.cvars.menu_theme, theme_items, IM_ARRAYSIZE(theme_items)))
 		{
 			LoadSavedStyle();
@@ -2847,7 +2851,7 @@ void CMenuModule::DrawSettingsTabContent()
 		}
 		ImGui::PopItemWidth();
 
-		ImGuiCustom.Spacing(8);
+		ImGuiCustom.Spacing(4);
 
 		ImGui::SliderFloat("Opacity", &g_Config.cvars.menu_opacity, 0.1f, 1.0f);
 

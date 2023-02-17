@@ -48,6 +48,7 @@ public:
 		bool menu_auto_resize = true;
 		int menu_theme = 0;
 		float menu_opacity = 1.0f;
+		bool tooltips = false;
 		float logo_color[3] = { 1.0f, 1.0f, 1.0f };
 		bool rainbow[2] = { false, false };
 		int rainbow_speed = 3;

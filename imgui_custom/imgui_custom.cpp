@@ -116,3 +116,22 @@ void CImGuiCustom::Spacing(float value)
         return;
     ImGui::ItemSize(ImVec2(value, value));
 }
+
+// For tool tips
+void CImGuiCustom::ToolTip(const char* desc)
+{
+    // Can't color the text because this shit does not work
+    // neither TextColored works, same reason as columns
+
+    //ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(101, 164, 212, 255));
+    ImGui::Text("(?)");
+    //ImGui::PopStyleColor();
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
+    {
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::TextUnformatted(desc);
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
+}

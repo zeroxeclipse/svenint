@@ -145,6 +145,7 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam("AutoResize", cvars.menu_auto_resize);
 			ConfigManager()->ImportParam("Theme", cvars.menu_theme);
 			ConfigManager()->ImportParam("Opacity", cvars.menu_opacity);
+			ConfigManager()->ImportParam("Tooltips", cvars.tooltips);
 			ConfigManager()->ImportParam("SvenIntLogoColor_R", cvars.logo_color[0]);
 			ConfigManager()->ImportParam("SvenIntLogoColor_G", cvars.logo_color[1]);
 			ConfigManager()->ImportParam("SvenIntLogoColor_B", cvars.logo_color[2]);
@@ -838,6 +839,7 @@ void CConfig::Save()
 			ConfigManager()->ExportParam("AutoResize", cvars.menu_auto_resize);
 			ConfigManager()->ExportParam("Theme", cvars.menu_theme);
 			ConfigManager()->ExportParam("Opacity", cvars.menu_opacity);
+			ConfigManager()->ExportParam("Tooltips", cvars.tooltips);
 			ConfigManager()->ExportParam("SvenIntLogoColor_R", cvars.logo_color[0]);
 			ConfigManager()->ExportParam("SvenIntLogoColor_G", cvars.logo_color[1]);
 			ConfigManager()->ExportParam("SvenIntLogoColor_B", cvars.logo_color[2]);
