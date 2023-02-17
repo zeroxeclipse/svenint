@@ -53,6 +53,7 @@ void main()
 	vec2 uv = vec2(gl_FragCoord.xy / res.xy);
 	
 	float depth = texture2D(depthmap, uv).x;
+	depth = 2.0 * depth - 1.0;
 	depth = (2.0 * znear) / (zfar + znear - depth * (zfar - znear));
 	
 	if ( distance >= depth )

@@ -10,6 +10,7 @@ float LinearizeDepth(in vec2 uv)
     // float znear = 0.5;    // TODO: Replace by the zNear of your perspective projection
     // float zfar  = 100.0; // TODO: Replace by the zFar  of your perspective projection
     float depth = texture2D(iChannel0, uv).x; // .x
+	depth = 2.0 * depth - 1.0;
     return (2.0 * znear) / (zfar + znear - depth * (zfar - znear));
 }
 

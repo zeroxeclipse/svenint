@@ -164,17 +164,51 @@ bool CConfig::Load()
 		
 		if (ConfigManager()->BeginSectionImport("SHADERS"))
 		{
+			ConfigManager()->ImportParam("Enable", cvars.shaders);
+
 			ConfigManager()->ImportParam("ShowDepthBuffer", cvars.shaders_show_depth_buffer);
 			ConfigManager()->ImportParam("DepthBufferZNear", cvars.shaders_depth_buffer_znear);
 			ConfigManager()->ImportParam("DepthBufferZFar", cvars.shaders_depth_buffer_zfar);
 			ConfigManager()->ImportParam("DepthBufferBrightness", cvars.shaders_depth_buffer_brightness);
-			
+
+			ConfigManager()->ImportParam("SSAO", cvars.shaders_ssao);
+			ConfigManager()->ImportParam("SSAOOnlyAO", cvars.shaders_ssao_onlyAO);
+			ConfigManager()->ImportParam("SSAOZNear", cvars.shaders_ssao_znear);
+			ConfigManager()->ImportParam("SSAOZFar", cvars.shaders_ssao_zfar);
+			ConfigManager()->ImportParam("SSAOStrength", cvars.shaders_ssao_strength);
+			ConfigManager()->ImportParam("SSAOSamples", cvars.shaders_ssao_samples);
+			ConfigManager()->ImportParam("SSAORadius", cvars.shaders_ssao_radius);
+			ConfigManager()->ImportParam("SSAODepthClamp", cvars.shaders_ssao_aoclamp);
+			ConfigManager()->ImportParam("SSAOLuminanceAffection", cvars.shaders_ssao_lumInfluence);
+			ConfigManager()->ImportParam("SSAONoise", cvars.shaders_ssao_noise);
+			ConfigManager()->ImportParam("SSAONoiseAmount", cvars.shaders_ssao_noiseamount);
+			ConfigManager()->ImportParam("SSAOReduction", cvars.shaders_ssao_diffarea);
+			ConfigManager()->ImportParam("SSAOGaussBell", cvars.shaders_ssao_gdisplace);
+			ConfigManager()->ImportParam("SSAOMist", cvars.shaders_ssao_mist);
+			ConfigManager()->ImportParam("SSAOMistStart", cvars.shaders_ssao_miststart);
+			ConfigManager()->ImportParam("SSAOMistEnd", cvars.shaders_ssao_mistend);
+
+			ConfigManager()->ImportParam("ColorCorrection", cvars.shaders_color_correction);
+			ConfigManager()->ImportParam("CCFilmGrain", cvars.shaders_cc_grain);
+			ConfigManager()->ImportParam("CCGamma", cvars.shaders_cc_target_gamma);
+			ConfigManager()->ImportParam("CCMonitorGamma", cvars.shaders_cc_monitor_gamma);
+			ConfigManager()->ImportParam("CCHueOffset", cvars.shaders_cc_hue_offset);
+			ConfigManager()->ImportParam("CCSaturation", cvars.shaders_cc_saturation);
+			ConfigManager()->ImportParam("CCContrast", cvars.shaders_cc_contrast);
+			ConfigManager()->ImportParam("CCLuminance", cvars.shaders_cc_luminance);
+			ConfigManager()->ImportParam("CCBlackLevel", cvars.shaders_cc_black_level);
+			ConfigManager()->ImportParam("CCBrightBoost", cvars.shaders_cc_bright_boost);
+			ConfigManager()->ImportParam("CCRedLevel", cvars.shaders_cc_R);
+			ConfigManager()->ImportParam("CCGreenLevel", cvars.shaders_cc_G);
+			ConfigManager()->ImportParam("CCBlueLevel", cvars.shaders_cc_B);
+
 			ConfigManager()->ImportParam("ChromaticAberration", cvars.shaders_chromatic_aberration);
-			ConfigManager()->ImportParam("ChromaticAberrationPixelWidth", cvars.shaders_chromatic_aberration_pxl_width);
-			ConfigManager()->ImportParam("ChromaticAberrationPixelHeight", cvars.shaders_chromatic_aberration_pxl_height);
+			ConfigManager()->ImportParam("ChromaticAberrationType", cvars.shaders_chromatic_aberration_type);
+			ConfigManager()->ImportParam("ChromaticAberrationDirX", cvars.shaders_chromatic_aberration_dir_x);
+			ConfigManager()->ImportParam("ChromaticAberrationDirY", cvars.shaders_chromatic_aberration_dir_y);
 			ConfigManager()->ImportParam("ChromaticAberrationShift", cvars.shaders_chromatic_aberration_shift);
 			ConfigManager()->ImportParam("ChromaticAberrationStrength", cvars.shaders_chromatic_aberration_strength);
-			
+
 			ConfigManager()->ImportParam("DoFBlur", cvars.shaders_dof_blur);
 			ConfigManager()->ImportParam("DoFBlurMinRange", cvars.shaders_dof_blur_min_range);
 			ConfigManager()->ImportParam("DoFBlurMaxRange", cvars.shaders_dof_blur_max_range);
@@ -187,21 +221,25 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam("MotionBlurStrength", cvars.shaders_motion_blur_strength);
 			ConfigManager()->ImportParam("MotionBlurMinSpeed", cvars.shaders_motion_blur_min_speed);
 			ConfigManager()->ImportParam("MotionBlurMaxSpeed", cvars.shaders_motion_blur_max_speed);
-			
+
 			ConfigManager()->ImportParam("RadialBlur", cvars.shaders_radial_blur);
 			ConfigManager()->ImportParam("RadialBlurDistance", cvars.shaders_radial_blur_distance);
 			ConfigManager()->ImportParam("RadialBlurStrength", cvars.shaders_radial_blur_strength);
-			
+
 			ConfigManager()->ImportParam("BokehBlur", cvars.shaders_bokeh_blur);
 			ConfigManager()->ImportParam("BokehBlurRadius", cvars.shaders_bokeh_blur_radius);
 			ConfigManager()->ImportParam("BokehBlurCoefficient", cvars.shaders_bokeh_blur_coeff);
 			ConfigManager()->ImportParam("BokehBlurSamplesCount", cvars.shaders_bokeh_blur_samples);
-			
+
 			ConfigManager()->ImportParam("GaussianBlur", cvars.shaders_gaussian_blur);
 			ConfigManager()->ImportParam("GaussianBlurRadius", cvars.shaders_gaussian_blur_radius);
-			
+
 			ConfigManager()->ImportParam("GaussianBlurFast", cvars.shaders_gaussian_blur_fast);
 			ConfigManager()->ImportParam("GaussianBlurFastRadius", cvars.shaders_gaussian_blur_fast_radius);
+
+			ConfigManager()->ImportParam("Vignette", cvars.shaders_vignette);
+			ConfigManager()->ImportParam("VignetteFalloff", cvars.shaders_vignette_falloff);
+			ConfigManager()->ImportParam("VignetteAmount", cvars.shaders_vignette_amount);
 
 			ConfigManager()->EndSectionImport();
 		}
@@ -858,17 +896,51 @@ void CConfig::Save()
 
 		if (ConfigManager()->BeginSectionExport("SHADERS"))
 		{
+			ConfigManager()->ExportParam("Enable", cvars.shaders);
+
 			ConfigManager()->ExportParam("ShowDepthBuffer", cvars.shaders_show_depth_buffer);
 			ConfigManager()->ExportParam("DepthBufferZNear", cvars.shaders_depth_buffer_znear);
 			ConfigManager()->ExportParam("DepthBufferZFar", cvars.shaders_depth_buffer_zfar);
 			ConfigManager()->ExportParam("DepthBufferBrightness", cvars.shaders_depth_buffer_brightness);
-			
+
+			ConfigManager()->ExportParam("SSAO", cvars.shaders_ssao);
+			ConfigManager()->ExportParam("SSAOOnlyAO", cvars.shaders_ssao_onlyAO);
+			ConfigManager()->ExportParam("SSAOZNear", cvars.shaders_ssao_znear);
+			ConfigManager()->ExportParam("SSAOZFar", cvars.shaders_ssao_zfar);
+			ConfigManager()->ExportParam("SSAOStrength", cvars.shaders_ssao_strength);
+			ConfigManager()->ExportParam("SSAOSamples", cvars.shaders_ssao_samples);
+			ConfigManager()->ExportParam("SSAORadius", cvars.shaders_ssao_radius);
+			ConfigManager()->ExportParam("SSAODepthClamp", cvars.shaders_ssao_aoclamp);
+			ConfigManager()->ExportParam("SSAOLuminanceAffection", cvars.shaders_ssao_lumInfluence);
+			ConfigManager()->ExportParam("SSAONoise", cvars.shaders_ssao_noise);
+			ConfigManager()->ExportParam("SSAONoiseAmount", cvars.shaders_ssao_noiseamount);
+			ConfigManager()->ExportParam("SSAOReduction", cvars.shaders_ssao_diffarea);
+			ConfigManager()->ExportParam("SSAOGaussBell", cvars.shaders_ssao_gdisplace);
+			ConfigManager()->ExportParam("SSAOMist", cvars.shaders_ssao_mist);
+			ConfigManager()->ExportParam("SSAOMistStart", cvars.shaders_ssao_miststart);
+			ConfigManager()->ExportParam("SSAOMistEnd", cvars.shaders_ssao_mistend);
+
+			ConfigManager()->ExportParam("ColorCorrection", cvars.shaders_color_correction);
+			ConfigManager()->ExportParam("CCFilmGrain", cvars.shaders_cc_grain);
+			ConfigManager()->ExportParam("CCGamma", cvars.shaders_cc_target_gamma);
+			ConfigManager()->ExportParam("CCMonitorGamma", cvars.shaders_cc_monitor_gamma);
+			ConfigManager()->ExportParam("CCHueOffset", cvars.shaders_cc_hue_offset);
+			ConfigManager()->ExportParam("CCSaturation", cvars.shaders_cc_saturation);
+			ConfigManager()->ExportParam("CCContrast", cvars.shaders_cc_contrast);
+			ConfigManager()->ExportParam("CCLuminance", cvars.shaders_cc_luminance);
+			ConfigManager()->ExportParam("CCBlackLevel", cvars.shaders_cc_black_level);
+			ConfigManager()->ExportParam("CCBrightBoost", cvars.shaders_cc_bright_boost);
+			ConfigManager()->ExportParam("CCRedLevel", cvars.shaders_cc_R);
+			ConfigManager()->ExportParam("CCGreenLevel", cvars.shaders_cc_G);
+			ConfigManager()->ExportParam("CCBlueLevel", cvars.shaders_cc_B);
+
 			ConfigManager()->ExportParam("ChromaticAberration", cvars.shaders_chromatic_aberration);
-			ConfigManager()->ExportParam("ChromaticAberrationPixelWidth", cvars.shaders_chromatic_aberration_pxl_width);
-			ConfigManager()->ExportParam("ChromaticAberrationPixelHeight", cvars.shaders_chromatic_aberration_pxl_height);
+			ConfigManager()->ExportParam("ChromaticAberrationType", cvars.shaders_chromatic_aberration_type);
+			ConfigManager()->ExportParam("ChromaticAberrationDirX", cvars.shaders_chromatic_aberration_dir_x);
+			ConfigManager()->ExportParam("ChromaticAberrationDirY", cvars.shaders_chromatic_aberration_dir_y);
 			ConfigManager()->ExportParam("ChromaticAberrationShift", cvars.shaders_chromatic_aberration_shift);
 			ConfigManager()->ExportParam("ChromaticAberrationStrength", cvars.shaders_chromatic_aberration_strength);
-			
+
 			ConfigManager()->ExportParam("DoFBlur", cvars.shaders_dof_blur);
 			ConfigManager()->ExportParam("DoFBlurMinRange", cvars.shaders_dof_blur_min_range);
 			ConfigManager()->ExportParam("DoFBlurMaxRange", cvars.shaders_dof_blur_max_range);
@@ -881,21 +953,25 @@ void CConfig::Save()
 			ConfigManager()->ExportParam("MotionBlurStrength", cvars.shaders_motion_blur_strength);
 			ConfigManager()->ExportParam("MotionBlurMinSpeed", cvars.shaders_motion_blur_min_speed);
 			ConfigManager()->ExportParam("MotionBlurMaxSpeed", cvars.shaders_motion_blur_max_speed);
-			
+
 			ConfigManager()->ExportParam("RadialBlur", cvars.shaders_radial_blur);
 			ConfigManager()->ExportParam("RadialBlurDistance", cvars.shaders_radial_blur_distance);
 			ConfigManager()->ExportParam("RadialBlurStrength", cvars.shaders_radial_blur_strength);
-			
+
 			ConfigManager()->ExportParam("BokehBlur", cvars.shaders_bokeh_blur);
 			ConfigManager()->ExportParam("BokehBlurRadius", cvars.shaders_bokeh_blur_radius);
 			ConfigManager()->ExportParam("BokehBlurCoefficient", cvars.shaders_bokeh_blur_coeff);
 			ConfigManager()->ExportParam("BokehBlurSamplesCount", cvars.shaders_bokeh_blur_samples);
-			
+
 			ConfigManager()->ExportParam("GaussianBlur", cvars.shaders_gaussian_blur);
 			ConfigManager()->ExportParam("GaussianBlurRadius", cvars.shaders_gaussian_blur_radius);
-			
+
 			ConfigManager()->ExportParam("GaussianBlurFast", cvars.shaders_gaussian_blur_fast);
 			ConfigManager()->ExportParam("GaussianBlurFastRadius", cvars.shaders_gaussian_blur_fast_radius);
+
+			ConfigManager()->ExportParam("Vignette", cvars.shaders_vignette);
+			ConfigManager()->ExportParam("VignetteFalloff", cvars.shaders_vignette_falloff);
+			ConfigManager()->ExportParam("VignetteAmount", cvars.shaders_vignette_amount);
 
 			ConfigManager()->EndSectionExport();
 		}

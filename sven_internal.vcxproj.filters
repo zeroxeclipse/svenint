@@ -386,6 +386,15 @@
     <ClCompile Include="imgui_custom\imgui_custom.cpp">
       <Filter>Sven Internal\Dear ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="utils\shaders\color_correction_raw.c">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\shaders\ssao_raw.c">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\shaders\vignette_raw.c">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">
@@ -732,6 +741,15 @@
     </ClInclude>
     <ClInclude Include="imgui_custom\imgui_custom.h">
       <Filter>Sven Internal\Dear ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\shaders\color_correction_raw.h">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\shaders\ssao_raw.h">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\shaders\vignette_raw.h">
+      <Filter>Sven Internal\Utils\Shaders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

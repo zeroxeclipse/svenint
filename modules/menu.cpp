@@ -1345,9 +1345,13 @@ void CMenuModule::DrawVisualsTabContent()
 	}
 	case 8: // Shaders
 	{
-		ImGui::BeginChild("shaders", ImVec2(328, 360), true);
+		ImGui::BeginChild("shaders", ImVec2(328, 355), true);
 
-		ImGui::Text("Show Depth Buffer");
+		ImGui::Checkbox("Enable##shaders", &g_Config.cvars.shaders);
+
+		ImGuiCustom.Spacing(4);
+
+		ImGui::Text("Depth Buffer");
 
 		ImGui::Spacing();
 
@@ -1365,29 +1369,210 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::SliderFloat("Brightness##depth", &g_Config.cvars.shaders_depth_buffer_brightness, 0.f, 1.f);
 
-		ImGuiCustom.Spacing(4);
+		ImGui::Spacing();
 
-		ImGui::Text("Chromatic Aberration");
+		ImGui::Text("Misc.");
 
 		ImGui::Spacing();
 
-		ImGui::Checkbox("Enable Chromatic Aberration##shaders", &g_Config.cvars.shaders_chromatic_aberration);
+		if (ImGui::BeginCombo("", "SSAO", ImGuiComboFlags_HeightLargest))
+		{
+			ImGui::Text("Screen-Space Ambient Occlusion");
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox("Enable SSAO##shader", &g_Config.cvars.shaders_ssao);
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox("Only Ambient Occlusion##ssao", &g_Config.cvars.shaders_ssao_onlyAO);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Z Near##ssao", &g_Config.cvars.shaders_ssao_znear, 0.01f, 64.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Z Far##ssao", &g_Config.cvars.shaders_ssao_zfar, 0.01f, 4096.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderInt("Quality##ssao", &g_Config.cvars.shaders_ssao_samples, 1, 64);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Strength##ssao", &g_Config.cvars.shaders_ssao_strength, 0.0f, 10.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Radius##ssao", &g_Config.cvars.shaders_ssao_radius, 0.0f, 50.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Depth Clamp##ssao", &g_Config.cvars.shaders_ssao_aoclamp, 0.0f, 5.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Self-Shadowing Reduction##ssao", &g_Config.cvars.shaders_ssao_diffarea, 0.0f, 5.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Gauss Bell Center##ssao", &g_Config.cvars.shaders_ssao_gdisplace, 0.0f, 5.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Luminance Affection##ssao", &g_Config.cvars.shaders_ssao_lumInfluence, 0.0f, 5.f);
+
+			ImGuiCustom.Spacing(4);
+
+			ImGui::Text("Noise");
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox("Use Noise Instead of Patterns##ssao", &g_Config.cvars.shaders_ssao_noise);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Dithering Amount##ssao", &g_Config.cvars.shaders_ssao_noiseamount, 0.0f, 0.1f, "%.5f");
+
+			ImGuiCustom.Spacing(4);
+
+			ImGui::Text("Mist");
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox("Enable Mist##ssao", &g_Config.cvars.shaders_ssao_mist);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Start##ssao", &g_Config.cvars.shaders_ssao_miststart, 0.f, 2048.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("End##ssao", &g_Config.cvars.shaders_ssao_mistend, 0.01f, 4096.f);
+
+			ImGui::EndCombo();
+		}
 
 		ImGui::Spacing();
 
-		ImGui::SliderFloat("Pixel Width##aberrat", &g_Config.cvars.shaders_chromatic_aberration_pxl_width, -50.f, 50.f);
+		if (ImGui::BeginCombo(" ", "Color Correction", ImGuiComboFlags_HeightLargest))
+		{
+			ImGui::Checkbox("Enable Color Correction##shader", &g_Config.cvars.shaders_color_correction);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Grain##clrcor", &g_Config.cvars.shaders_cc_grain, 0.0f, 512.f);
+
+			ImGui::Spacing();
+
+			//ImGui::SliderFloat("Sharpness##clrcor", &g_Config.cvars.shaders_cc_sharpness, 0.f, 100.f);
+			//
+			//ImGui::Spacing();
+
+			ImGui::SliderFloat("Gamma##clrcor", &g_Config.cvars.shaders_cc_target_gamma, 0.01f, 4.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Monitor Gamma##clrcor", &g_Config.cvars.shaders_cc_monitor_gamma, 0.01f, 4.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Hue Adjustment##clrcor", &g_Config.cvars.shaders_cc_hue_offset, 0.f, 1.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Saturation##clrcor", &g_Config.cvars.shaders_cc_saturation, 0.f, 10.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Contrast##clrcor", &g_Config.cvars.shaders_cc_contrast, 0.f, 10.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Luminance##clrcor", &g_Config.cvars.shaders_cc_luminance, 0.f, 10.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Bright Boost##clrcor", &g_Config.cvars.shaders_cc_bright_boost, 0.f, 1.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Black Level##clrcor", &g_Config.cvars.shaders_cc_black_level, 0.f, 1.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Red Channel Level##clrcor", &g_Config.cvars.shaders_cc_R, 0.f, 1.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Green Channel Level##clrcor", &g_Config.cvars.shaders_cc_G, 0.f, 1.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Blue Channel Level##clrcor", &g_Config.cvars.shaders_cc_B, 0.f, 1.f);
+
+			ImGui::EndCombo();
+		}
 
 		ImGui::Spacing();
 
-		ImGui::SliderFloat("Pixel Height##aberrat", &g_Config.cvars.shaders_chromatic_aberration_pxl_height, -50.f, 50.f);
+		if (ImGui::BeginCombo("  ", "Chromatic Aberration", ImGuiComboFlags_HeightLarge))
+		{
+			ImGui::Checkbox("Enable Chromatic Aberration##shaders", &g_Config.cvars.shaders_chromatic_aberration);
+
+			ImGui::Spacing();
+
+			static const char *ca_types[] = { "0 - Default", "1 - Barrel Distortion", "2 - Linear Barrel Distortion" };
+
+			ImGui::SliderInt("Type##aberrat", &g_Config.cvars.shaders_chromatic_aberration_type, 0, 2, ca_types[g_Config.cvars.shaders_chromatic_aberration_type]);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Direction X##aberrat", &g_Config.cvars.shaders_chromatic_aberration_dir_x, -50.f, 50.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Direction Y##aberrat", &g_Config.cvars.shaders_chromatic_aberration_dir_y, -50.f, 50.f);
+
+			ImGui::Spacing();
+
+			if (g_Config.cvars.shaders_chromatic_aberration_type == 0)
+			{
+				ImGui::SliderFloat("Shift##aberrat", &g_Config.cvars.shaders_chromatic_aberration_shift, 0.f, 50.f);
+			}
+			else
+			{
+				float v = g_Config.cvars.shaders_chromatic_aberration_shift;
+
+				g_Config.cvars.shaders_chromatic_aberration_shift = clamp(v, 0.f, 1.f);
+
+				ImGui::SliderFloat("Shift##aberrat", &g_Config.cvars.shaders_chromatic_aberration_shift, 0.f, 1.f);
+			}
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Strength##aberrat", &g_Config.cvars.shaders_chromatic_aberration_strength, 0.f, 10.f);
+
+			ImGui::EndCombo();
+		}
 
 		ImGui::Spacing();
 
-		ImGui::SliderFloat("Shift##aberrat", &g_Config.cvars.shaders_chromatic_aberration_shift, 0.f, 50.f);
-		
-		ImGui::Spacing();
+		if (ImGui::BeginCombo("   ", "Vignette", 0))
+		{
+			ImGui::Checkbox("Enable Vignette##shaders", &g_Config.cvars.shaders_vignette);
 
-		ImGui::SliderFloat("Strength##aberrat", &g_Config.cvars.shaders_chromatic_aberration_strength, 0.f, 10.f);
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Falloff##vignette", &g_Config.cvars.shaders_vignette_falloff, 0.f, 1.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("Amount##vignette", &g_Config.cvars.shaders_vignette_amount, 0.f, 5.f);
+
+			ImGui::EndCombo();
+		}
 
 		ImGui::EndChild();
 
@@ -1423,11 +1608,11 @@ void CMenuModule::DrawVisualsTabContent()
 			ImGui::Spacing();
 
 			ImGui::SliderFloat("Bluriness Range##dof", &g_Config.cvars.shaders_dof_blur_bluriness_range, 0.0f, 150.f);
-			
+
 			ImGui::Spacing();
 
 			ImGui::SliderInt("Quality##dof", &g_Config.cvars.shaders_dof_blur_quality, 1, 50);
-			
+
 			ImGui::Spacing();
 
 			ImGui::SliderFloat("Bokeh Coefficient##dof", &g_Config.cvars.shaders_dof_blur_bokeh, 0.f, 1.f);
@@ -1444,7 +1629,7 @@ void CMenuModule::DrawVisualsTabContent()
 			ImGui::Spacing();
 
 			ImGui::SliderFloat("Min. Speed##motblur", &g_Config.cvars.shaders_motion_blur_min_speed, 0.01f, 2000.f);
-			
+
 			ImGui::Spacing();
 
 			ImGui::SliderFloat("Max. Speed##motblur", &g_Config.cvars.shaders_motion_blur_max_speed, 0.01f, 2000.f);
@@ -1455,7 +1640,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 			ImGui::EndCombo();
 		}
-		
+
 		ImGui::Spacing();
 
 		if (ImGui::BeginCombo("  ", "Radial Blur", 0))
@@ -1472,7 +1657,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 			ImGui::EndCombo();
 		}
-		
+
 		ImGui::Spacing();
 
 		if (ImGui::BeginCombo("   ", "Bokeh Blur", 0))
@@ -1486,14 +1671,14 @@ void CMenuModule::DrawVisualsTabContent()
 			ImGui::Spacing();
 
 			ImGui::SliderFloat("Bokeh Coefficient##bokeh", &g_Config.cvars.shaders_bokeh_blur_coeff, 0.0f, 1.f);
-			
+
 			ImGui::Spacing();
 
 			ImGui::SliderInt("Quality##bokeh", &g_Config.cvars.shaders_bokeh_blur_samples, 1, 50);
 
 			ImGui::EndCombo();
 		}
-		
+
 		ImGui::Spacing();
 
 		if (ImGui::BeginCombo("    ", "Gaussian Blur", 0))
@@ -1506,7 +1691,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 			ImGui::EndCombo();
 		}
-		
+
 		ImGui::Spacing();
 
 		if (ImGui::BeginCombo("     ", "Gaussian Blur Fast", 0))
@@ -1657,7 +1842,7 @@ void CMenuModule::DrawHUDTabContent()
 
 		ImGui::Spacing();
 
-		ImGui::Checkbox("Remap HUD Color", &g_Config.cvars.remap_hud_color); g_Config.cvars.tooltips ? ImGui::SameLine(), ImGuiCustom.ToolTip("Let's you change your HUD color") : void(nullptr);
+		ImGui::Checkbox("Change HUD Color", &g_Config.cvars.remap_hud_color); g_Config.cvars.tooltips ? ImGui::SameLine(), ImGuiCustom.ToolTip("Let's you change your HUD color") : void(nullptr);
 
 		ImGui::Spacing();
 

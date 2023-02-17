@@ -32,6 +32,8 @@ DECLARE_HOOK(void, __cdecl, ClientDLL_HudRedraw, int intermission);
 
 CShaders g_Shaders;
 
+static float s_iTime = -1;
+
 // Experimental only
 ConVar sc_gl_godrays("sc_gl_godrays", "", FCVAR_CLIENTDLL,
 					 "sc_gl_godrays \"<screen width fraction> <screen height fraction> <density> <weight> <decay> <exposure> <samples>\"");
@@ -53,13 +55,58 @@ DECLARE_FUNC(void, __cdecl, HOOKED_ClientDLL_HudRedraw, int intermission)
 
 void CShaders::OnPostRenderView(void)
 {
+	s_iTime += 1.f;
+
+	if ( s_iTime >= 1000.f )
+		s_iTime = 0.f;
+
 	// Always save depth buffer
 	StoreDepthBuffer();
+
+	if ( !g_Config.cvars.shaders )
+		return;
 
 	// Depth buffer
 	if ( g_Config.cvars.shaders_show_depth_buffer )
 	{
 		DrawDepthBuffer( g_Config.cvars.shaders_depth_buffer_znear, g_Config.cvars.shaders_depth_buffer_zfar, g_Config.cvars.shaders_depth_buffer_brightness );
+	}
+
+	if ( g_Config.cvars.shaders_ssao )
+	{
+		DrawSSAO( g_Config.cvars.shaders_ssao_znear,
+				 g_Config.cvars.shaders_ssao_zfar,
+				 g_Config.cvars.shaders_ssao_strength,
+				 g_Config.cvars.shaders_ssao_samples,
+				 g_Config.cvars.shaders_ssao_radius,
+				 g_Config.cvars.shaders_ssao_aoclamp,
+				 (int)g_Config.cvars.shaders_ssao_noise,
+				 g_Config.cvars.shaders_ssao_noiseamount,
+				 g_Config.cvars.shaders_ssao_diffarea,
+				 g_Config.cvars.shaders_ssao_gdisplace,
+				 (int)g_Config.cvars.shaders_ssao_mist,
+				 g_Config.cvars.shaders_ssao_miststart,
+				 g_Config.cvars.shaders_ssao_mistend,
+				 g_Config.cvars.shaders_ssao_lumInfluence,
+				 (int)g_Config.cvars.shaders_ssao_onlyAO );
+	}
+
+	// Color correction
+	if ( g_Config.cvars.shaders_color_correction )
+	{
+		DrawColorCorrection( g_Config.cvars.shaders_cc_target_gamma,
+							g_Config.cvars.shaders_cc_monitor_gamma,
+							g_Config.cvars.shaders_cc_hue_offset,
+							g_Config.cvars.shaders_cc_saturation,
+							g_Config.cvars.shaders_cc_contrast,
+							g_Config.cvars.shaders_cc_luminance,
+							g_Config.cvars.shaders_cc_black_level,
+							g_Config.cvars.shaders_cc_bright_boost,
+							g_Config.cvars.shaders_cc_R,
+							g_Config.cvars.shaders_cc_G,
+							g_Config.cvars.shaders_cc_B,
+							g_Config.cvars.shaders_cc_grain,
+							0.f );
 	}
 	
 	// God rays
@@ -84,8 +131,9 @@ void CShaders::OnPostRenderView(void)
 	// Chromatic aberration
 	if ( g_Config.cvars.shaders_chromatic_aberration )
 	{
-		DrawChromaticAberration( g_Config.cvars.shaders_chromatic_aberration_pxl_width,
-								g_Config.cvars.shaders_chromatic_aberration_pxl_height,
+		DrawChromaticAberration( g_Config.cvars.shaders_chromatic_aberration_type,
+								g_Config.cvars.shaders_chromatic_aberration_dir_x,
+								g_Config.cvars.shaders_chromatic_aberration_dir_y,
 								g_Config.cvars.shaders_chromatic_aberration_shift,
 								g_Config.cvars.shaders_chromatic_aberration_strength );
 	}
@@ -105,6 +153,7 @@ void CShaders::OnPostRenderView(void)
 	if ( g_Config.cvars.shaders_motion_blur )
 	{
 		float flSpeed = g_pPlayerMove->velocity.Length2D();
+
 		float flMinSpeed = g_Config.cvars.shaders_motion_blur_min_speed;
 		float flMaxSpeed = g_Config.cvars.shaders_motion_blur_max_speed;
 
@@ -147,33 +196,13 @@ void CShaders::OnPostRenderView(void)
 		DrawGaussianBlurFast( g_Config.cvars.shaders_gaussian_blur_fast_radius );
 	}
 
-	if ( !g_Config.cvars.menu_blur )
-		return;
-
-	float flTime = g_pEngineFuncs->Sys_FloatTime();
-	
 	// Menu, background blur 
-	if ( g_iMenuState == 1 )
+	if ( g_Config.cvars.menu_blur )
 	{
-		//if ( g_bMenuOpenTimePrev != -1.f )
-		//{
-		//	float dt = 1.f;
-
-		//	if ( flTime - g_bMenuOpenTime <= (flBlurFadeInDuration) )
-		//	{
-		//		dt = (flTime - g_bMenuOpenTime) / (flBlurFadeInDuration);
-		//	}
-		//	else
-		//	{
-		//		g_bMenuOpenTimePrev = -1.f;
-		//	}
-
-		//	DrawBokehBlur( last_radius * (1.f - dt),
-		//				  (float)g_Config.cvars.shaders_bokeh_blur_samples,
-		//				  g_Config.cvars.shaders_bokeh_blur_coeff );
-		//}
-		//else
-		//{
+		float flTime = g_pEngineFuncs->Sys_FloatTime();
+	
+		if ( g_iMenuState == 1 )
+		{
 			float dt = 1.f;
 
 			if ( flTime - g_bMenuOpenTime <= g_Config.cvars.menu_blur_fadein_duration )
@@ -184,32 +213,9 @@ void CShaders::OnPostRenderView(void)
 			}
 
 			DrawBokehBlur( g_Config.cvars.menu_blur_radius * dt, (float)g_Config.cvars.menu_blur_samples, g_Config.cvars.menu_blur_bokeh );
-		//}
-	}
-	else if ( g_iMenuState == 2 )
-	{
-		//if ( g_bMenuCloseTimePrev != -1.f )
-		//{
-		//	float dt = 1.f;
-
-		//	if ( flTime - g_bMenuCloseTime <= (flBlurFadeOutDuration) )
-		//	{
-		//		dt = (flTime - g_bMenuCloseTime) / (flBlurFadeOutDuration);
-		//	}
-		//	else
-		//	{
-		//		g_iMenuState = 0;
-		//		g_bMenuCloseTimePrev = -1.f;
-		//	}
-
-		//	dt = 1.f - dt;
-
-		//	DrawBokehBlur( last_radius * dt,
-		//				  (float)g_Config.cvars.shaders_bokeh_blur_samples,
-		//				  g_Config.cvars.shaders_bokeh_blur_coeff );
-		//}
-		//else
-		//{
+		}
+		else if ( g_iMenuState == 2 )
+		{
 			float dt = 1.f;
 
 			if ( flTime - g_bMenuCloseTime <= g_Config.cvars.menu_blur_fadeout_duration )
@@ -222,7 +228,13 @@ void CShaders::OnPostRenderView(void)
 			dt = 1.f - dt;
 
 			DrawBokehBlur( g_Config.cvars.menu_blur_radius * dt, (float)g_Config.cvars.menu_blur_samples, g_Config.cvars.menu_blur_bokeh );
-		//}
+		}
+	}
+
+	// Vignette
+	if ( g_Config.cvars.shaders_vignette )
+	{
+		DrawVignette( g_Config.cvars.shaders_vignette_falloff, g_Config.cvars.shaders_vignette_amount );
 	}
 }
 
@@ -247,6 +259,121 @@ void CShaders::DrawDepthBuffer(float znear, float zfar, float factor)
 		SHADER_UNIFORM_1f( m_ShaderDepthBuffer, zfar, zfar );
 		SHADER_UNIFORM_1f( m_ShaderDepthBuffer, factor, factor );
 		SHADER_UNIFORM_2f( m_ShaderDepthBuffer, res, m_fwidth, m_fheight );
+		
+		glColor4ub(255, 255, 255, 255);
+		DrawQuad(m_width, m_height);
+
+	SHADER_UNBIND();
+}
+
+//-----------------------------------------------------------------------------
+// Space-screen ambient occlusion
+//-----------------------------------------------------------------------------
+
+void CShaders::DrawSSAO(float znear,
+					  float zfar,
+					  float strength,
+					  int samples,
+					  float radius,
+					  float aoclamp,
+					  int noise,
+					  float noiseamount,
+					  float diffarea,
+					  float gdisplace,
+					  int mist,
+					  float miststart,
+					  float mistend,
+					  float lumInfluence,
+					  int onlyAO)
+{
+	InitColorTexPostProcessing( POST_PROCESSING_EXPAND_VARS(m_hSSAO) );
+
+	GLint texture0, texture1;
+
+	glEnable(GL_TEXTURE_2D);
+
+	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+	glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture0);
+	GL_Bind(POST_PROCESSING_TEX(m_hSSAO));
+
+	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
+	glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture1);
+	GL_Bind(POST_PROCESSING_TEX(m_hDepthBuffer));
+
+	SHADER_BIND(m_ShaderSSAO);
+
+		SHADER_UNIFORM_1i( m_ShaderSSAO, iChannel0, 0 );
+		SHADER_UNIFORM_1i( m_ShaderSSAO, depthmap, 1 );
+		SHADER_UNIFORM_1f( m_ShaderSSAO, zNear, znear );
+		SHADER_UNIFORM_1f( m_ShaderSSAO, zFar, zfar );
+		SHADER_UNIFORM_1f( m_ShaderSSAO, strength, strength );
+		SHADER_UNIFORM_1i( m_ShaderSSAO, samples, samples );
+		SHADER_UNIFORM_1f( m_ShaderSSAO, radius, radius );
+		SHADER_UNIFORM_1f( m_ShaderSSAO, aoclamp, aoclamp );
+		SHADER_UNIFORM_1i( m_ShaderSSAO, noise, noise );
+		SHADER_UNIFORM_1f( m_ShaderSSAO, noiseamount, noiseamount );
+		SHADER_UNIFORM_1f( m_ShaderSSAO, diffarea, diffarea );
+		SHADER_UNIFORM_1f( m_ShaderSSAO, gdisplace, gdisplace );
+		SHADER_UNIFORM_1i( m_ShaderSSAO, mist, mist );
+		SHADER_UNIFORM_1f( m_ShaderSSAO, miststart, miststart );
+		SHADER_UNIFORM_1f( m_ShaderSSAO, mistend, mistend );
+		SHADER_UNIFORM_1i( m_ShaderSSAO, onlyAO, onlyAO );
+		SHADER_UNIFORM_1f( m_ShaderSSAO, lumInfluence, lumInfluence );
+		SHADER_UNIFORM_2f( m_ShaderSSAO, res, m_fwidth, m_fheight );
+
+		glColor4ub(255, 255, 255, 255);
+		DrawQuad(m_width, m_height);
+
+	SHADER_UNBIND();
+
+	GL_Bind(texture1); // unbind from texture unit 1
+	glActiveTexture(GL_TEXTURE0 + 0);
+	GL_Bind(texture0); // unbind from texture unit 0
+}
+
+//-----------------------------------------------------------------------------
+// Color correction
+//-----------------------------------------------------------------------------
+
+void CShaders::DrawColorCorrection(float targetgamma, // holy shit
+								 float monitorgamma,
+								 float hueoffset,
+								 float saturation,
+								 float contrast,
+								 float luminance,
+								 float blacklevel,
+								 float brightboost,
+								 float redlevel,
+								 float greenlevel,
+								 float bluelevel,
+								 float grain,
+								 float sharpness)
+{
+	InitColorTexPostProcessing( POST_PROCESSING_EXPAND_VARS(m_hColorCorrection) );
+
+	glEnable(GL_TEXTURE_2D);
+
+	GL_Bind(POST_PROCESSING_TEX(m_hColorCorrection));
+
+	SHADER_BIND( m_ShaderColorCorrection );
+
+		SHADER_UNIFORM_1f( m_ShaderColorCorrection, iTime, s_iTime );
+		SHADER_UNIFORM_1f( m_ShaderColorCorrection, ia_target_gamma, targetgamma );
+		SHADER_UNIFORM_1f( m_ShaderColorCorrection, ia_monitor_gamma, monitorgamma );
+		SHADER_UNIFORM_1f( m_ShaderColorCorrection, ia_hue_offset, hueoffset );
+		SHADER_UNIFORM_1f( m_ShaderColorCorrection, ia_saturation, saturation );
+		SHADER_UNIFORM_1f( m_ShaderColorCorrection, ia_contrast, contrast );
+		SHADER_UNIFORM_1f( m_ShaderColorCorrection, ia_luminance, luminance );
+		SHADER_UNIFORM_1f( m_ShaderColorCorrection, ia_black_level, blacklevel );
+		SHADER_UNIFORM_1f( m_ShaderColorCorrection, ia_bright_boost, brightboost );
+		SHADER_UNIFORM_1f( m_ShaderColorCorrection, ia_R, redlevel );
+		SHADER_UNIFORM_1f( m_ShaderColorCorrection, ia_G, greenlevel );
+		SHADER_UNIFORM_1f( m_ShaderColorCorrection, ia_B, bluelevel );
+		SHADER_UNIFORM_1f( m_ShaderColorCorrection, ia_G, greenlevel );
+		SHADER_UNIFORM_1f( m_ShaderColorCorrection, ia_B, bluelevel );
+		SHADER_UNIFORM_1f( m_ShaderColorCorrection, ia_GRAIN_STR, grain );
+		//SHADER_UNIFORM_1f( m_ShaderColorCorrection, ia_SHARPEN, sharpness );
+		SHADER_UNIFORM_2f( m_ShaderColorCorrection, res, m_fwidth, m_fheight );
 		
 		glColor4ub(255, 255, 255, 255);
 		DrawQuad(m_width, m_height);
@@ -286,7 +413,7 @@ void CShaders::DrawGodRays(float x, float y, float density, float weight, float 
 // Chromatic aberration
 //-----------------------------------------------------------------------------
 
-void CShaders::DrawChromaticAberration(float pixelWidth, float pixelHeight, float shift, float strength)
+void CShaders::DrawChromaticAberration(int type, float dirX, float dirY, float shift, float strength)
 {
 	InitColorTexPostProcessing( POST_PROCESSING_EXPAND_VARS(m_hChromaticAberration) );
 
@@ -296,9 +423,10 @@ void CShaders::DrawChromaticAberration(float pixelWidth, float pixelHeight, floa
 
 	SHADER_BIND( m_ShaderChromaticAberration );
 
+		SHADER_UNIFORM_1i( m_ShaderChromaticAberration, type, type );
 		SHADER_UNIFORM_1f( m_ShaderChromaticAberration, shift, shift );
 		SHADER_UNIFORM_1f( m_ShaderChromaticAberration, strength, strength );
-		SHADER_UNIFORM_2f( m_ShaderChromaticAberration, pixelSize, pixelWidth, pixelHeight );
+		SHADER_UNIFORM_2f( m_ShaderChromaticAberration, dir, dirX, dirY );
 		SHADER_UNIFORM_2f( m_ShaderChromaticAberration, res, m_fwidth, m_fheight );
 		
 		glColor4ub(255, 255, 255, 255);
@@ -324,11 +452,16 @@ void CShaders::DrawDoFBlur(float minDistance, float maxDistance, int interptype,
 	{
 		InitColorTexPostProcessing( POST_PROCESSING_EXPAND_VARS(m_hDoFBlur) );
 
+		GLint texture0, texture1;
+
 		glEnable(GL_TEXTURE_2D);
 
 		glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+		glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture0);
 		GL_Bind(POST_PROCESSING_TEX(m_hDoFBlur));
+
 		glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
+		glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture1);
 		GL_Bind(POST_PROCESSING_TEX(m_hDepthBuffer));
 
 		SHADER_BIND( m_ShaderDoFBlur );
@@ -350,7 +483,9 @@ void CShaders::DrawDoFBlur(float minDistance, float maxDistance, int interptype,
 
 		SHADER_UNBIND();
 
+		GL_Bind(texture1); // unbind from texture unit 1
 		glActiveTexture(GL_TEXTURE0 + 0);
+		GL_Bind(texture0); // unbind from texture unit 0
 	}
 }
 
@@ -490,6 +625,30 @@ void CShaders::DrawGaussianBlurFast(float radius)
 }
 
 //-----------------------------------------------------------------------------
+// Vignette
+//-----------------------------------------------------------------------------
+
+void CShaders::DrawVignette(float falloff, float amount)
+{
+	InitColorTexPostProcessing( POST_PROCESSING_EXPAND_VARS(m_hVignette) );
+
+	glEnable(GL_TEXTURE_2D);
+
+	GL_Bind(POST_PROCESSING_TEX(m_hVignette));
+
+	SHADER_BIND( m_ShaderVignette );
+
+		SHADER_UNIFORM_1f( m_ShaderVignette, falloff, falloff );
+		SHADER_UNIFORM_1f( m_ShaderVignette, amount, amount );
+		SHADER_UNIFORM_2f( m_ShaderVignette, res, m_fwidth, m_fheight );
+		
+		glColor4ub(255, 255, 255, 255);
+		DrawQuad(m_width, m_height);
+
+	SHADER_UNBIND();
+}
+
+//-----------------------------------------------------------------------------
 // Utility draw functions
 //-----------------------------------------------------------------------------
 
@@ -554,6 +713,7 @@ void CShaders::InitDepthTexPostProcessing(GLuint hFBO, GLuint hTex)
 
 void CShaders::DecryptRawShaders()
 {
+#if !SHADERS_COMPILE_FROM_FILE
 	auto decryptRawShader = [](char *bytes, unsigned int size)
 	{
 		for (unsigned int i = 0; i < size; i++)
@@ -565,6 +725,7 @@ void CShaders::DecryptRawShaders()
 	decryptRawShader( pp_fullscreen_bytes, pp_fullscreen_size );
 	decryptRawShader( bloom_bytes, bloom_size );
 	decryptRawShader( bokeh_bytes, bokeh_size );
+	decryptRawShader( color_correction_bytes, color_correction_size );
 	decryptRawShader( chromatic_aberration_bytes, chromatic_aberration_size );
 	decryptRawShader( depth_buffer_bytes, depth_buffer_size );
 	decryptRawShader( dof_blur_bytes, dof_blur_size );
@@ -572,6 +733,9 @@ void CShaders::DecryptRawShaders()
 	decryptRawShader( gaussian_blur_fast_bytes, gaussian_blur_fast_size );
 	decryptRawShader( godrays_bytes, godrays_size );
 	decryptRawShader( radial_blur_bytes, radial_blur_size );
+	decryptRawShader( ssao_bytes, ssao_size );
+	decryptRawShader( vignette_bytes, vignette_size );
+#endif
 }
 
 void CShaders::EncryptRawShaders()
@@ -585,10 +749,9 @@ void CShaders::EncryptRawShaders()
 
 void CShaders::Compile()
 {
-#if !SHADERS_COMPILE_FROM_FILE
 	DecryptRawShaders();
-#endif
 
+	// Depth buffer
 #if SHADERS_COMPILE_FROM_FILE
 	SHADER_BEGIN_COMPILE_FILE( m_ShaderDepthBuffer, "sven_internal\\shaders\\pp_fullscreen.vsh", "sven_internal\\shaders\\depth_buffer.fsh" )
 #else
@@ -599,18 +762,70 @@ void CShaders::Compile()
 		SHADER_LOCATE_UNIFORM( m_ShaderDepthBuffer, factor )
 		SHADER_LOCATE_UNIFORM( m_ShaderDepthBuffer, res )
 	SHADER_END_COMPILE();
+
+	// Screen-Space Ambient Occlusion
+#if SHADERS_COMPILE_FROM_FILE
+	SHADER_BEGIN_COMPILE_FILE( m_ShaderSSAO, "sven_internal\\shaders\\pp_fullscreen.vsh", "sven_internal\\shaders\\ssao.fsh" )
+#else
+	SHADER_BEGIN_COMPILE( m_ShaderSSAO, pp_fullscreen_bytes, ssao_bytes )
+#endif
+		SHADER_LOCATE_UNIFORM( m_ShaderSSAO, iChannel0 )
+		SHADER_LOCATE_UNIFORM( m_ShaderSSAO, depthmap )
+		SHADER_LOCATE_UNIFORM( m_ShaderSSAO, zNear )
+		SHADER_LOCATE_UNIFORM( m_ShaderSSAO, zFar )
+		SHADER_LOCATE_UNIFORM( m_ShaderSSAO, strength )
+		SHADER_LOCATE_UNIFORM( m_ShaderSSAO, samples )
+		SHADER_LOCATE_UNIFORM( m_ShaderSSAO, radius )
+		SHADER_LOCATE_UNIFORM( m_ShaderSSAO, aoclamp )
+		SHADER_LOCATE_UNIFORM( m_ShaderSSAO, noise )
+		SHADER_LOCATE_UNIFORM( m_ShaderSSAO, noiseamount )
+		SHADER_LOCATE_UNIFORM( m_ShaderSSAO, diffarea )
+		SHADER_LOCATE_UNIFORM( m_ShaderSSAO, gdisplace )
+		SHADER_LOCATE_UNIFORM( m_ShaderSSAO, mist )
+		SHADER_LOCATE_UNIFORM( m_ShaderSSAO, miststart )
+		SHADER_LOCATE_UNIFORM( m_ShaderSSAO, mistend )
+		SHADER_LOCATE_UNIFORM( m_ShaderSSAO, onlyAO )
+		SHADER_LOCATE_UNIFORM( m_ShaderSSAO, lumInfluence )
+		SHADER_LOCATE_UNIFORM( m_ShaderSSAO, res )
+	SHADER_END_COMPILE();
 	
+	// Color correction
+#if SHADERS_COMPILE_FROM_FILE
+	SHADER_BEGIN_COMPILE_FILE( m_ShaderColorCorrection, "sven_internal\\shaders\\pp_fullscreen.vsh", "sven_internal\\shaders\\color_correction.fsh" )
+#else
+	SHADER_BEGIN_COMPILE( m_ShaderColorCorrection, pp_fullscreen_bytes, color_correction_bytes )
+#endif
+		SHADER_LOCATE_UNIFORM( m_ShaderColorCorrection, iTime )
+		SHADER_LOCATE_UNIFORM( m_ShaderColorCorrection, ia_target_gamma )
+		SHADER_LOCATE_UNIFORM( m_ShaderColorCorrection, ia_monitor_gamma )
+		SHADER_LOCATE_UNIFORM( m_ShaderColorCorrection, ia_hue_offset )
+		SHADER_LOCATE_UNIFORM( m_ShaderColorCorrection, ia_saturation )
+		SHADER_LOCATE_UNIFORM( m_ShaderColorCorrection, ia_contrast )
+		SHADER_LOCATE_UNIFORM( m_ShaderColorCorrection, ia_luminance )
+		SHADER_LOCATE_UNIFORM( m_ShaderColorCorrection, ia_black_level )
+		SHADER_LOCATE_UNIFORM( m_ShaderColorCorrection, ia_bright_boost )
+		SHADER_LOCATE_UNIFORM( m_ShaderColorCorrection, ia_R )
+		SHADER_LOCATE_UNIFORM( m_ShaderColorCorrection, ia_G )
+		SHADER_LOCATE_UNIFORM( m_ShaderColorCorrection, ia_B )
+		SHADER_LOCATE_UNIFORM( m_ShaderColorCorrection, ia_GRAIN_STR )
+		//SHADER_LOCATE_UNIFORM( m_ShaderColorCorrection, ia_SHARPEN )
+		SHADER_LOCATE_UNIFORM( m_ShaderColorCorrection, res )
+	SHADER_END_COMPILE();
+	
+	// Chromatic aberration
 #if SHADERS_COMPILE_FROM_FILE
 	SHADER_BEGIN_COMPILE_FILE( m_ShaderChromaticAberration, "sven_internal\\shaders\\pp_fullscreen.vsh", "sven_internal\\shaders\\chromatic_aberration.fsh" )
 #else
 	SHADER_BEGIN_COMPILE( m_ShaderChromaticAberration, pp_fullscreen_bytes, chromatic_aberration_bytes )
 #endif
+		SHADER_LOCATE_UNIFORM( m_ShaderChromaticAberration, type )
 		SHADER_LOCATE_UNIFORM( m_ShaderChromaticAberration, shift )
 		SHADER_LOCATE_UNIFORM( m_ShaderChromaticAberration, strength )
-		SHADER_LOCATE_UNIFORM( m_ShaderChromaticAberration, pixelSize )
+		SHADER_LOCATE_UNIFORM( m_ShaderChromaticAberration, dir )
 		SHADER_LOCATE_UNIFORM( m_ShaderChromaticAberration, res )
 	SHADER_END_COMPILE();
-	
+
+	// God rays
 #if SHADERS_COMPILE_FROM_FILE
 	SHADER_BEGIN_COMPILE_FILE( m_ShaderGodRays, "sven_internal\\shaders\\pp_fullscreen.vsh", "sven_internal\\shaders\\godrays.fsh" )
 #else
@@ -625,6 +840,7 @@ void CShaders::Compile()
 		SHADER_LOCATE_UNIFORM( m_ShaderGodRays, res )
 	SHADER_END_COMPILE();
 	
+	// Radial blur
 #if SHADERS_COMPILE_FROM_FILE
 	SHADER_BEGIN_COMPILE_FILE( m_ShaderRadialBlur, "sven_internal\\shaders\\pp_fullscreen.vsh", "sven_internal\\shaders\\radial_blur.fsh" )
 #else
@@ -635,6 +851,7 @@ void CShaders::Compile()
 		SHADER_LOCATE_UNIFORM( m_ShaderRadialBlur, res )
 	SHADER_END_COMPILE();
 	
+	// Gaussian blur
 #if SHADERS_COMPILE_FROM_FILE
 	SHADER_BEGIN_COMPILE_FILE( m_ShaderGaussianBlur, "sven_internal\\shaders\\pp_fullscreen.vsh", "sven_internal\\shaders\\gaussian_blur.fsh" )
 #else
@@ -645,6 +862,7 @@ void CShaders::Compile()
 		SHADER_LOCATE_UNIFORM( m_ShaderGaussianBlur, res )
 	SHADER_END_COMPILE();
 
+	// Gaussian blur fast
 #if SHADERS_COMPILE_FROM_FILE
 	SHADER_BEGIN_COMPILE_FILE( m_ShaderGaussianBlurFast, "sven_internal\\shaders\\pp_fullscreen.vsh", "sven_internal\\shaders\\gaussian_blur_fast.fsh" )
 #else
@@ -654,6 +872,7 @@ void CShaders::Compile()
 		SHADER_LOCATE_UNIFORM( m_ShaderGaussianBlurFast, res )
 	SHADER_END_COMPILE();
 
+	// Bokeh blur
 #if SHADERS_COMPILE_FROM_FILE
 	SHADER_BEGIN_COMPILE_FILE( m_ShaderBokeh, "sven_internal\\shaders\\pp_fullscreen.vsh", "sven_internal\\shaders\\bokeh.fsh" )
 #else
@@ -665,6 +884,7 @@ void CShaders::Compile()
 		SHADER_LOCATE_UNIFORM( m_ShaderBokeh, res )
 	SHADER_END_COMPILE();
 
+	// DoF blur
 #if SHADERS_COMPILE_FROM_FILE
 	SHADER_BEGIN_COMPILE_FILE( m_ShaderDoFBlur, "sven_internal\\shaders\\pp_fullscreen.vsh", "sven_internal\\shaders\\dof_blur.fsh" )
 #else
@@ -682,10 +902,19 @@ void CShaders::Compile()
 		SHADER_LOCATE_UNIFORM( m_ShaderDoFBlur, dir )
 		SHADER_LOCATE_UNIFORM( m_ShaderDoFBlur, res )
 	SHADER_END_COMPILE();
-
-#if !SHADERS_COMPILE_FROM_FILE
-	EncryptRawShaders();
+	
+	// Vignette
+#if SHADERS_COMPILE_FROM_FILE
+	SHADER_BEGIN_COMPILE_FILE( m_ShaderVignette, "sven_internal\\shaders\\pp_fullscreen.vsh", "sven_internal\\shaders\\vignette.fsh" )
+#else
+	SHADER_BEGIN_COMPILE( m_ShaderVignette, pp_fullscreen_bytes, vignette_bytes )
 #endif
+		SHADER_LOCATE_UNIFORM( m_ShaderVignette, falloff )
+		SHADER_LOCATE_UNIFORM( m_ShaderVignette, amount )
+		SHADER_LOCATE_UNIFORM( m_ShaderVignette, res )
+	SHADER_END_COMPILE();
+
+	EncryptRawShaders();
 }
 
 //-----------------------------------------------------------------------------
@@ -708,6 +937,8 @@ CShaders::CShaders()
 	m_hOldBuffer = 0;
 
 	POST_PROCESSING_RESET_VARS( m_hDepthBuffer );
+	POST_PROCESSING_RESET_VARS( m_hSSAO );
+	POST_PROCESSING_RESET_VARS( m_hColorCorrection );
 	POST_PROCESSING_RESET_VARS( m_hGodRays );
 	POST_PROCESSING_RESET_VARS( m_hChromaticAberration );
 	POST_PROCESSING_RESET_VARS( m_hDoFBlur );
@@ -715,6 +946,7 @@ CShaders::CShaders()
 	POST_PROCESSING_RESET_VARS( m_hBokeh );
 	POST_PROCESSING_RESET_VARS( m_hGaussianBlur );
 	POST_PROCESSING_RESET_VARS( m_hGaussianBlurFast );
+	POST_PROCESSING_RESET_VARS( m_hVignette );
 }
 
 bool CShaders::Load()
@@ -745,6 +977,8 @@ void CShaders::PostLoad()
 	Compile();
 
 	POST_PROCESSING_INIT_VARS_DEPTH( m_hDepthBuffer, m_width, m_height );
+	POST_PROCESSING_INIT_VARS_COLOR( m_hSSAO, m_width, m_height );
+	POST_PROCESSING_INIT_VARS_COLOR( m_hColorCorrection, m_width, m_height );
 	POST_PROCESSING_INIT_VARS_COLOR( m_hGodRays, m_width, m_height );
 	POST_PROCESSING_INIT_VARS_COLOR( m_hChromaticAberration, m_width, m_height );
 	POST_PROCESSING_INIT_VARS_COLOR( m_hDoFBlur, m_width, m_height );
@@ -752,6 +986,7 @@ void CShaders::PostLoad()
 	POST_PROCESSING_INIT_VARS_COLOR( m_hBokeh, m_width, m_height );
 	POST_PROCESSING_INIT_VARS_COLOR( m_hGaussianBlur, m_width, m_height );
 	POST_PROCESSING_INIT_VARS_COLOR( m_hGaussianBlurFast, m_width, m_height );
+	POST_PROCESSING_INIT_VARS_COLOR( m_hVignette, m_width, m_height );
 }
 
 void CShaders::Unload()
@@ -759,6 +994,8 @@ void CShaders::Unload()
 	DetoursAPI()->RemoveDetour( m_hClientDLL_HudRedraw );
 
 	POST_PROCESSING_FREE_VARS( m_hDepthBuffer );
+	POST_PROCESSING_FREE_VARS( m_hSSAO );
+	POST_PROCESSING_FREE_VARS( m_hColorCorrection );
 	POST_PROCESSING_FREE_VARS( m_hGodRays );
 	POST_PROCESSING_FREE_VARS( m_hChromaticAberration );
 	POST_PROCESSING_FREE_VARS( m_hDoFBlur );
@@ -766,4 +1003,5 @@ void CShaders::Unload()
 	POST_PROCESSING_FREE_VARS( m_hBokeh );
 	POST_PROCESSING_FREE_VARS( m_hGaussianBlur );
 	POST_PROCESSING_FREE_VARS( m_hGaussianBlurFast );
+	POST_PROCESSING_FREE_VARS( m_hVignette );
 }

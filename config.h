@@ -64,15 +64,50 @@ public:
 		// Shaders
 		//-----------------------------------------------------------------------------
 		
+		bool shaders = true;
+
 		bool shaders_show_depth_buffer = false;
 		float shaders_depth_buffer_znear = 4.f;
 		float shaders_depth_buffer_zfar = 4096.f;
 		float shaders_depth_buffer_brightness = 1.f;
 
+		bool shaders_ssao = false;
+		bool shaders_ssao_onlyAO = false;
+		float shaders_ssao_znear = 4.f;
+		float shaders_ssao_zfar = 4096.f;
+		float shaders_ssao_strength = 1.f;
+		int shaders_ssao_samples = 32;
+		float shaders_ssao_radius = 2.5f;
+		float shaders_ssao_aoclamp = 0.14f;
+		bool shaders_ssao_noise = true;
+		float shaders_ssao_noiseamount = 0.0002f;
+		float shaders_ssao_diffarea = 0.3f;
+		float shaders_ssao_gdisplace = 0.4f;
+		bool shaders_ssao_mist = false;
+		float shaders_ssao_miststart = 0.f;
+		float shaders_ssao_mistend = 4096.f;
+		float shaders_ssao_lumInfluence = 0.7f;
+
+		bool shaders_color_correction = false;
+		float shaders_cc_target_gamma = 2.2f;
+		float shaders_cc_monitor_gamma = 2.2f;
+		float shaders_cc_hue_offset = 0.f;
+		float shaders_cc_saturation = 1.f;
+		float shaders_cc_contrast = 1.f;
+		float shaders_cc_luminance = 1.f;
+		float shaders_cc_black_level = 0.f;
+		float shaders_cc_bright_boost = 0.f;
+		float shaders_cc_R = 1.f;
+		float shaders_cc_G = 1.f;
+		float shaders_cc_B = 1.f;
+		float shaders_cc_grain = 0.f;
+		//float shaders_cc_sharpness = 0.f;
+
 		bool shaders_chromatic_aberration = false;
-		float shaders_chromatic_aberration_pxl_width = 1.f;
-		float shaders_chromatic_aberration_pxl_height = 1.f;
-		float shaders_chromatic_aberration_shift = 2.f;
+		int shaders_chromatic_aberration_type = 1;
+		float shaders_chromatic_aberration_dir_x = 1.f;
+		float shaders_chromatic_aberration_dir_y = 1.f;
+		float shaders_chromatic_aberration_shift = 0.025f;
 		float shaders_chromatic_aberration_strength = 1.f;
 
 		bool shaders_dof_blur = false;
@@ -102,6 +137,10 @@ public:
 
 		bool shaders_gaussian_blur_fast = false;
 		float shaders_gaussian_blur_fast_radius = 1.f;
+		
+		bool shaders_vignette = false;
+		float shaders_vignette_falloff = 0.5f;
+		float shaders_vignette_amount = 0.4f;
 
 		//-----------------------------------------------------------------------------
 		// Aim

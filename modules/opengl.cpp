@@ -137,6 +137,13 @@ CShaderProgram::CShaderProgram() : m_program(0)
 {
 }
 
+const char *CShaderProgram::GetInternalName() const
+{
+	static const char *empty_string = "";
+
+	return empty_string;
+}
+
 bool CShaderProgram::Compile( const char *pszVertexCode, const char *pszFragmentCode, const char *pszVertexDefine /* = NULL */, const char *pszFragmentDefine /* = NULL */ )
 {
 	std::string vs = std::string(pszVertexCode);
@@ -289,31 +296,6 @@ void CShaderProgram::FreeShaders( void )
 
 GLuint CShaderProgram::InternalCompile(const char *vscode, const char *fscode, const char *vsfile, const char *fsfile)
 {
-	auto CompileShaderObject = [](int type, const char *code, const char *filename) -> GLuint
-	{
-		auto obj = glCreateShaderObjectARB(type);
-
-		glShaderSource(obj, 1, &code, NULL);
-
-		glCompileShader(obj);
-
-		// Check for errors
-		int iStatus;
-		glGetShaderiv(obj, GL_COMPILE_STATUS, &iStatus);
-
-		if ( !iStatus )
-		{
-			int nInfoLength;
-			char szCompilerLog[1024] = { 0 };
-			glGetInfoLogARB(obj, sizeof(szCompilerLog) - 1, &nInfoLength, szCompilerLog);
-			szCompilerLog[nInfoLength] = 0;
-
-			Sys_Error("Shader \"%s\" compiled with error:\n%s", code /* filename */, szCompilerLog);
-		}
-
-		return obj;
-	};
-
 	GLuint shader_objects[32];
 	int shader_object_used = 0;
 
@@ -337,12 +319,37 @@ GLuint CShaderProgram::InternalCompile(const char *vscode, const char *fscode, c
 		char szCompilerLog[1024] = { 0 };
 		glGetProgramInfoLog(program, sizeof(szCompilerLog), &nInfoLength, szCompilerLog);
 
-		Sys_Error("Shader \"%s\" compiled with error:\n%s", vscode, szCompilerLog);
+		Sys_Error("Shader \"%s\" compiled with error:\n%s", GetInternalName(), szCompilerLog);
 	}
 
 	m_shaders.emplace_back( program, shader_objects, shader_object_used );
 
 	return program;
+}
+
+GLuint CShaderProgram::CompileShaderObject(int type, const char *code, const char *filename)
+{
+	auto obj = glCreateShaderObjectARB(type);
+
+	glShaderSource(obj, 1, &code, NULL);
+
+	glCompileShader(obj);
+
+	// Check for errors
+	int iStatus;
+	glGetShaderiv(obj, GL_COMPILE_STATUS, &iStatus);
+
+	if ( !iStatus )
+	{
+		int nInfoLength;
+		char szCompilerLog[1024] = { 0 };
+		glGetInfoLogARB(obj, sizeof(szCompilerLog) - 1, &nInfoLength, szCompilerLog);
+		szCompilerLog[nInfoLength] = 0;
+
+		Sys_Error("%s shader \"%s\" compiled with error:\n%s", type == GL_VERTEX_SHADER_ARB ? "Vertex" : "Fragment", GetInternalName(), szCompilerLog);
+	}
+
+	return obj;
 }
 
 void CShaderProgram::AppendInclude(std::string &str, const char *filename)

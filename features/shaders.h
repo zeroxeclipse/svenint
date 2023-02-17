@@ -50,13 +50,45 @@ private:
 
 	// Shaders
 	void DrawDepthBuffer(float znear, float zfar, float factor);
+
+	void DrawSSAO(float znear,
+				float zfar,
+				float strength,
+				int samples,
+				float radius,
+				float aoclamp,
+				int noise,
+				float noiseamount,
+				float diffarea,
+				float gdisplace,
+				int mist,
+				float miststart,
+				float mistend,
+				float lumInfluence,
+				int onlyAO);
+	
+	void DrawColorCorrection(float targetgamma,
+							float monitorgamma,
+							float hueoffset,
+							float saturation,
+							float contrast,
+							float luminance,
+							float blacklevel,
+							float brightboost,
+							float redlevel,
+							float greenlevel,
+							float bluelevel,
+							float grain,
+							float sharpness);
+
 	void DrawGodRays(float x, float y, float density, float weight, float decay, float exposure, int numSamples);
-	void DrawChromaticAberration(float pixelWidth, float pixelHeight, float shift, float strength);
+	void DrawChromaticAberration(int type, float dirX, float dirY, float shift, float strength);
 	void DrawDoFBlur(float minDistance, float maxDistance, int interptype, float radius, float samples, float bokeh);
 	void DrawRadialBlur(float distance, float strength);
 	void DrawBokehBlur(float radius, float samples, float bokeh);
 	void DrawGaussianBlur(float radius);
 	void DrawGaussianBlurFast(float radius);
+	void DrawVignette(float falloff, float amount);
 
 	void InitColorTexPostProcessing(GLuint hFBO, GLuint hTex);
 	void InitDepthTexPostProcessing(GLuint hFBO, GLuint hTex);
@@ -80,6 +112,8 @@ private:
 	GLint m_hOldBuffer;
 
 	POST_PROCESSING_DEFINE_VARS( m_hDepthBuffer );
+	POST_PROCESSING_DEFINE_VARS( m_hSSAO );
+	POST_PROCESSING_DEFINE_VARS( m_hColorCorrection );
 	POST_PROCESSING_DEFINE_VARS( m_hGodRays );
 	POST_PROCESSING_DEFINE_VARS( m_hChromaticAberration );
 	POST_PROCESSING_DEFINE_VARS( m_hDoFBlur );
@@ -87,17 +121,63 @@ private:
 	POST_PROCESSING_DEFINE_VARS( m_hBokeh );
 	POST_PROCESSING_DEFINE_VARS( m_hGaussianBlur );
 	POST_PROCESSING_DEFINE_VARS( m_hGaussianBlurFast );
+	POST_PROCESSING_DEFINE_VARS( m_hVignette );
 
 	// Depth Buffer
 	SHADER_BEGIN_DESC_MEMBER( CShaderDepthBuffer )
+		SHADER_DEFINE_INTERNAL_NAME( "DepthBuffer" )
 		SHADER_DEFINE_UNIFORM( znear )
 		SHADER_DEFINE_UNIFORM( zfar )
 		SHADER_DEFINE_UNIFORM( factor )
 		SHADER_DEFINE_UNIFORM( res )
 	SHADER_END_DESC(); SHADER_CREATE( CShaderDepthBuffer, m_ShaderDepthBuffer );
+	
+	// Screen-Space Ambient Occlusion
+	SHADER_BEGIN_DESC_MEMBER( CShaderSSAO )
+		SHADER_DEFINE_INTERNAL_NAME( "SSAO" )
+		SHADER_DEFINE_UNIFORM( iChannel0 )
+		SHADER_DEFINE_UNIFORM( depthmap )
+		SHADER_DEFINE_UNIFORM( zNear )
+		SHADER_DEFINE_UNIFORM( zFar )
+		SHADER_DEFINE_UNIFORM( strength )
+		SHADER_DEFINE_UNIFORM( samples )
+		SHADER_DEFINE_UNIFORM( radius )
+		SHADER_DEFINE_UNIFORM( aoclamp )
+		SHADER_DEFINE_UNIFORM( noise )
+		SHADER_DEFINE_UNIFORM( noiseamount )
+		SHADER_DEFINE_UNIFORM( diffarea )
+		SHADER_DEFINE_UNIFORM( gdisplace )
+		SHADER_DEFINE_UNIFORM( mist )
+		SHADER_DEFINE_UNIFORM( miststart )
+		SHADER_DEFINE_UNIFORM( mistend )
+		SHADER_DEFINE_UNIFORM( onlyAO )
+		SHADER_DEFINE_UNIFORM( lumInfluence )
+		SHADER_DEFINE_UNIFORM( res )
+	SHADER_END_DESC(); SHADER_CREATE( CShaderSSAO, m_ShaderSSAO );
 
+	// Color Correction
+	SHADER_BEGIN_DESC_MEMBER( CShaderColorCorrection )
+		SHADER_DEFINE_INTERNAL_NAME( "ColorCorrection" )
+		SHADER_DEFINE_UNIFORM( iTime )
+		SHADER_DEFINE_UNIFORM( ia_target_gamma )
+		SHADER_DEFINE_UNIFORM( ia_monitor_gamma )
+		SHADER_DEFINE_UNIFORM( ia_hue_offset )
+		SHADER_DEFINE_UNIFORM( ia_saturation )
+		SHADER_DEFINE_UNIFORM( ia_contrast )
+		SHADER_DEFINE_UNIFORM( ia_luminance )
+		SHADER_DEFINE_UNIFORM( ia_black_level )
+		SHADER_DEFINE_UNIFORM( ia_bright_boost )
+		SHADER_DEFINE_UNIFORM( ia_R )
+		SHADER_DEFINE_UNIFORM( ia_G )
+		SHADER_DEFINE_UNIFORM( ia_B )
+		SHADER_DEFINE_UNIFORM( ia_GRAIN_STR )
+		//SHADER_DEFINE_UNIFORM( ia_SHARPEN )
+		SHADER_DEFINE_UNIFORM( res )
+	SHADER_END_DESC(); SHADER_CREATE( CShaderColorCorrection, m_ShaderColorCorrection );
+	
 	// God Rays
 	SHADER_BEGIN_DESC_MEMBER( CShaderGodRays )
+		SHADER_DEFINE_INTERNAL_NAME( "GodRays" )
 		SHADER_DEFINE_UNIFORM( density )
 		SHADER_DEFINE_UNIFORM( weight )
 		SHADER_DEFINE_UNIFORM( decay )
@@ -109,14 +189,17 @@ private:
 
 	// Chromatic Aberration
 	SHADER_BEGIN_DESC_MEMBER( CShaderChromaticAberration )
+		SHADER_DEFINE_INTERNAL_NAME( "ChromaticAberration" )
+		SHADER_DEFINE_UNIFORM( type )
 		SHADER_DEFINE_UNIFORM( shift )
 		SHADER_DEFINE_UNIFORM( strength )
-		SHADER_DEFINE_UNIFORM( pixelSize )
+		SHADER_DEFINE_UNIFORM( dir )
 		SHADER_DEFINE_UNIFORM( res )
 	SHADER_END_DESC(); SHADER_CREATE( CShaderChromaticAberration, m_ShaderChromaticAberration );
-
+	
 	// Depth of Field Bokeh Blur
 	SHADER_BEGIN_DESC_MEMBER( CShaderDoFBlur )
+		SHADER_DEFINE_INTERNAL_NAME( "DoFBlur" )
 		SHADER_DEFINE_UNIFORM( iChannel0 )
 		SHADER_DEFINE_UNIFORM( depthmap )
 		SHADER_DEFINE_UNIFORM( interptype )
@@ -132,6 +215,7 @@ private:
 
 	// Radial Blur
 	SHADER_BEGIN_DESC_MEMBER( CShaderRadialBlur )
+		SHADER_DEFINE_INTERNAL_NAME( "RadialBlur" )
 		SHADER_DEFINE_UNIFORM( distance )
 		SHADER_DEFINE_UNIFORM( strength )
 		SHADER_DEFINE_UNIFORM( res )
@@ -139,6 +223,7 @@ private:
 
 	// Bokeh Blur
 	SHADER_BEGIN_DESC_MEMBER( CShaderBokeh )
+		SHADER_DEFINE_INTERNAL_NAME( "Bokeh" )
 		SHADER_DEFINE_UNIFORM( bokeh )
 		SHADER_DEFINE_UNIFORM( samples )
 		SHADER_DEFINE_UNIFORM( dir )
@@ -147,6 +232,7 @@ private:
 
 	// Gaussian Blur
 	SHADER_BEGIN_DESC_MEMBER( CShaderGaussianBlur )
+		SHADER_DEFINE_INTERNAL_NAME( "GaussianBlur" )
 		SHADER_DEFINE_UNIFORM( radius )
 		SHADER_DEFINE_UNIFORM( dir )
 		SHADER_DEFINE_UNIFORM( res )
@@ -154,9 +240,18 @@ private:
 
 	// Fast Gaussian Blur
 	SHADER_BEGIN_DESC_MEMBER( CShaderGaussianBlurFast )
+		SHADER_DEFINE_INTERNAL_NAME( "GaussianBlurFast" )
 		SHADER_DEFINE_UNIFORM( dir )
 		SHADER_DEFINE_UNIFORM( res )
 	SHADER_END_DESC(); SHADER_CREATE( CShaderGaussianBlurFast, m_ShaderGaussianBlurFast );
+
+	// Vignette
+	SHADER_BEGIN_DESC_MEMBER( CShaderVignette )
+		SHADER_DEFINE_INTERNAL_NAME( "Vignette" )
+		SHADER_DEFINE_UNIFORM( falloff )
+		SHADER_DEFINE_UNIFORM( amount )
+		SHADER_DEFINE_UNIFORM( res )
+	SHADER_END_DESC(); SHADER_CREATE( CShaderVignette, m_ShaderVignette );
 };
 
 extern CShaders g_Shaders;

@@ -205,6 +205,7 @@
     <ClCompile Include="utils\shaders\bloom_raw.c" />
     <ClCompile Include="utils\shaders\bokeh_raw.c" />
     <ClCompile Include="utils\shaders\chromatic_aberration_raw.c" />
+    <ClCompile Include="utils\shaders\color_correction_raw.c" />
     <ClCompile Include="utils\shaders\depth_buffer_raw.c" />
     <ClCompile Include="utils\shaders\dof_blur_raw.c" />
     <ClCompile Include="utils\shaders\gaussian_blur_fast_raw.c" />
@@ -212,6 +213,8 @@
     <ClCompile Include="utils\shaders\godrays_raw.c" />
     <ClCompile Include="utils\shaders\pp_fullscreen_raw.c" />
     <ClCompile Include="utils\shaders\radial_blur_raw.c" />
+    <ClCompile Include="utils\shaders\ssao_raw.c" />
+    <ClCompile Include="utils\shaders\vignette_raw.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ADVobfuscator\Indexes.h" />
@@ -320,6 +323,7 @@
     <ClInclude Include="utils\shaders\bloom_raw.h" />
     <ClInclude Include="utils\shaders\bokeh_raw.h" />
     <ClInclude Include="utils\shaders\chromatic_aberration_raw.h" />
+    <ClInclude Include="utils\shaders\color_correction_raw.h" />
     <ClInclude Include="utils\shaders\depth_buffer_raw.h" />
     <ClInclude Include="utils\shaders\dof_blur_raw.h" />
     <ClInclude Include="utils\shaders\gaussian_blur_fast_raw.h" />
@@ -328,6 +332,8 @@
     <ClInclude Include="utils\shaders\pp_fullscreen_raw.h" />
     <ClInclude Include="utils\shaders\radial_blur_raw.h" />
     <ClInclude Include="utils\shaders\shaders_raw.h" />
+    <ClInclude Include="utils\shaders\ssao_raw.h" />
+    <ClInclude Include="utils\shaders\vignette_raw.h" />
     <ClInclude Include="utils\xorstr.h" />
   </ItemGroup>
   <ItemGroup>

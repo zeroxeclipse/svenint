@@ -23,6 +23,7 @@
 	class classname : public CShaderProgram \
 	{ \
 	public:
+#define SHADER_DEFINE_INTERNAL_NAME(name) inline const char *GetInternalName() const override { return name; }
 #define SHADER_DEFINE_UNIFORM(uniform) GLuint uniform = 0;
 #define SHADER_END_DESC() }
 
@@ -68,6 +69,8 @@ class CShaderProgram
 public:
 	CShaderProgram();
 
+	virtual const char *GetInternalName() const;
+
 	bool Compile( const char *pszVertexCode, const char *pszFragmentCode, const char *pszVertexDefine = NULL, const char *pszFragmentDefine = NULL );
 	bool CompileFile( const char *pszVertexFile, const char *pszFragmentFile, const char *pszVertexDefine = NULL, const char *pszFragmentDefine = NULL );
 
@@ -101,7 +104,9 @@ public:
 	static void FreeShaders( void );
 
 private:
-	static GLuint InternalCompile(const char *vscode, const char *fscode, const char *vsfile, const char *fsfile);
+	GLuint InternalCompile(const char *vscode, const char *fscode, const char *vsfile, const char *fsfile);
+	GLuint CompileShaderObject(int type, const char *code, const char *filename);
+
 	static void AppendInclude(std::string &str, const char *filename);
 	static void AppendDefine(std::string &str, const std::string &def);
 
