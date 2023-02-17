@@ -2018,7 +2018,7 @@ void CMenuModule::DrawUtilityTabContent()
 	{
 	case 0: // Player (Generals (Sink,Freeze,Autojump, etc..), Spinner, Aimbot, No Recoil)
 	{
-		ImGui::BeginChild("player", ImVec2(328, 530), true);
+		ImGui::BeginChild("player", ImVec2(328, 435), true);
 
 		extern void ConCommand_AutoSelfSink();
 		extern void ConCommand_Freeze();
@@ -2077,41 +2077,67 @@ void CMenuModule::DrawUtilityTabContent()
 		ImGui::Checkbox("Rotate Dead Body", &g_Config.cvars.rotate_dead_body); ImGui::SameLine();
 		ImGui::Checkbox("Quake Guns", &g_Config.cvars.quake_guns);
 
-		ImGuiCustom.Spacing(8);
-
-		ImGui::PushItemWidth(160);
-
-		ImGui::Text("Lock View Angles");
-
 		ImGui::Spacing();
 
-		ImGui::Checkbox("Lock Pitch", &g_Config.cvars.lock_pitch);
-
-		ImGui::SliderFloat("Lock Pitch: Angle", &g_Config.cvars.lock_pitch_angle, -179.999f, 180.0f);
-
-		ImGui::Spacing();
-
-		ImGui::Checkbox("Lock Yaw", &g_Config.cvars.lock_yaw);
-
-		ImGui::SliderFloat("Lock Yaw: Angle", &g_Config.cvars.lock_yaw_angle, 0.0f, 360.0f);
+		ImGui::Checkbox("Revert Pitch", &g_Config.cvars.revert_pitch); ImGui::SameLine();
+		ImGui::Checkbox("Revert Yaw", &g_Config.cvars.revert_yaw);
 
 		ImGuiCustom.Spacing(8);
 
-		ImGui::Text("Spinner");
+		ImGui::Text("Auto Wallstrafing");
 
 		ImGui::Spacing();
 
-		ImGui::Checkbox("Inclined Rotation", &g_Config.cvars.spin_pitch_angle);
+		ImGui::Checkbox("Enable Auto Wallstrafing", &g_Config.cvars.auto_wallstrafing);
 
-		ImGui::SliderFloat("Inclined Rotation: Angle", &g_Config.cvars.spin_pitch_rotation_angle, -10.0f, 10.0f);
+		ImGuiCustom.Spacing(4);
+
+		ImGui::PushItemWidth(170);
+
+		ImGui::SliderFloat("Angle (~6.5 is perfect)", &g_Config.cvars.wallstrafing_angle, 0.f, 45.f);
 
 		ImGui::Spacing();
 
-		ImGui::Checkbox("Spin Yaw", &g_Config.cvars.spin_yaw_angle);
-
-		ImGui::SliderFloat("Spin Yaw: Angle", &g_Config.cvars.spin_yaw_rotation_angle, -10.0f, 10.0f);
+		ImGui::SliderFloat("Max Distance to Wall", &g_Config.cvars.wallstrafing_dist, 1.f, 128.f);
 
 		ImGui::PopItemWidth();
+
+		ImGuiCustom.Spacing(8);
+
+		if (ImGui::BeginCombo("", "Spinner & View Angles", ImGuiComboFlags_HeightLarge))
+		{
+			ImGui::Text("Spinner");
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox("Inclined Rotation", &g_Config.cvars.spin_pitch_angle);
+
+			ImGui::SliderFloat("Inclined Rotation: Angle", &g_Config.cvars.spin_pitch_rotation_angle, -10.0f, 10.0f);
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox("Spin Yaw", &g_Config.cvars.spin_yaw_angle);
+
+			ImGui::SliderFloat("Spin Yaw: Angle", &g_Config.cvars.spin_yaw_rotation_angle, -10.0f, 10.0f);
+
+			ImGuiCustom.Spacing(8);
+
+			ImGui::Text("Lock View Angles");
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox("Lock Pitch", &g_Config.cvars.lock_pitch);
+
+			ImGui::SliderFloat("Lock Pitch: Angle", &g_Config.cvars.lock_pitch_angle, -179.999f, 180.0f);
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox("Lock Yaw", &g_Config.cvars.lock_yaw);
+
+			ImGui::SliderFloat("Lock Yaw: Angle", &g_Config.cvars.lock_yaw_angle, 0.0f, 360.0f);
+
+			ImGui::EndCombo();
+		}
 
 		ImGui::EndChild();
 
@@ -2497,7 +2523,7 @@ void CMenuModule::DrawUtilityTabContent()
 	}
 	case 6: // Misc
 	{
-		ImGui::BeginChild("misc", ImVec2(328, 435), true);
+		ImGui::BeginChild("misc", ImVec2(328, 315), true);
 
 		extern void ConCommand_CamHack(void);
 		extern void ConCommand_CamHackResetRoll(void);
@@ -2536,27 +2562,128 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGuiCustom.Spacing(4);
 
-		ImGui::Text("First-Person Roaming");
+		ImGui::PopItemWidth();
+
+		ImGui::PushItemWidth(200);
+
+		if (ImGui::BeginCombo("", "First-Person Roaming", 0))
+		{
+			ImGui::Checkbox("Enable First-Person Roaming", &g_Config.cvars.fp_roaming);
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox("Draw Crosshair in Roaming", &g_Config.cvars.fp_roaming_draw_crosshair);
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox("Lerp First-Person View", &g_Config.cvars.fp_roaming_lerp);
+
+			ImGuiCustom.Spacing(4);
+
+			ImGui::Text("Lerp Value");
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat("FP Roaming: Lerp Value", &g_Config.cvars.fp_roaming_lerp_value, 0.001f, 1.0f);
+
+			ImGui::EndCombo();
+		}
 
 		ImGuiCustom.Spacing(4);
 
-		ImGui::Checkbox("Enable First-Person Roaming", &g_Config.cvars.fp_roaming);
+		if (ImGui::BeginCombo(" ", "Enhanced Thirdperson", ImGuiComboFlags_HeightLargest))
+		{
+			extern void ConCommand_ThirdPerson_ResetPosition();
+			extern void ConCommand_ThirdPerson_ResetAngles();
 
-		ImGui::Spacing();
+			extern ConVar sc_thirdperson;
+			extern ConVar sc_thirdperson_edit_mode;
+			extern ConVar sc_thirdperson_hidehud;
+			extern ConVar sc_thirdperson_ignore_pitch;
+			extern ConVar sc_thirdperson_ignore_yaw;
 
-		ImGui::Checkbox("Draw Crosshair in Roaming", &g_Config.cvars.fp_roaming_draw_crosshair);
+			bool bThirdPerson = sc_thirdperson.GetBool();
+			bool bThirdPersonEditMode = sc_thirdperson_edit_mode.GetBool();
+			bool bThirdPersonHideHud = sc_thirdperson_hidehud.GetBool();
+			bool bThirdPersonPitch = sc_thirdperson_ignore_pitch.GetBool();
+			bool bThirdPersonYaw = sc_thirdperson_ignore_yaw.GetBool();
 
-		ImGui::Spacing();
+			if (ImGui::Button("Reset Position"))
+				ConCommand_ThirdPerson_ResetPosition();
 
-		ImGui::Checkbox("Lerp First-Person View", &g_Config.cvars.fp_roaming_lerp);
+			ImGui::SameLine();
 
-		ImGuiCustom.Spacing(4);
+			if (ImGui::Button("Reset Angles"))
+				ConCommand_ThirdPerson_ResetAngles();
 
-		ImGui::Text("Lerp Value");
+			ImGui::Spacing();
 
-		ImGui::Spacing();
+			if (ImGui::Button("Reset Roll Angle"))
+				g_ThirdPerson.ResetRollAxis();
 
-		ImGui::SliderFloat("FP Roaming: Lerp Value", &g_Config.cvars.fp_roaming_lerp_value, 0.001f, 1.0f);
+			ImGuiCustom.Spacing(4);
+
+			if (ImGui::Checkbox("Enhanced Thirdperson Mode", &bThirdPerson))
+			{
+				sc_thirdperson.SetValue(g_Config.cvars.thirdperson = !sc_thirdperson.GetBool());
+			}
+
+			ImGui::Spacing();
+
+			if (ImGui::Checkbox("Enable Edit Mode##thirdperson", &bThirdPersonEditMode))
+			{
+				sc_thirdperson_edit_mode.SetValue(g_Config.cvars.thirdperson_edit_mode = !sc_thirdperson_edit_mode.GetBool());
+			}
+
+			ImGui::Spacing();
+
+			if (ImGui::Checkbox("Hide HUD##thirdperson", &bThirdPersonHideHud))
+			{
+				sc_thirdperson_hidehud.SetValue(g_Config.cvars.thirdperson_hidehud = !sc_thirdperson_hidehud.GetBool());
+			}
+
+			ImGui::Spacing();
+
+			if (ImGui::Checkbox("Ignore Pitch Angle##thirdperson", &bThirdPersonPitch))
+			{
+				sc_thirdperson_ignore_pitch.SetValue(g_Config.cvars.thirdperson_ignore_pitch = !sc_thirdperson_ignore_pitch.GetBool());
+			}
+
+			ImGui::SameLine();
+
+			if (ImGui::Checkbox("Ignore Yaw Angle##thirdperson", &bThirdPersonYaw))
+			{
+				sc_thirdperson_ignore_yaw.SetValue(g_Config.cvars.thirdperson_ignore_yaw = !sc_thirdperson_ignore_yaw.GetBool());
+			}
+
+			ImGuiCustom.Spacing(4);
+
+			ImGui::Checkbox("Clip to Wall##thirdperson", &g_Config.cvars.thirdperson_clip_to_wall);
+
+			ImGui::Spacing();
+
+			static const char* trace_type[] =
+			{
+				"0 - Trace Line",
+				"1 - Trace Hull"
+			};
+
+			ImGui::Combo("Trace Type##thirdperson", &g_Config.cvars.thirdperson_trace_type, trace_type, IM_ARRAYSIZE(trace_type));
+
+			ImGuiCustom.Spacing(4);
+
+			ImGui::Text("Camera Position");
+			ImGui::InputFloat3("##thirdperson_origin", g_Config.cvars.thirdperson_origin);
+			ImGui::DragFloat3("##thirdperson_origin2", g_Config.cvars.thirdperson_origin, 0.1f, -4096.f, 4096.f);
+
+			ImGuiCustom.Spacing(4);
+
+			ImGui::Text("Camera Angles");
+			ImGui::InputFloat3("##thirdperson_angles", g_Config.cvars.thirdperson_angles);
+			ImGui::DragFloat3("##thirdperson_angles2", g_Config.cvars.thirdperson_angles, 0.1f, -180.f, 180.f);
+
+			ImGui::EndCombo();
+		}
 
 		ImGui::PopItemWidth();
 		ImGui::EndChild();
@@ -2565,15 +2692,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::SetCursorPosX(332);
 
-		ImGui::BeginChild("player2", ImVec2(328.5, 400), true);
-
-		ImGui::Text("Game");
-
-		ImGui::Spacing();
-
-		ImGui::Checkbox("Ignore Different Map Versions", &g_Config.cvars.ignore_different_map_versions);
-
-		ImGuiCustom.Spacing(4);
+		ImGui::BeginChild("player2", ImVec2(328.5, 315), true);
 
 		ImGui::Text("One Tick Exploit");
 
@@ -2592,6 +2711,14 @@ void CMenuModule::DrawUtilityTabContent()
 		ImGui::Checkbox("Fast Crowbar", &g_Config.cvars.fast_crowbar);
 		ImGui::Checkbox("Fast Crowbar [Auto Freeze]", &g_Config.cvars.fast_crowbar2);
 		ImGui::Checkbox("Fast Medkit", &g_Config.cvars.fast_medkit);
+
+		ImGuiCustom.Spacing(4);
+
+		extern bool g_bDupeWeapon;
+		extern bool g_bSpamKill;
+
+		ImGui::Checkbox("Dupe Weapon", &g_bDupeWeapon);
+		ImGui::Checkbox("Spam Kill", &g_bSpamKill);
 
 		ImGui::EndChild();
 		break;
@@ -2753,7 +2880,7 @@ void CMenuModule::DrawSettingsTabContent()
 
 		ImGui::BeginChild("menu-blur", ImVec2(340, 235), true);
 
-		ImGui::PushItemWidth(170);
+		ImGui::PushItemWidth(190);
 
 		ImGui::Text("Menu Blur");
 
@@ -2787,13 +2914,17 @@ void CMenuModule::DrawSettingsTabContent()
 	}
 	case 1: // Game
 	{
-		ImGui::BeginChild("game", ImVec2(328, 70), true);
+		ImGui::BeginChild("game", ImVec2(328, 100), true);
 
-		ImGui::Text("Maps Soundcache");
+		ImGui::Text("Maps");
 
 		ImGuiCustom.Spacing(4);
 
 		ImGui::Checkbox("Save Soundcache", &g_Config.cvars.save_soundcache);
+
+		ImGui::Spacing();
+
+		ImGui::Checkbox("Ignore Different Map Versions", &g_Config.cvars.ignore_different_map_versions);
 
 		ImGui::EndChild();
 		break;
