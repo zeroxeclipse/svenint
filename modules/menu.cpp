@@ -85,6 +85,7 @@ int selectedTab = 0, selectedSubTab0 = 0, selectedSubTab1 = 0, selectedSubTab2 =
 // Functions
 //-----------------------------------------------------------------------------
 
+// TODO: Find a solution for fps based loop
 static void RainbowCycle()
 {
 	auto isFrames = ImGui::GetFrameCount();
@@ -307,7 +308,7 @@ void CMenuModule::Draw()
 	{
 		// Main Window
 
-		ImGui::SetNextWindowSize({ 885, 600 });
+		ImGui::SetNextWindowSize({ 800, 600 });
 		ImGui::Begin("Main", 0, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
 		if (g_Config.cvars.rainbow[0] || g_Config.cvars.rainbow[1])
@@ -518,7 +519,7 @@ void CMenuModule::DrawVisualsSubTabs()
 		std::string it = SubTabNames[i];
 
 		ImGui::PushStyleColor(ImGuiCol_Button, selectedSubTab0 == i ? style->Colors[ImGuiCol_ButtonActive] : style->Colors[ImGuiCol_Button]);
-		if (ImGui::Button(it.c_str(), ImVec2(ImGui::CalcTextSize(it.c_str()).x + 20, 25)))
+		if (ImGui::Button(it.c_str(), ImVec2(ImGui::CalcTextSize(it.c_str()).x + 10, 25)))
 		{
 			selectedSubTab0 = i;
 		}
@@ -536,7 +537,7 @@ void CMenuModule::DrawHUDSubTabs()
 		std::string it = SubTabNames[i];
 
 		ImGui::PushStyleColor(ImGuiCol_Button, selectedSubTab1 == i ? style->Colors[ImGuiCol_ButtonActive] : style->Colors[ImGuiCol_Button]);
-		if (ImGui::Button(it.c_str(), ImVec2(ImGui::CalcTextSize(it.c_str()).x + 20, 25)))
+		if (ImGui::Button(it.c_str(), ImVec2(ImGui::CalcTextSize(it.c_str()).x + 10, 25)))
 		{
 			selectedSubTab1 = i;
 		}
@@ -554,7 +555,7 @@ void CMenuModule::DrawUtilitySubTabs()
 		std::string it = SubTabNames[i];
 
 		ImGui::PushStyleColor(ImGuiCol_Button, selectedSubTab2 == i ? style->Colors[ImGuiCol_ButtonActive] : style->Colors[ImGuiCol_Button]);
-		if (ImGui::Button(it.c_str(), ImVec2(ImGui::CalcTextSize(it.c_str()).x + 20, 25)))
+		if (ImGui::Button(it.c_str(), ImVec2(ImGui::CalcTextSize(it.c_str()).x + 10, 25)))
 		{
 			selectedSubTab2 = i;
 		}
@@ -572,7 +573,7 @@ void CMenuModule::DrawConfigsSubTabs()
 		std::string it = SubTabNames[i];
 
 		ImGui::PushStyleColor(ImGuiCol_Button, selectedSubTab3 == i ? style->Colors[ImGuiCol_ButtonActive] : style->Colors[ImGuiCol_Button]);
-		if (ImGui::Button(it.c_str(), ImVec2(ImGui::CalcTextSize(it.c_str()).x + 20, 25)))
+		if (ImGui::Button(it.c_str(), ImVec2(ImGui::CalcTextSize(it.c_str()).x + 10, 25)))
 		{
 			selectedSubTab3 = i;
 		}
@@ -590,7 +591,7 @@ void CMenuModule::DrawSettingsSubTabs()
 		std::string it = SubTabNames[i];
 
 		ImGui::PushStyleColor(ImGuiCol_Button, selectedSubTab4 == i ? style->Colors[ImGuiCol_ButtonActive] : style->Colors[ImGuiCol_Button]);
-		if (ImGui::Button(it.c_str(), ImVec2(ImGui::CalcTextSize(it.c_str()).x + 20, 25)))
+		if (ImGui::Button(it.c_str(), ImVec2(ImGui::CalcTextSize(it.c_str()).x + 10, 25)))
 		{
 			selectedSubTab4 = i;
 		}
@@ -2746,12 +2747,13 @@ void CMenuModule::DrawSettingsTabContent()
 
 		ImGui::EndChild();
 
-
 		ImGui::NextColumn();
 
 		ImGui::SetCursorPosX(332);
 
 		ImGui::BeginChild("menu-blur", ImVec2(340, 235), true);
+
+		ImGui::PushItemWidth(170);
 
 		ImGui::Text("Menu Blur");
 
@@ -2779,6 +2781,7 @@ void CMenuModule::DrawSettingsTabContent()
 
 		ImGui::SliderInt("Quality##mblur", &g_Config.cvars.menu_blur_samples, 1, 50);
 
+		ImGui::PopItemWidth();
 		ImGui::EndChild();
 		break;
 	}

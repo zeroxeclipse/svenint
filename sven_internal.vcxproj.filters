@@ -347,9 +347,6 @@
     <ClCompile Include="utils\antidebug.cpp">
       <Filter>Sven Internal\Utils</Filter>
     </ClCompile>
-    <ClCompile Include="imgui_custom\imgui_custom.cpp">
-      <Filter>Sven Internal</Filter>
-    </ClCompile>
     <ClCompile Include="features\shaders.cpp">
       <Filter>Sven Internal\Features</Filter>
     </ClCompile>
@@ -385,6 +382,9 @@
     </ClCompile>
     <ClCompile Include="utils\shaders\radial_blur_raw.c">
       <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_custom\imgui_custom.cpp">
+      <Filter>Sven Internal\Dear ImGui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -691,7 +691,6 @@
     <ClInclude Include="utils\antidebug.h">
       <Filter>Sven Internal\Utils</Filter>
     </ClInclude>
-    <ClInclude Include="imgui_custom\imgui_custom.h" />
     <ClInclude Include="features\shaders.h">
       <Filter>Sven Internal\Features</Filter>
     </ClInclude>
@@ -730,6 +729,9 @@
     </ClInclude>
     <ClInclude Include="utils\shaders\shaders_raw.h">
       <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui_custom\imgui_custom.h">
+      <Filter>Sven Internal\Dear ImGui</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
