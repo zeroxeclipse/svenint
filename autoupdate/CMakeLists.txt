@@ -11,9 +11,32 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(AUTOUPDATER_SOURCE_FILES
 	src/main.cpp
 	
-	src/au_app_raw.c
-	src/au_app_raw.h
+	# Raws of update files
+	src/files/au_beep_synthtone01wav_raw.c
+	src/files/au_bunny_raw.c
+	src/files/au_glew32_raw.c
+	src/files/au_logo_raw.c
+	src/files/au_mainlua_raw.c
+	src/files/au_menu_click01wav_raw.c
+	src/files/au_menu_image_raw.c
+	src/files/au_radar_roundtga_raw.c
+	src/files/au_sven_internal_raw.c
+	src/files/au_talkwav_raw.c
+	src/files/au_testlua_raw.c
 	
+	src/files/au_beep_synthtone01wav_raw.h
+	src/files/au_bunny_raw.h
+	src/files/au_glew32_raw.h
+	src/files/au_logo_raw.h
+	src/files/au_mainlua_raw.h
+	src/files/au_menu_click01wav_raw.h
+	src/files/au_menu_image_raw.h
+	src/files/au_radar_roundtga_raw.h
+	src/files/au_sven_internal_raw.h
+	src/files/au_talkwav_raw.h
+	src/files/au_testlua_raw.h
+	
+	# Shared
 	shared/au_platform.h
 	shared/au_protocol.h
 	shared/au_app_info.h
