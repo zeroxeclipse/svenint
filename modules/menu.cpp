@@ -26,9 +26,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "../stb/stb_image.h"
 
-#define OBFUSCATE_STRINGS
-
-#ifdef OBFUSCATE_STRINGS
+#ifdef SVENINT_OBFUSCATE
 
 #include "../utils/xorstr.h"
 
@@ -95,74 +93,86 @@ int selectedTab = 0, selectedSubTab0 = 0, selectedSubTab1 = 0, selectedSubTab2 =
 
 // Tabs Strings Vars
 
-std::string VisualsSubTabs[] = { "Render", "ESP", "Chams", "Glow", "Flashlight", "Wallhack", "BSP", "Models Manager", "Shaders", "Misc" };
+std::string MainTabNames[] = { xs(ICON_FA_EYE "  Visuals"), xs(ICON_FA_CROSSHAIRS "  HUD"), xs(ICON_FA_GLOBE "  Utility"), xs(ICON_FA_SAVE "  Configs"), xs(ICON_FA_COG "  Settings") };
 
-std::string HUDSubTabs[] = { "General", "Speedometer", "Radar", "Chat Colors", "Custom Vote Popup" };
+std::string VisualsSubTabs[] = { xs("Render"), xs("ESP"), xs("Chams"), xs("Glow"), xs("Flashlight"), xs("Wallhack"), xs("BSP"), xs("Models Manager"), xs("Shaders"), xs("Misc") };
 
-std::string UtilitySubTabs[] = { "Player", "Color Pulsator", "Fake Lag", "Anti-AFK", "Spammer", "Speedrun Tools", "Misc" };
+std::string HUDSubTabs[] = { xs("General"), xs("Speedometer"), xs("Radar"), xs("Chat Colors"), xs("Custom Vote Popup") };
 
-std::string ConfigsSubTab[] = { "SvenInt" };
+std::string UtilitySubTabs[] = { xs("Player"), xs("Color Pulsator"), xs("Fake Lag"), xs("Anti-AFK"), xs("Spammer"), xs("Speedrun Tools"), xs("Misc") };
 
-std::string SettingsSubTab[] = { "Menu", "Game" };
+std::string ConfigsSubTab[] = { xs("SvenInt") };
+
+std::string SettingsSubTab[] = { xs("Menu"), xs("Game") };
 
 // Features Strings Vars
 
-static const char* no_weap_anim_items[] = { "0 - Off", "1 - All Animations", "2 - Take Animations" };
+static const char* no_weap_anim_items[] = { xs("0 - Off"), xs("1 - All Animations"), xs("2 - Take Animations") };
 
-static const char* draw_entities_items[] = { "0 - Default", "1 - Draw Bones", "2 - Draw Hitboxes", "3 - Draw Model & Hitboxes", "4 - Draw Hulls", "5 - Draw Players Bones", "6 - Draw Players Hitboxes" };
+static const char* draw_entities_items[] = 
+{ 
+	xs("0 - Default"),
+	xs("1 - Draw Bones"),
+	xs("2 - Draw Hitboxes"),
+	xs("3 - Draw Model & Hitboxes"),
+	xs("4 - Draw Hulls"),
+	xs("5 - Draw Players Bones"),
+	xs("6 - Draw Players Hitboxes")
+};
 
-static const char* esp_style[] = { "0 - Default", "1 - SAMP", "2 - Left 4 Dead" };
-static const char* esp_process_items[] = { "0 - Everyone", "1 - Entities", "2 - Players" };
-static const char* esp_box_items[] = { "0 - Off", "1 - Default", "2 - Coal", "3 - Corner" };
+static const char* esp_style[] = { xs("0 - Default"), xs("1 - SAMP"), xs("2 - Left 4 Dead") };
+static const char* esp_process_items[] = { xs("0 - Everyone"), xs("1 - Entities"), xs("2 - Players") };
+static const char* esp_box_items[] = { xs("0 - Off"), xs("1 - Default"), xs("2 - Coal"), xs("3 - Corner") };
 
-static const char* chams_items[] = { "0 - Disable", "1 - Flat", "2 - Texture", "3 - Material" };
+static const char* chams_items[] = { xs("0 - Disable"), xs("1 - Flat"), xs("2 - Texture"), xs("3 - Material") };
 
-static const char* glow_items[] = { "0 - Disable", "1 - Glow Outline", "2 - Glow Shell", "3 - Ghost" };
+static const char* glow_items[] = { xs("0 - Disable"), xs("1 - Glow Outline"), xs("2 - Glow Shell"), xs("3 - Ghost") };
 
-static const char* ca_types[] = { "0 - Default", "1 - Barrel Distortion", "2 - Linear Barrel Distortion" };
+static const char* ca_types[] = { xs("0 - Default"), xs("1 - Barrel Distortion"), xs("2 - Linear Barrel Distortion") };
 
 float v = g_Config.cvars.shaders_chromatic_aberration_shift;
 
-static const char* dof_interps[] = { "0 - Linear", "1 - Simple Spline", "2 - Parabolic", "3 - Parabolic Inverted", "4 - Cubic" };
+static const char* dof_interps[] = { xs("0 - Linear"), xs("1 - Simple Spline"), xs("2 - Parabolic"), xs("3 - Parabolic Inverted"), xs("4 - Cubic") };
 
-static const char* strafe_dir_items[] = { "0 - To the left", "1 - To the right", "2 - Best strafe", "3 - View angles" };
-static const char* strafe_type_items[] = { "0 - Max. acceleration", "1 - Max. angle", "2 - Max. deceleration", "3 - Const speed" };
+static const char* strafe_dir_items[] = { xs("0 - To the left"), xs("1 - To the right"), xs("2 - Best strafe"), xs("3 - View angles") };
+static const char* strafe_type_items[] = { xs("0 - Max. acceleration"), xs("1 - Max. angle"), xs("2 - Max. deceleration"), xs("3 - Const speed") };
 
-static const char* fakelag_type_items[] = { "0 - Dynamic", "1 - Maximum", "2 - Jitter", "3 - Break Lag Compensation" };
-static const char* fakelag_move_items[] = { "0 - Everytime", "1 - On Land", "2 - On Move", "3 - In Air" };
+static const char* fakelag_type_items[] = { xs("0 - Dynamic"), xs("1 - Maximum"), xs("2 - Jitter"), xs("3 - Break Lag Compensation") };
+static const char* fakelag_move_items[] = { xs("0 - Everytime"), xs("1 - On Land"), xs("2 - On Move"), xs("3 - In Air") };
 
 static const char* antiafk_items[] =
 {
-	"0 - Off", "1 - Step Forward & Back", "2 - Spam Gibme",
-	"3 - Spam Kill", "4 - Walk Around & Spam Inputs",
-	"5 - Walk Around", "6 - Go Right"
+	xs("0 - Off"),
+	xs("1 - Step Forward & Back"),
+	xs("2 - Spam Gibme"),
+	xs("3 - Spam Kill"),
+	xs("4 - Walk Around & Spam Inputs"),
+	xs("5 - Walk Around"),
+	xs("6 - Go Right")
 };
 
-static const char* trace_type[] =
-{
-	"0 - Trace Line", "1 - Trace Hull"
-};
+static const char* trace_type[] = { xs("0 - Trace Line"), xs("1 - Trace Hull") };
 
-static const char* radar_type[] = { "0 - Round", "1 - Square" };
+static const char* radar_type[] = { xs("0 - Round"), xs("1 - Square") };
 
 static const char* theme_items[] =
 {
-	"SvenInt",
-	"Dark",
-	"Light",
-	"Classic",
-	"Berserk",
-	"Deep Dark",
-	"Carbon",
-	"Corporate Grey",
-	"Grey",
-	"Dark Light",
-	"Soft Dark",
-	"Gold & Black",
-	"Monochrome",
-	"Pink",
-	"Half-Life",
-	"Sven-Cope",
+	xs("SvenInt"),
+	xs("Dark"),
+	xs("Light"),
+	xs("Classic"),
+	xs("Berserk"),
+	xs("Deep Dark"),
+	xs("Carbon"),
+	xs("Corporate Grey"),
+	xs("Grey"),
+	xs("Dark Light"),
+	xs("Soft Dark"),
+	xs("Gold & Black"),
+	xs("Monochrome"),
+	xs("Pink"),
+	xs("Half-Life"),
+	xs("Sven-Cope")
 };
 
 //-----------------------------------------------------------------------------
@@ -392,7 +402,7 @@ void CMenuModule::Draw()
 		// Main Window
 
 		ImGui::SetNextWindowSize({ 800, 600 });
-		ImGui::Begin("Main", 0, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
+		ImGui::Begin(xs("Main"), 0, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
 		if (g_Config.cvars.rainbow[0] || g_Config.cvars.rainbow[1])
 		{
@@ -423,7 +433,7 @@ void CMenuModule::Draw()
 
 		// Sub Tabs Wrapper
 
-		ImGui::BeginChild("subtabs-wrapper", ImVec2(880, 39), true, ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar);
+		ImGui::BeginChild(xs("subtabs-wrapper"), ImVec2(880, 39), true, ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar);
 		{
 			ImGui::SetCursorPosY(8);
 
@@ -467,7 +477,7 @@ void CMenuModule::Draw()
 		ImGui::SetCursorPosY(50);
 
 		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0, 0, 0, 0));
-		ImGui::BeginChild("content-wrapper", ImVec2(ImGui::GetContentRegionAvail().x + 7, ImGui::GetContentRegionAvail().y + 5), false);
+		ImGui::BeginChild(xs("content-wrapper"), ImVec2(ImGui::GetContentRegionAvail().x + 7, ImGui::GetContentRegionAvail().y + 5), false);
 		ImGui::PopStyleColor();
 
 		ImGui::Columns(2, nullptr, false);
@@ -525,7 +535,7 @@ void CMenuModule::DrawLogo()
 
 	ImGui::PushFont(cool_font_big);
 
-	ImGui::TextUnformatted("SvenInt");
+	ImGui::TextUnformatted(xs("SvenInt"));
 
 	ImGui::PopFont();
 
@@ -537,17 +547,15 @@ void CMenuModule::DrawMainTabs()
 
 	ImGui::SetCursorPosX(4);
 
-	ImGui::BeginChild("tabs", ImVec2(123, 232), true);
-
-	std::string TabNames[] = { ICON_FA_EYE "  Visuals", ICON_FA_CROSSHAIRS "  HUD", ICON_FA_GLOBE "  Utility", ICON_FA_SAVE "  Configs", ICON_FA_COG "  Settings" };
+	ImGui::BeginChild(xs("tabs"), ImVec2(123, 232), true);
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
 
 	ImGui::PushFont(cool_font);
 
-	for (int i = 0; i < ARRAYSIZE(TabNames); i++)
+	for (int i = 0; i < ARRAYSIZE(MainTabNames); i++)
 	{
-		std::string it = TabNames[i];
+		std::string it = MainTabNames[i];
 		ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(ForIcon(i), 0.5));
 		ImGui::PushStyleColor(ImGuiCol_Button, selectedTab == i ? style->Colors[ImGuiCol_ButtonActive] : ImVec4(0, 0, 0, 0));
 		ImGui::SetCursorPosX(7);
@@ -578,12 +586,12 @@ void CMenuModule::DrawMenuImage()
 void CMenuModule::DrawStats()
 {
 	ImGui::SetCursorPosX(4);
-	ImGui::BeginChild("Frames", ImVec2(123, 58), true);
+	ImGui::BeginChild(xs("Frames"), ImVec2(123, 58), true);
 
 	ImGui::PushFont(cool_font);
 
-	ImGui::Text("%.3f ms/frame", 1000.0f / ImGui::GetIO().Framerate);
-	ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+	ImGui::Text(xs("%.3f ms/frame"), 1000.0f / ImGui::GetIO().Framerate);
+	ImGui::Text(xs("%.1f FPS"), ImGui::GetIO().Framerate);
 
 	ImGui::PopFont();
 
@@ -1891,7 +1899,7 @@ void CMenuModule::DrawHUDTabContent()
 
 		ImGui::Spacing();
 
-		ImGui::Checkbox(xs("Change HUD Color"), &g_Config.cvars.remap_hud_color); g_Config.cvars.tooltips ? ImGui::SameLine(), ImGuiCustom.ToolTip(xs("Let's you change your HUD color")) : void(nullptr);
+		ImGui::Checkbox(xs("Change HUD Color"), &g_Config.cvars.remap_hud_color); //g_Config.cvars.tooltips ? ImGui::SameLine(), ImGuiCustom.ToolTip(xs("Let's you change your HUD color")) : void(nullptr);
 
 		ImGui::Spacing();
 
@@ -1959,7 +1967,7 @@ void CMenuModule::DrawHUDTabContent()
 
 		ImGui::Spacing();
 
-		ImGui::Checkbox(xs("Show Grenade's Timer"), &g_Config.cvars.grenade_timer); g_Config.cvars.tooltips ? ImGui::SameLine(), ImGuiCustom.ToolTip(xs("Shows a timer that indicates the relative time left to a player held grenade explosion")) : void(nullptr);
+		ImGui::Checkbox(xs("Show Grenade's Timer"), &g_Config.cvars.grenade_timer); //g_Config.cvars.tooltips ? ImGui::SameLine(), ImGuiCustom.ToolTip(xs("Shows a timer that indicates the relative time left to a player held grenade explosion")) : void(nullptr);
 
 		ImGui::Spacing();
 
@@ -3291,13 +3299,13 @@ bool CMenuModule::Load()
 
 	if ( !m_pfnwglSwapBuffers )
 	{
-		Warning("Couldn't find function \"wglSwapBuffers\"\n");
+		Warning(xs("Couldn't find function \"wglSwapBuffers\"\n"));
 		return false;
 	}
 
 	if ( !m_pfnSetCursorPos )
 	{
-		Warning("Couldn't find function \"SetCursorPos\"\n");
+		Warning(xs("Couldn't find function \"SetCursorPos\"\n"));
 		return false;
 	}
 
