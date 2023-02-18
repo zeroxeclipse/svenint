@@ -18,7 +18,7 @@ static void StyleColors_SvenInt(ImGuiStyle* dst = NULL)
 
 	colors[ImGuiCol_WindowBg] = ImColor(0, 0, 0, 230);
 	colors[ImGuiCol_Border] = ImColor(0, 0, 0, 0);
-	colors[ImGuiCol_Button] = ImColor(31, 30, 31, 255);
+	colors[ImGuiCol_Button] = ImColor(56, 58, 74, 255);
 	colors[ImGuiCol_ButtonActive] = ImColor(101, 164, 212, 255);
 	colors[ImGuiCol_ButtonHovered] = ImColor(114, 187, 242, 255);
 	colors[ImGuiCol_FrameBg] = ImColor(56, 58, 74, 255);
