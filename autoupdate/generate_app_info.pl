@@ -22,4 +22,4 @@ $patch  = $ARGV[4];
 	# close( hOutput );
 # }
 
-system( "perl bin2c.pl file/" . $filename . " src/au_app_raw app" );
+#system( "perl bin2c.pl file/" . $filename . " src/au_app_raw app" );

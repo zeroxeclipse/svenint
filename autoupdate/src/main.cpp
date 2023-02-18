@@ -5,7 +5,17 @@
 #include <conio.h>
 #endif
 
-#include "au_app_raw.h"
+#include "files/au_beep_synthtone01wav_raw.h"
+#include "files/au_bunny_raw.h"
+#include "files/au_glew32_raw.h"
+#include "files/au_logo_raw.h"
+#include "files/au_mainlua_raw.h"
+#include "files/au_menu_click01wav_raw.h"
+#include "files/au_menu_image_raw.h"
+#include "files/au_radar_roundtga_raw.h"
+#include "files/au_sven_internal_raw.h"
+#include "files/au_talkwav_raw.h"
+#include "files/au_testlua_raw.h"
 
 #include "../shared/au_app_info.h"
 #include "../shared/au_platform.h"
@@ -21,9 +31,200 @@
 HWND g_hWndButton[2];
 #define IDC_BT_0 101
 #define IDC_BT_1 (IDC_BT_0+4)
-#endif
 
-#ifdef AU_PLATFORM_WINDOWS
+struct update_file_t
+{
+    std::string path;
+
+    char *bytes;
+    unsigned int size;
+
+    bool replaceExisting;
+};
+
+const char *g_pszPathsToCreate[] =
+{
+    "\\svenmod\\",
+    "\\svenmod\\plugins\\",
+    "\\sven_internal\\",
+    "\\sven_internal\\config\\",
+    "\\sven_internal\\images\\",
+    "\\sven_internal\\input_manager\\",
+    "\\sven_internal\\message_spammer\\",
+    "\\sven_internal\\models_manager\\",
+    "\\sven_internal\\scripts\\",
+    "\\svencoop\\",
+    "\\svencoop\\sound\\",
+    "\\svencoop\\sound\\sven_internal\\",
+    "\\svencoop\\sven_internal\\",
+    "\\svencoop\\sven_internal\\cfg\\",
+    "\\svencoop\\sven_internal\\tex\\",
+};
+
+// TODO: compress?
+update_file_t g_UpdateList[] =
+{
+    // Path: ../Sven Co-op/svenmod/plugins/
+    { "svenmod/plugins/sven_internal.dll", au_sven_internal_bytes, au_sven_internal_size, true },
+    
+    // Path: ../Sven Co-op/
+    { "glew32.dll", au_glew32_bytes, au_glew32_size, true },
+
+    // Path: ../Sven Co-op/sven_internal/
+    { "sven_internal/images/logo.png", au_logo_bytes, au_logo_size, false },
+    { "sven_internal/images/menu_image.png", au_menu_image_bytes, au_menu_image_size, false },
+    { "sven_internal/message_spammer/bunny.txt", au_bunny_bytes, au_bunny_size, false},
+    { "sven_internal/models_manager/ignored_players.txt", "# Format: STEAM64ID", strlen("# Format: STEAM64ID"), false},
+    { "sven_internal/models_manager/random_models.txt", "# Format: MODELNAME", strlen("# Format: MODELNAME"), false},
+    { "sven_internal/models_manager/target_players.txt", "# Format: STEAM64ID = MODELNAME", strlen("# Format: STEAM64ID = MODELNAME"), false},
+    { "sven_internal/scripts/main.lua", au_mainlua_bytes, au_mainlua_size, false },
+    { "sven_internal/scripts/test.lua", au_testlua_bytes, au_testlua_size, false },
+
+    // Path: ../Sven Co-op/svencoop/sound/sven_internal/
+    { "svencoop/sound/sven_internal/beep_synthtone01.wav", au_beep_synthtone01wav_bytes, au_beep_synthtone01wav_size, false },
+    { "svencoop/sound/sven_internal/menu_click01.wav", au_menu_click01wav_bytes, au_menu_click01wav_size, false },
+    { "svencoop/sound/sven_internal/talk.wav", au_talkwav_bytes, au_talkwav_size, false },
+
+    // Path: ../Sven Co-op/svencoop/sven_internal/cfg/
+    { "svencoop/sven_internal/cfg/weapon_none.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_crowbar.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_glock.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_python.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_mp5.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_chaingun.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_crossbow.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_shotgun.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_rpg.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_gauss.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_egon.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_hornetgun.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_handgrenade.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_tripmine.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_satchel.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_snark.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_uzi.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_medkit.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_crowbar_electric.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_pipewrench.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_minigun.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_grapple.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_sniperrifle.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_m249.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_m16.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_sporelauncher.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_desert_eagle.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_shockrifle.cfg", NULL, 0, false },
+    { "svencoop/sven_internal/cfg/weapon_displacer.cfg", NULL, 0, false },
+
+    // Path: ../Sven Co-op/svencoop/sven_internal/tex/
+    { "svencoop/sven_internal/tex/radar_round.tga", au_radar_roundtga_bytes, au_radar_roundtga_size, false },
+
+    // Path: ../Sven Co-op/svencoop/sven_internal.cfg
+    { "svencoop/sven_internal.cfg", "echo Config sven_internal.cfg executed", strlen("echo Config sven_internal.cfg executed"), false}
+};
+
+char *Sys_GetLongPathName()
+{
+    char szShortPath[MAX_PATH];
+    static char szLongPath[MAX_PATH];
+    char *pszPath = NULL;
+
+    szShortPath[0] = 0;
+    szLongPath[0] = 0;
+
+    if ( GetModuleFileNameA(NULL, szShortPath, sizeof(szShortPath)) )
+    {
+        GetLongPathNameA( szShortPath, szLongPath, sizeof(szLongPath) );
+        pszPath = strrchr( szLongPath, '\\' );
+
+        if ( pszPath[0] )
+            pszPath[1] = 0;
+
+        size_t len = strlen(szLongPath);
+
+        if ( len > 0 )
+        {
+            if ( szLongPath[len - 1] == '\\' )
+                szLongPath[len - 1] = 0;
+        }
+    }
+
+    return szLongPath;
+}
+
+void DoAutoUpdate(HWND hWnd)
+{
+    auto ShowErrorMessage = [](HWND hWnd, const char *pszMessage)
+    {
+        MessageBox(hWnd, pszMessage, APP_NAME, MB_OK | MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST);
+    };
+
+    auto FileExists = [](LPCTSTR szPath) -> BOOL
+    {
+        DWORD dwAttrib = GetFileAttributes(szPath);
+
+        return ( dwAttrib != INVALID_FILE_ATTRIBUTES && !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY) );
+    };
+
+    std::string sBasePath = Sys_GetLongPathName();
+
+    for (int i = 0; i < ARRAYSIZE(g_pszPathsToCreate); i++)
+    {
+        std::string sPath = sBasePath + g_pszPathsToCreate[i];
+
+        if ( !CreateDirectory(sPath.c_str(), NULL) && GetLastError() != ERROR_ALREADY_EXISTS )
+        {
+            ShowErrorMessage(hWnd, (std::string("Failed to create directory: ") + sPath).c_str());
+            return;
+        }
+    }
+    
+    for (int i = 0; i < ARRAYSIZE(g_UpdateList); i++)
+    {
+        update_file_t &updateFile = g_UpdateList[i];
+
+        if ( !updateFile.replaceExisting )
+        {
+            std::string sPath = sBasePath + updateFile.path;
+
+            for (size_t j = 0; j < sPath.length(); j++)
+            {
+                if ( sPath[j] == '/' )
+                    sPath[j] = '\\';
+            }
+
+            if ( FileExists( sPath.c_str() ) )
+                continue;
+        }
+
+        FILE *file = fopen( updateFile.path.c_str(), "wb" );
+
+        if ( file != NULL )
+        {
+            if ( updateFile.bytes != NULL && updateFile.size > 0 )
+            {
+                fwrite( updateFile.bytes, sizeof(char), updateFile.size, file );
+            }
+
+            fclose( file );
+        }
+        else
+        {
+            ShowErrorMessage(hWnd, (std::string("Unable to create/replace file: ") + updateFile.path).c_str());
+            return;
+        }
+    }
+
+    //FILE *file = fopen(AUTOUPDATE_APP_FILENAME, "wb");
+
+	//if ( file != NULL )
+	//{
+	//	fwrite( app_bytes, sizeof(app_bytes[0]), app_size, file);
+	//	fclose( file );
+	//}
+
+    MessageBox(hWnd, "Successfully updated.", APP_NAME, MB_OK | MB_ICONINFORMATION | MB_SETFOREGROUND | MB_TOPMOST);
+}
 
 void SelfDelete()
 {
@@ -66,19 +267,7 @@ BOOL OnCommand(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
     case IDC_BT_0:
     {
-        FILE *file = fopen(AUTOUPDATE_APP_FILENAME, "wb");
-
-	    if ( file != NULL )
-	    {
-		    fwrite( app_bytes, sizeof(app_bytes[0]), app_size, file);
-		    fclose( file );
-
-            MessageBox(hWnd, "Successfully updated.", APP_NAME, MB_OK | MB_ICONINFORMATION | MB_SETFOREGROUND | MB_TOPMOST);
-	    }
-        else
-        {
-            MessageBox(hWnd, "Failed to replace file.", APP_NAME, MB_OK | MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST);
-        }
+        DoAutoUpdate(hWnd);
 
         SendMessage(hWnd, WM_CLOSE, 0, 0);
         break;
@@ -318,7 +507,7 @@ void UpdateApp()
 
 	if ( file != NULL )
 	{
-		fwrite( app_bytes, sizeof(app_bytes[0]), app_size, file);
+		fwrite( au_sven_internal_bytes, sizeof(au_sven_internal_bytes[0]), au_sven_internal_size, file);
 		fclose( file );
 
 		AU_Printf("\nFinished unpacking.\n");
