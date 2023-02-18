@@ -76,3 +76,27 @@ private:
 extern CMenuModule g_MenuModule;
 
 #endif // MENU_MODULE_H
+
+//-----------------------------------------------------------------------------
+// Menu obfuscation
+//-----------------------------------------------------------------------------
+
+class obfuscated_string
+{
+public:
+	obfuscated_string(const char* str)
+	{
+		m_str = strdup(str);
+	}
+
+	~obfuscated_string()
+	{
+		if (m_str != NULL)
+			free((void*)m_str);
+	}
+
+	operator char* () { return (char*)m_str; }
+	operator const char* () { return m_str; }
+
+	const char* m_str;
+};

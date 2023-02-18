@@ -107,10 +107,10 @@ std::string SettingsSubTab[] = { xs("Menu"), xs("Game") };
 
 // Features Strings Vars
 
-static const char* no_weap_anim_items[] = { xs("0 - Off"), xs("1 - All Animations"), xs("2 - Take Animations") };
+obfuscated_string no_weap_anim_items[] = { xs("0 - Off"), xs("1 - All Animations"), xs("2 - Take Animations") };
 
-static const char* draw_entities_items[] = 
-{ 
+obfuscated_string draw_entities_items[] =
+{
 	xs("0 - Default"),
 	xs("1 - Draw Bones"),
 	xs("2 - Draw Hitboxes"),
@@ -120,42 +120,40 @@ static const char* draw_entities_items[] =
 	xs("6 - Draw Players Hitboxes")
 };
 
-static const char* esp_style[] = { xs("0 - Default"), xs("1 - SAMP"), xs("2 - Left 4 Dead") };
-static const char* esp_process_items[] = { xs("0 - Everyone"), xs("1 - Entities"), xs("2 - Players") };
-static const char* esp_box_items[] = { xs("0 - Off"), xs("1 - Default"), xs("2 - Coal"), xs("3 - Corner") };
+obfuscated_string esp_style[] = { xs("0 - Default"), xs("1 - SAMP"), xs("2 - Left 4 Dead") };
+obfuscated_string esp_process_items[] = { xs("0 - Everyone"), xs("1 - Entities"), xs("2 - Players") };
+obfuscated_string esp_box_items[] = { xs("0 - Off"), xs("1 - Default"), xs("2 - Coal"), xs("3 - Corner") };
 
-static const char* chams_items[] = { xs("0 - Disable"), xs("1 - Flat"), xs("2 - Texture"), xs("3 - Material") };
+obfuscated_string chams_items[] = { xs("0 - Disable"), xs("1 - Flat"), xs("2 - Texture"), xs("3 - Material") };
 
-static const char* glow_items[] = { xs("0 - Disable"), xs("1 - Glow Outline"), xs("2 - Glow Shell"), xs("3 - Ghost") };
+obfuscated_string glow_items[] = { xs("0 - Disable"), xs("1 - Glow Outline"), xs("2 - Glow Shell"), xs("3 - Ghost") };
 
-static const char* ca_types[] = { xs("0 - Default"), xs("1 - Barrel Distortion"), xs("2 - Linear Barrel Distortion") };
+obfuscated_string ca_types[] = { xs("0 - Default"), xs("1 - Barrel Distortion"), xs("2 - Linear Barrel Distortion") };
 
 float v = g_Config.cvars.shaders_chromatic_aberration_shift;
 
-static const char* dof_interps[] = { xs("0 - Linear"), xs("1 - Simple Spline"), xs("2 - Parabolic"), xs("3 - Parabolic Inverted"), xs("4 - Cubic") };
+obfuscated_string dof_interps[] = { xs("0 - Linear"), xs("1 - Simple Spline"), xs("2 - Parabolic"), xs("3 - Parabolic Inverted"), xs("4 - Cubic") };
 
-static const char* strafe_dir_items[] = { xs("0 - To the left"), xs("1 - To the right"), xs("2 - Best strafe"), xs("3 - View angles") };
-static const char* strafe_type_items[] = { xs("0 - Max. acceleration"), xs("1 - Max. angle"), xs("2 - Max. deceleration"), xs("3 - Const speed") };
+obfuscated_string strafe_dir_items[] = { xs("0 - To the left"), xs("1 - To the right"), xs("2 - Best strafe"), xs("3 - View angles") };
+obfuscated_string strafe_type_items[] = { xs("0 - Max. acceleration"), xs("1 - Max. angle"), xs("2 - Max. deceleration"), xs("3 - Const speed") };
 
-static const char* fakelag_type_items[] = { xs("0 - Dynamic"), xs("1 - Maximum"), xs("2 - Jitter"), xs("3 - Break Lag Compensation") };
-static const char* fakelag_move_items[] = { xs("0 - Everytime"), xs("1 - On Land"), xs("2 - On Move"), xs("3 - In Air") };
+obfuscated_string fakelag_type_items[] = { xs("0 - Dynamic"), xs("1 - Maximum"), xs("2 - Jitter"), xs("3 - Break Lag Compensation") };
+obfuscated_string fakelag_move_items[] = { xs("0 - Everytime"), xs("1 - On Land"), xs("2 - On Move"), xs("3 - In Air") };
 
-static const char* antiafk_items[] =
-{
+obfuscated_string antiafk_items[] = {
 	xs("0 - Off"),
 	xs("1 - Step Forward & Back"),
 	xs("2 - Spam Gibme"),
 	xs("3 - Spam Kill"),
 	xs("4 - Walk Around & Spam Inputs"),
 	xs("5 - Walk Around"),
-	xs("6 - Go Right")
-};
+	xs("6 - Go Right") };
 
-static const char* trace_type[] = { xs("0 - Trace Line"), xs("1 - Trace Hull") };
+obfuscated_string trace_type[] = { xs("0 - Trace Line"), xs("1 - Trace Hull") };
 
-static const char* radar_type[] = { xs("0 - Round"), xs("1 - Square") };
+obfuscated_string radar_type[] = { xs("0 - Round"), xs("1 - Square") };
 
-static const char* theme_items[] =
+obfuscated_string theme_items[] =
 {
 	xs("SvenInt"),
 	xs("Dark"),
@@ -708,7 +706,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGuiCustom.Spacing(4);
 
-		ImGui::Combo(" ", &g_Config.cvars.draw_entities, draw_entities_items, IM_ARRAYSIZE(draw_entities_items));
+		ImGui::Combo(" ", &g_Config.cvars.draw_entities, (const char**)draw_entities_items, IM_ARRAYSIZE(draw_entities_items));
 
 		ImGuiCustom.Spacing(8);
 
@@ -732,7 +730,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGuiCustom.Spacing(4);
 
-		ImGui::Combo(xs("##no_weap_anims"), &g_Config.cvars.no_weapon_anim, no_weap_anim_items, IM_ARRAYSIZE(no_weap_anim_items));
+		ImGui::Combo(xs("##no_weap_anims"), &g_Config.cvars.no_weapon_anim, (const char**)no_weap_anim_items, IM_ARRAYSIZE(no_weap_anim_items));
 
 		ImGuiCustom.Spacing(4);
 
@@ -811,7 +809,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGuiCustom.Spacing(4);
 
-		if (ImGui::Combo(xs("Player Style##style"), &g_Config.cvars.esp_player_style, esp_style, IM_ARRAYSIZE(esp_style)))
+		if (ImGui::Combo(xs("Player Style##style"), &g_Config.cvars.esp_player_style, (const char**)esp_style, IM_ARRAYSIZE(esp_style)))
 		{
 			if (g_Config.cvars.esp_player_style == 0)
 			{
@@ -848,27 +846,27 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 
-		ImGui::Combo(xs("Entity Style##style2"), &g_Config.cvars.esp_entity_style, esp_style, IM_ARRAYSIZE(esp_style));
+		ImGui::Combo(xs("Entity Style##style2"), &g_Config.cvars.esp_entity_style, (const char**)esp_style, IM_ARRAYSIZE(esp_style));
 
 		ImGui::Spacing();
 
-		ImGui::Combo(xs("Targets##esp"), &g_Config.cvars.esp_targets, esp_process_items, IM_ARRAYSIZE(esp_process_items));
+		ImGui::Combo(xs("Targets##esp"), &g_Config.cvars.esp_targets, (const char**)esp_process_items, IM_ARRAYSIZE(esp_process_items));
 
 		ImGui::Spacing();
 
-		ImGui::Combo(xs("Draw Distance Mode##esp"), &g_Config.cvars.esp_distance_mode, esp_process_items, IM_ARRAYSIZE(esp_process_items));
+		ImGui::Combo(xs("Draw Distance Mode##esp"), &g_Config.cvars.esp_distance_mode, (const char**)esp_process_items, IM_ARRAYSIZE(esp_process_items));
 
 		ImGui::Spacing();
 
-		ImGui::Combo(xs("Draw Skeleton Mode##esp"), &g_Config.cvars.esp_skeleton_type, esp_process_items, IM_ARRAYSIZE(esp_process_items));
+		ImGui::Combo(xs("Draw Skeleton Mode##esp"), &g_Config.cvars.esp_skeleton_type, (const char**)esp_process_items, IM_ARRAYSIZE(esp_process_items));
 
 		ImGui::Spacing();
 
-		ImGui::Combo(xs("Draw Box Targets##esp"), &g_Config.cvars.esp_box_targets, esp_process_items, IM_ARRAYSIZE(esp_process_items));
+		ImGui::Combo(xs("Draw Box Targets##esp"), &g_Config.cvars.esp_box_targets, (const char**)esp_process_items, IM_ARRAYSIZE(esp_process_items));
 
 		ImGui::Spacing();
 
-		ImGui::Combo(xs("Draw Box Type##esp"), &g_Config.cvars.esp_box, esp_box_items, IM_ARRAYSIZE(esp_box_items));
+		ImGui::Combo(xs("Draw Box Type##esp"), &g_Config.cvars.esp_box, (const char**)esp_box_items, IM_ARRAYSIZE(esp_box_items));
 
 		ImGuiCustom.Spacing(8);
 
@@ -2400,11 +2398,11 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGuiCustom.Spacing(4);
 
-		ImGui::Combo(xs("Strafe Direction"), &g_Config.cvars.strafe_dir, strafe_dir_items, IM_ARRAYSIZE(strafe_dir_items));
+		ImGui::Combo(xs("Strafe Direction"), &g_Config.cvars.strafe_dir, (const char**)strafe_dir_items, IM_ARRAYSIZE(strafe_dir_items));
 
 		ImGui::Spacing();
 
-		ImGui::Combo(xs("Strafe Type"), &g_Config.cvars.strafe_type, strafe_type_items, IM_ARRAYSIZE(strafe_type_items));
+		ImGui::Combo(xs("Strafe Type"), &g_Config.cvars.strafe_type, (const char**)strafe_type_items, IM_ARRAYSIZE(strafe_type_items));
 
 		ImGuiCustom.Spacing(8);
 
@@ -2523,11 +2521,11 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::Spacing();
 
-		ImGui::Combo(xs("Fake Lag Type"), &g_Config.cvars.fakelag_type, fakelag_type_items, IM_ARRAYSIZE(fakelag_type_items));
+		ImGui::Combo(xs("Fake Lag Type"), &g_Config.cvars.fakelag_type, (const char**)fakelag_type_items, IM_ARRAYSIZE(fakelag_type_items));
 
 		ImGui::Spacing();
 
-		ImGui::Combo(xs("Fake Move Type"), &g_Config.cvars.fakelag_move, fakelag_move_items, IM_ARRAYSIZE(fakelag_move_items));
+		ImGui::Combo(xs("Fake Move Type"), &g_Config.cvars.fakelag_move, (const char**)fakelag_move_items, IM_ARRAYSIZE(fakelag_move_items));
 
 		ImGui::EndChild();
 		break;
@@ -2536,7 +2534,7 @@ void CMenuModule::DrawUtilityTabContent()
 	{
 		ImGui::BeginChild(xs("anti-afk"), ImVec2(328, 240), true);
 
-		ImGui::Combo(xs("Mode"), &g_Config.cvars.antiafk, antiafk_items, IM_ARRAYSIZE(antiafk_items));
+		ImGui::Combo(xs("Mode"), &g_Config.cvars.antiafk, (const char**)antiafk_items, IM_ARRAYSIZE(antiafk_items));
 
 		ImGuiCustom.Spacing(4);
 
@@ -2886,7 +2884,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 			ImGui::Spacing();
 
-			ImGui::Combo(xs("Trace Type##thirdperson"), &g_Config.cvars.thirdperson_trace_type, trace_type, IM_ARRAYSIZE(trace_type));
+			ImGui::Combo(xs("Trace Type##thirdperson"), &g_Config.cvars.thirdperson_trace_type, (const char**)trace_type, IM_ARRAYSIZE(trace_type));
 
 			ImGuiCustom.Spacing(4);
 
@@ -3041,7 +3039,7 @@ void CMenuModule::DrawSettingsTabContent()
 
 		ImGui::PushItemWidth(150);
 
-		if (ImGui::Combo(xs("Theme"), &g_Config.cvars.menu_theme, theme_items, IM_ARRAYSIZE(theme_items)))
+		if (ImGui::Combo(xs("Theme"), &g_Config.cvars.menu_theme, (const char**)theme_items, IM_ARRAYSIZE(theme_items)))
 		{
 			LoadSavedStyle();
 			LoadMenuTheme();
