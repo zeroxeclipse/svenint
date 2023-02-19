@@ -187,7 +187,7 @@ static void RainbowCycle()
 
 	RainbowDelay++;
 
-	if (Time % 0 == 1)
+	if (Time % 1 == 0)
 	{
 		if (RainbowDelay == g_Config.cvars.rainbow_speed)
 		{
@@ -254,6 +254,7 @@ static void RainbowCycle()
 				if (Red < 0.01f)
 					Green = 0.01f;
 			}
+			RainbowDelay = 0;
 		}
 	}
 
