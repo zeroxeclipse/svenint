@@ -1436,7 +1436,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("", xs("SSAO")), ImGuiComboFlags_HeightLargest)
+		if (ImGui::BeginCombo("", xs("SSAO"), ImGuiComboFlags_HeightLargest))
 		{
 			ImGui::Text(xs("Screen-Space Ambient Occlusion"));
 
@@ -1632,7 +1632,6 @@ void CMenuModule::DrawVisualsTabContent()
 		}
 
 		ImGui::EndChild();
-
 
 		ImGui::NextColumn();
 

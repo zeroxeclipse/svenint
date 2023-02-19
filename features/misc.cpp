@@ -2610,14 +2610,14 @@ bool CMisc::Load()
 
 void CMisc::PostLoad()
 {
-	m_hQueryPerformanceCounter = DetoursAPI()->DetourFunction( m_pfnQueryPerformanceCounter, HOOKED_fQueryPerformanceCounter, GET_FUNC_PTR(ORIG_fQueryPerformanceCounter) );
+	//m_hQueryPerformanceCounter = DetoursAPI()->DetourFunction( m_pfnQueryPerformanceCounter, HOOKED_fQueryPerformanceCounter, GET_FUNC_PTR(ORIG_fQueryPerformanceCounter) );
 	m_hNetchan_Transmit = DetoursAPI()->DetourFunction( m_pfnNetchan_Transmit, HOOKED_fNetchan_Transmit, GET_FUNC_PTR(ORIG_fNetchan_Transmit) );
 	m_hCClient_SoundEngine__Play2DSound = DetoursAPI()->DetourFunction( m_pfnCClient_SoundEngine__Play2DSound, HOOKED_CClient_SoundEngine__Play2DSound, GET_FUNC_PTR(ORIG_CClient_SoundEngine__Play2DSound) );
 }
 
 void CMisc::Unload()
 {
-	DetoursAPI()->RemoveDetour( m_hQueryPerformanceCounter );
+	//DetoursAPI()->RemoveDetour( m_hQueryPerformanceCounter );
 	DetoursAPI()->RemoveDetour( m_hNetchan_Transmit );
 	DetoursAPI()->RemoveDetour( m_hCClient_SoundEngine__Play2DSound );
 }
