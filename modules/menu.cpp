@@ -87,7 +87,9 @@ int menu_image_height = 0;
 GLuint menu_image = 0;
 
 bool m_Image = true;
+
 float Red = 0.0f, Green = 0.01f, Blue = 0.0f;
+int RainbowDelay = 0;
 
 int selectedTab = 0, selectedSubTab0 = 0, selectedSubTab1 = 0, selectedSubTab2 = 0, selectedSubTab3 = 0, selectedSubTab4 = 0;
 
@@ -179,77 +181,84 @@ obfuscated_string theme_items[] =
 
 static void RainbowCycle()
 {
-	int isFrames = g_pEngineFuncs->Sys_FloatTime();
+	int Time = g_pEngineFuncs->Sys_FloatTime();
 
 	ImVec4 isRGB = ImVec4(Red, Green, Blue, 1.0f);
 
-	if (isFrames % g_Config.cvars.rainbow_speed == 1)
+	RainbowDelay++;
+
+	if (Time % 0 == 1)
 	{
-
-		if (Green == 0.01f && Blue == 0.0f)
+		if (RainbowDelay == g_Config.cvars.rainbow_speed)
 		{
-			Red += 0.01f;
+			if (Green == 0.01f && Blue == 0.0f)
+			{
+				Red += 0.01f;
 
-		}
+			}
 
-		if (Red > 0.99f && Blue == 0.0f)
-		{
-			Red = 1.0f;
+			if (Red > 0.99f && Blue == 0.0f)
+			{
+				Red = 1.0f;
 
-			Green += 0.01f;
+				Green += 0.01f;
 
-		}
+			}
 
-		if (Green > 0.99f && Blue == 0.0f)
-		{
-			Green = 1.0f;
+			if (Green > 0.99f && Blue == 0.0f)
+			{
+				Green = 1.0f;
 
-			Red -= 0.01f;
+				Red -= 0.01f;
 
-		}
+			}
 
-		if (Red < 0.01f && Green == 1.0f)
-		{
-			Red = 0.0f;
+			if (Red < 0.01f && Green == 1.0f)
+			{
+				Red = 0.0f;
 
-			Blue += 0.01f;
+				Blue += 0.01f;
 
-		}
+			}
 
-		if (Blue > 0.99f && Red == 0.0f)
-		{
-			Blue = 1.0f;
+			if (Blue > 0.99f && Red == 0.0f)
+			{
+				Blue = 1.0f;
 
-			Green -= 0.01f;
+				Green -= 0.01f;
 
-		}
+			}
 
-		if (Green < 0.01f && Blue == 1.0f)
-		{
-			Green = 0.0f;
+			if (Green < 0.01f && Blue == 1.0f)
+			{
+				Green = 0.0f;
 
-			Red += 0.01f;
+				Red += 0.01f;
 
-		}
+			}
 
-		if (Red > 0.99f && Green == 0.0f)
-		{
-			Red = 1.0f;
+			if (Red > 0.99f && Green == 0.0f)
+			{
+				Red = 1.0f;
 
-			Blue -= 0.01f;
+				Blue -= 0.01f;
 
-		}
+			}
 
-		if (Blue < 0.01f && Green == 0.0f)
-		{
-			Blue = 0.0f;
+			if (Blue < 0.01f && Green == 0.0f)
+			{
+				Blue = 0.0f;
 
-			Red += 0.01f;
+				Red += 0.01f;
 
-			if (Red < 0.01f)
-				Green = 0.01f;
+				if (Red < 0.01f)
+					Green = 0.01f;
+			}
 		}
 	}
+
+	if (RainbowDelay > g_Config.cvars.rainbow_speed) // This shit sometimes happens
+		RainbowDelay = 0;
 }
 
 // Simple helper function to load an image into a OpenGL texture with common settings
