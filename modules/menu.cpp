@@ -441,7 +441,7 @@ void CMenuModule::Draw()
 
 		// Sub Tabs Wrapper
 
-		ImGui::BeginChild(xs("subtabs-wrapper"), ImVec2(880, 39), true, ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar);
+		ImGui::BeginChild(xs("subtabs-wrapper"), ImVec2(662, 39), true, ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar);
 		{
 			ImGui::SetCursorPosY(8);
 
