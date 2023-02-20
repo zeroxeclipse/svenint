@@ -52,6 +52,7 @@ private:
 	void SpamKill(struct usercmd_s *cmd);
 	void DupeWeapon(struct usercmd_s *cmd);
 
+	void WeaponConfig(void);
 	void SavePlayerStats(void);
 	
 	void AutoCeilClipping(struct usercmd_s *cmd);
@@ -76,6 +77,8 @@ private:
 	DetourHandle_t m_hCClient_SoundEngine__Play2DSound;
 
 private:
+	int m_iLastWeaponID;
+
 	float m_flSpinPitchAngle;
 	bool m_bSpinCanChangePitch;
 	bool m_bSpinnerDelayed;

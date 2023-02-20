@@ -64,51 +64,49 @@ int g_iMenuState = 0;
 bool g_bMenuEnabled = false;
 bool g_bMenuClosed = true;
 
-float g_bMenuOpenTime = -1.f;
-float g_bMenuCloseTime = -1.f;
-float g_bMenuOpenTimePrev = -1.f;
-float g_bMenuCloseTimePrev = -1.f;
+float g_flMenuOpenTime = -1.f;
+float g_flMenuCloseTime = -1.f;
 
 //ImFont *g_pImFont = NULL;
 
 ImGuiStyle* style;
 CImGuiCustom ImGuiCustom;
 
-ImFont* cool_font = NULL;
-ImFont* cool_font_big = NULL;
-ImFont* cool_font_small = NULL;
+static ImFont* cool_font = NULL;
+static ImFont* cool_font_big = NULL;
+static ImFont* cool_font_small = NULL;
 
-int sven_int_width = 0;
-int sven_int_height = 0;
-GLuint sven_int_logo = 0;
+static int sven_int_width = 0;
+static int sven_int_height = 0;
+static GLuint sven_int_logo = 0;
 
-int menu_image_width = 0;
-int menu_image_height = 0;
-GLuint menu_image = 0;
+static int menu_image_width = 0;
+static int menu_image_height = 0;
+static GLuint menu_image = 0;
 
-bool m_Image = true;
+static bool m_Image = true;
 
-int selectedTab = 0, selectedSubTab0 = 0, selectedSubTab1 = 0, selectedSubTab2 = 0, selectedSubTab3 = 0, selectedSubTab4 = 0;
+static int selectedTab = 0, selectedSubTab0 = 0, selectedSubTab1 = 0, selectedSubTab2 = 0, selectedSubTab3 = 0, selectedSubTab4 = 0;
 
 // Tabs Strings Vars
 
-std::string MainTabNames[] = { xs(ICON_FA_EYE "  Visuals"), xs(ICON_FA_CROSSHAIRS "  HUD"), xs(ICON_FA_GLOBE "  Utility"), xs(ICON_FA_SAVE "  Configs"), xs(ICON_FA_COG "  Settings") };
+static std::string MainTabNames[] = { xs(ICON_FA_EYE "  Visuals"), xs(ICON_FA_CROSSHAIRS "  HUD"), xs(ICON_FA_GLOBE "  Utility"), xs(ICON_FA_SAVE "  Configs"), xs(ICON_FA_COG "  Settings") };
 
-std::string VisualsSubTabs[] = { xs("Render"), xs("ESP"), xs("Chams"), xs("Glow"), xs("Flashlight"), xs("Wallhack"), xs("BSP"), xs("Models Manager"), xs("Shaders"), xs("Misc") };
+static std::string VisualsSubTabs[] = { xs("Render"), xs("ESP"), xs("Chams"), xs("Glow"), xs("Flashlight"), xs("Wallhack"), xs("BSP"), xs("Models Manager"), xs("Shaders"), xs("Misc") };
 
-std::string HUDSubTabs[] = { xs("General"), xs("Speedometer"), xs("Radar"), xs("Chat Colors"), xs("Custom Vote Popup") };
+static std::string HUDSubTabs[] = { xs("General"), xs("Speedometer"), xs("Radar"), xs("Chat Colors"), xs("Custom Vote Popup") };
 
-std::string UtilitySubTabs[] = { xs("Player"), xs("Color Pulsator"), xs("Fake Lag"), xs("Anti-AFK"), xs("Spammer"), xs("Speedrun Tools"), xs("Misc") };
+static std::string UtilitySubTabs[] = { xs("Player"), xs("Color Pulsator"), xs("Fake Lag"), xs("Anti-AFK"), xs("Spammer"), xs("Speedrun Tools"), xs("Misc") };
 
-std::string ConfigsSubTab[] = { xs("SvenInt") };
+static std::string ConfigsSubTab[] = { xs("SvenInt") };
 
-std::string SettingsSubTab[] = { xs("Menu"), xs("Game") };
+static std::string SettingsSubTab[] = { xs("Menu"), xs("Game") };
 
 // Features Strings Vars
 
-obfuscated_string no_weap_anim_items[] = { xs("0 - Off"), xs("1 - All Animations"), xs("2 - Take Animations") };
+static obfuscated_string no_weap_anim_items[] = { xs("0 - Off"), xs("1 - All Animations"), xs("2 - Take Animations") };
 
-obfuscated_string draw_entities_items[] =
+static obfuscated_string draw_entities_items[] =
 {
 	xs("0 - Default"),
 	xs("1 - Draw Bones"),
@@ -119,27 +117,25 @@ obfuscated_string draw_entities_items[] =
 	xs("6 - Draw Players Hitboxes")
 };
 
-obfuscated_string esp_style[] = { xs("0 - Default"), xs("1 - SAMP"), xs("2 - Left 4 Dead") };
-obfuscated_string esp_process_items[] = { xs("0 - Everyone"), xs("1 - Entities"), xs("2 - Players") };
-obfuscated_string esp_box_items[] = { xs("0 - Off"), xs("1 - Default"), xs("2 - Coal"), xs("3 - Corner") };
+static obfuscated_string esp_style[] = { xs("0 - Default"), xs("1 - SAMP"), xs("2 - Left 4 Dead") };
+static obfuscated_string esp_process_items[] = { xs("0 - Everyone"), xs("1 - Entities"), xs("2 - Players") };
+static obfuscated_string esp_box_items[] = { xs("0 - Off"), xs("1 - Default"), xs("2 - Coal"), xs("3 - Corner") };
 
-obfuscated_string chams_items[] = { xs("0 - Disable"), xs("1 - Flat"), xs("2 - Texture"), xs("3 - Material") };
+static obfuscated_string chams_items[] = { xs("0 - Disable"), xs("1 - Flat"), xs("2 - Texture"), xs("3 - Material") };
 
-obfuscated_string glow_items[] = { xs("0 - Disable"), xs("1 - Glow Outline"), xs("2 - Glow Shell"), xs("3 - Ghost") };
+static obfuscated_string glow_items[] = { xs("0 - Disable"), xs("1 - Glow Outline"), xs("2 - Glow Shell"), xs("3 - Ghost") };
 
-obfuscated_string ca_types[] = { xs("0 - Default"), xs("1 - Barrel Distortion"), xs("2 - Linear Barrel Distortion") };
+static obfuscated_string ca_types[] = { xs("0 - Default"), xs("1 - Barrel Distortion"), xs("2 - Linear Barrel Distortion") };
 
-float v = g_Config.cvars.shaders_chromatic_aberration_shift;
+static obfuscated_string dof_interps[] = { xs("0 - Linear"), xs("1 - Simple Spline"), xs("2 - Parabolic"), xs("3 - Parabolic Inverted"), xs("4 - Cubic") };
 
-obfuscated_string dof_interps[] = { xs("0 - Linear"), xs("1 - Simple Spline"), xs("2 - Parabolic"), xs("3 - Parabolic Inverted"), xs("4 - Cubic") };
+static obfuscated_string strafe_dir_items[] = { xs("0 - To the left"), xs("1 - To the right"), xs("2 - Best strafe"), xs("3 - View angles") };
+static obfuscated_string strafe_type_items[] = { xs("0 - Max. acceleration"), xs("1 - Max. angle"), xs("2 - Max. deceleration"), xs("3 - Const speed") };
 
-obfuscated_string strafe_dir_items[] = { xs("0 - To the left"), xs("1 - To the right"), xs("2 - Best strafe"), xs("3 - View angles") };
-obfuscated_string strafe_type_items[] = { xs("0 - Max. acceleration"), xs("1 - Max. angle"), xs("2 - Max. deceleration"), xs("3 - Const speed") };
+static obfuscated_string fakelag_type_items[] = { xs("0 - Dynamic"), xs("1 - Maximum"), xs("2 - Jitter"), xs("3 - Break Lag Compensation") };
+static obfuscated_string fakelag_move_items[] = { xs("0 - Everytime"), xs("1 - On Land"), xs("2 - On Move"), xs("3 - In Air") };
 
-obfuscated_string fakelag_type_items[] = { xs("0 - Dynamic"), xs("1 - Maximum"), xs("2 - Jitter"), xs("3 - Break Lag Compensation") };
-obfuscated_string fakelag_move_items[] = { xs("0 - Everytime"), xs("1 - On Land"), xs("2 - On Move"), xs("3 - In Air") };
-
-obfuscated_string antiafk_items[] = {
+static obfuscated_string antiafk_items[] = {
 	xs("0 - Off"),
 	xs("1 - Step Forward & Back"),
 	xs("2 - Spam Gibme"),
@@ -148,11 +144,11 @@ obfuscated_string antiafk_items[] = {
 	xs("5 - Walk Around"),
 	xs("6 - Go Right") };
 
-obfuscated_string trace_type[] = { xs("0 - Trace Line"), xs("1 - Trace Hull") };
+static obfuscated_string trace_type[] = { xs("0 - Trace Line"), xs("1 - Trace Hull") };
 
-obfuscated_string radar_type[] = { xs("0 - Round"), xs("1 - Square") };
+static obfuscated_string radar_type[] = { xs("0 - Round"), xs("1 - Square") };
 
-obfuscated_string theme_items[] =
+static obfuscated_string theme_items[] =
 {
 	xs("SvenInt"),
 	xs("Dark"),
@@ -1520,12 +1516,14 @@ void CMenuModule::DrawVisualsTabContent()
 
 			ImGui::Spacing();
 
-			if (g_Config.cvars.shaders_chromatic_aberration_type == 0)
+			if ( g_Config.cvars.shaders_chromatic_aberration_type == 0 )
 			{
 				ImGui::SliderFloat(xs("Shift##aberrat"), &g_Config.cvars.shaders_chromatic_aberration_shift, 0.f, 50.f);
 			}
 			else
 			{
+				float v = g_Config.cvars.shaders_chromatic_aberration_shift;
+
 				g_Config.cvars.shaders_chromatic_aberration_shift = clamp(v, 0.f, 1.f);
 
 				ImGui::SliderFloat(xs("Shift##aberrat"), &g_Config.cvars.shaders_chromatic_aberration_shift, 0.f, 1.f);
@@ -1561,13 +1559,42 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::SetCursorPosX(332);
 
-		ImGui::BeginChild(xs("shaders-blur"), ImVec2(328.5, 240), true);
+		ImGui::BeginChild(xs("shaders-blur"), ImVec2(328.5, 260), true);
 
 		ImGui::Text(xs("Blur"));
 
 		ImGuiCustom.Spacing(4);
 
-		if (ImGui::BeginCombo("", xs("Depth of Field Blur"), ImGuiComboFlags_HeightLarge))
+		if (ImGui::BeginCombo("", xs("Menu Background Blur"), ImGuiComboFlags_HeightLarge))
+		{
+			ImGui::Checkbox(xs("Enable Menu Blur##mblur"), &g_Config.cvars.menu_blur);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat(xs("Fade In Duration##mblur"), &g_Config.cvars.menu_blur_fadein_duration, 0.0f, 5.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat(xs("Fade Out Duration##mblur"), &g_Config.cvars.menu_blur_fadeout_duration, 0.0f, 5.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat(xs("Bluriness Radius##mblur"), &g_Config.cvars.menu_blur_radius, 0.0f, 150.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat(xs("Bokeh Coefficient##mblur"), &g_Config.cvars.menu_blur_bokeh, 0.0f, 1.f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderInt(xs("Quality##mblur"), &g_Config.cvars.menu_blur_samples, 1, 50);
+
+			ImGui::EndCombo();
+		}
+
+		ImGui::Spacing();
+		
+		if (ImGui::BeginCombo(" ", xs("Depth of Field Blur"), ImGuiComboFlags_HeightLarge))
 		{
 			ImGui::Checkbox(xs("Enable DoF Blur##shader"), &g_Config.cvars.shaders_dof_blur);
 
@@ -1600,7 +1627,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo(" ", xs("Motion Blur"), 0))
+		if (ImGui::BeginCombo("  ", xs("Motion Blur"), 0))
 		{
 			ImGui::Checkbox(xs("Enable Motion Blur##shader"), &g_Config.cvars.shaders_motion_blur);
 
@@ -1621,7 +1648,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("  ", xs("Radial Blur"), 0))
+		if (ImGui::BeginCombo("   ", xs("Radial Blur"), 0))
 		{
 			ImGui::Checkbox(xs("Enable Radial Blur##shader"), &g_Config.cvars.shaders_radial_blur);
 
@@ -1638,7 +1665,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("   ", xs("Bokeh Blur"), 0))
+		if (ImGui::BeginCombo("    ", xs("Bokeh Blur"), 0))
 		{
 			ImGui::Checkbox(xs("Enable Bokeh Blur##shader"), &g_Config.cvars.shaders_bokeh_blur);
 
@@ -1659,7 +1686,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("    ", xs("Gaussian Blur"), 0))
+		if (ImGui::BeginCombo("     ", xs("Gaussian Blur"), 0))
 		{
 			ImGui::Checkbox(xs("Enable Gaussian Blur##shader"), &g_Config.cvars.shaders_gaussian_blur);
 
@@ -1672,7 +1699,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("     ", xs("Gaussian Blur Fast"), 0))
+		if (ImGui::BeginCombo("      ", xs("Gaussian Blur Fast"), 0))
 		{
 			ImGui::Checkbox(xs("Enable Gaussian Blur Fast##shader"), &g_Config.cvars.shaders_gaussian_blur_fast);
 
@@ -2847,7 +2874,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGuiCustom.Spacing(4);
 
-		ImGui::Checkbox(xs("Fast Crowbar"), &g_Config.cvars.fast_crowbar);
+		ImGui::Checkbox(xs("Fast Crowbar"), &g_Config.cvars.fast_crowbar); ImGui::SameLine();
 		ImGui::Checkbox(xs("Fast Crowbar [Auto Freeze]"), &g_Config.cvars.fast_crowbar2);
 		ImGui::Checkbox(xs("Fast Medkit"), &g_Config.cvars.fast_medkit);
 
@@ -2858,6 +2885,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::Checkbox(xs("Dupe Weapon"), &g_bDupeWeapon);
 		ImGui::Checkbox(xs("Spam Kill"), &g_bSpamKill);
+		ImGui::Checkbox(xs("Weapon Configs"), &g_Config.cvars.weapon_configs);
 
 		ImGui::EndChild();
 		break;
@@ -3013,43 +3041,6 @@ void CMenuModule::DrawSettingsTabContent()
 		}
 
 		ImGui::EndChild();
-
-		ImGui::NextColumn();
-
-		ImGui::SetCursorPosX(332);
-
-		ImGui::BeginChild(xs("menu-blur"), ImVec2(340, 235), true);
-
-		ImGui::PushItemWidth(190);
-
-		ImGui::Text(xs("Menu Blur"));
-
-		ImGuiCustom.Spacing(4);
-
-		ImGui::Checkbox(xs("Enable Menu Blur##mblur"), &g_Config.cvars.menu_blur);
-
-		ImGui::Spacing();
-
-		ImGui::SliderFloat(xs("Fade In Duration##mblur"), &g_Config.cvars.menu_blur_fadein_duration, 0.0f, 5.f);
-		
-		ImGui::Spacing();
-
-		ImGui::SliderFloat(xs("Fade Out Duration##mblur"), &g_Config.cvars.menu_blur_fadeout_duration, 0.0f, 5.f);
-		
-		ImGui::Spacing();
-
-		ImGui::SliderFloat(xs("Bluriness Radius##mblur"), &g_Config.cvars.menu_blur_radius, 0.0f, 150.f);
-
-		ImGui::Spacing();
-
-		ImGui::SliderFloat(xs("Bokeh Coefficient##mblur"), &g_Config.cvars.menu_blur_bokeh, 0.0f, 1.f);
-			
-		ImGui::Spacing();
-
-		ImGui::SliderInt(xs("Quality##mblur"), &g_Config.cvars.menu_blur_samples, 1, 50);
-
-		ImGui::PopItemWidth();
-		ImGui::EndChild();
 		break;
 	}
 	case 1: // Game
@@ -3101,18 +3092,9 @@ LRESULT CALLBACK HOOKED_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 		{
 			extern void OnMenuOpen();
 
-			if ( g_iMenuState == 2 )
-			{
-				g_bMenuOpenTimePrev = g_bMenuOpenTime;
-			}
-			else
-			{
-				g_bMenuOpenTimePrev = -1.f;
-			}
-
 			g_iMenuState = 1;
-			g_bMenuCloseTime = -1.f;
-			g_bMenuOpenTime = g_pEngineFuncs->Sys_FloatTime();
+			g_flMenuCloseTime = -1.f;
+			g_flMenuOpenTime = g_pEngineFuncs->Sys_FloatTime();
 
 			OnMenuOpen();
 		}
@@ -3122,18 +3104,9 @@ LRESULT CALLBACK HOOKED_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 			g_bMenuClosed = true;
 
-			if ( g_iMenuState == 1 )
-			{
-				g_bMenuCloseTimePrev = g_bMenuCloseTime;
-			}
-			else
-			{
-				g_bMenuCloseTimePrev = -1.f;
-			}
-
 			g_iMenuState = 2;
-			g_bMenuOpenTime = -1.f;
-			g_bMenuCloseTime = g_pEngineFuncs->Sys_FloatTime();
+			g_flMenuOpenTime = -1.f;
+			g_flMenuCloseTime = g_pEngineFuncs->Sys_FloatTime();
 
 			OnMenuClose();
 		}
@@ -3188,9 +3161,9 @@ DECLARE_FUNC(BOOL, APIENTRY, HOOKED_wglSwapBuffers, HDC hdc)
 	g_MenuModule.Draw();
 
 	ImGui::Render();
-	ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
+	ImGui_ImplOpenGL2_RenderDrawData( ImGui::GetDrawData() );
 
-	if (bMenuEnabled && !g_bMenuEnabled)
+	if ( bMenuEnabled && !g_bMenuEnabled )
 	{
 		extern void OnMenuClose();
 
@@ -3203,7 +3176,7 @@ DECLARE_FUNC(BOOL, APIENTRY, HOOKED_wglSwapBuffers, HDC hdc)
 
 DECLARE_FUNC(BOOL, WINAPI, HOOKED_SetCursorPos, int X, int Y)
 {
-	if (g_bMenuEnabled)
+	if (g_bMenuEnabled  )
 		return FALSE;
 
 	return ORIG_SetCursorPos(X, Y);

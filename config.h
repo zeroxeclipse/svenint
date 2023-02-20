@@ -501,6 +501,8 @@ public:
 		int one_tick_exploit_lag_interval = 45;
 		float one_tick_exploit_speedhack = 20000.0f;
 
+		bool weapon_configs = false;
+
 		//-----------------------------------------------------------------------------
 		// Speedrun Tools
 		//-----------------------------------------------------------------------------

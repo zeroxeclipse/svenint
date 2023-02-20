@@ -654,6 +654,7 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam("FastCrowbar", cvars.fast_crowbar);
 			ConfigManager()->ImportParam("FastCrowbar2", cvars.fast_crowbar2);
 			ConfigManager()->ImportParam("FastRevive", cvars.fast_medkit);
+			ConfigManager()->ImportParam("WeaponConfigs", cvars.weapon_configs);
 
 			ConfigManager()->EndSectionImport();
 		}
@@ -1359,8 +1360,6 @@ void CConfig::Save()
 			ConfigManager()->ExportParam("SaveSoundcache", cvars.save_soundcache);
 			ConfigManager()->ExportParam("RotateDeadBody", cvars.rotate_dead_body);
 			ConfigManager()->ExportParam("AutoCeilClipping", cvars.auto_ceil_clipping);
-			ConfigManager()->ExportParam("FastCrowbar", cvars.fast_crowbar);
-			ConfigManager()->ExportParam("FastRevive", cvars.fast_medkit);
 			ConfigManager()->ExportParam("RemoveFOVCap", cvars.remove_fov_cap);
 			ConfigManager()->ExportParam("NoWeaponAnim", cvars.no_weapon_anim);
 			ConfigManager()->ExportParam("AutoWallstrafing", cvars.auto_wallstrafing);
@@ -1389,6 +1388,7 @@ void CConfig::Save()
 			ConfigManager()->ExportParam("FastCrowbar", cvars.fast_crowbar);
 			ConfigManager()->ExportParam("FastCrowbar2", cvars.fast_crowbar2);
 			ConfigManager()->ExportParam("FastRevive", cvars.fast_medkit);
+			ConfigManager()->ExportParam("WeaponConfigs", cvars.weapon_configs);
 
 			ConfigManager()->EndSectionExport();
 		}

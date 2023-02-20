@@ -748,6 +748,7 @@ void CMisc::CreateMove(float frametime, struct usercmd_s *cmd, int active)
 
 	m_bSpinnerDelayed = false;
 
+	WeaponConfig();
 	SavePlayerStats();
 
 	FakeLag(frametime);
@@ -1109,6 +1110,63 @@ void CMisc::OnAddEntityPost(int is_visible, int type, struct cl_entity_s *ent, c
 void CMisc::OnVideoInit()
 {
 	line_beamindex = 0;
+	m_iLastWeaponID = 0;
+
+	g_pEngineFuncs->ClientCmd( "exec \"sven_internal/cfg/weapon_none.cfg\"" );
+}
+
+//-----------------------------------------------------------------------------
+// Auto execution of weapon configs
+//-----------------------------------------------------------------------------
+
+void CMisc::WeaponConfig(void)
+{
+	static const char *s_szWeaponNames[] =
+	{
+		"weapon_none.cfg",
+		"weapon_crowbar.cfg",
+		"weapon_glock.cfg",
+		"weapon_python.cfg",
+		"weapon_mp5.cfg",
+		"weapon_chaingun.cfg",
+		"weapon_crossbow.cfg",
+		"weapon_shotgun.cfg",
+		"weapon_rpg.cfg",
+		"weapon_gauss.cfg",
+		"weapon_egon.cfg",
+		"weapon_hornetgun.cfg",
+		"weapon_handgrenade.cfg",
+		"weapon_tripmine.cfg",
+		"weapon_satchel.cfg",
+		"weapon_snark.cfg",
+		"weapon_unk16.cfg", // not defined
+		"weapon_uzi.cfg",
+		"weapon_medkit.cfg",
+		"weapon_crowbar_electric.cfg",
+		"weapon_pipewrench.cfg",
+		"weapon_minigun.cfg",
+		"weapon_grapple.cfg",
+		"weapon_sniperrifle.cfg",
+		"weapon_m249.cfg",
+		"weapon_m16.cfg",
+		"weapon_sporelauncher.cfg",
+		"weapon_desert_eagle.cfg",
+		"weapon_shockrifle.cfg",
+		"weapon_displacer.cfg",
+	};
+
+	int iWeaponID = Client()->GetCurrentWeaponID();
+
+	if ( iWeaponID != m_iLastWeaponID && g_Config.cvars.weapon_configs && iWeaponID >= WEAPON_NONE && iWeaponID <= WEAPON_DISPLACER )
+	{
+		char command_buffer[64];
+		snprintf(command_buffer, M_ARRAYSIZE(command_buffer), "exec \"sven_internal/cfg/%s\"", s_szWeaponNames[iWeaponID]);
+		command_buffer[M_ARRAYSIZE(command_buffer) - 1] = 0;
+
+		g_pEngineFuncs->ClientCmd( command_buffer );
+	}
+
+	m_iLastWeaponID = iWeaponID;
 }
 
 //-----------------------------------------------------------------------------
