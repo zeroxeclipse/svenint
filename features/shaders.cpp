@@ -205,9 +205,9 @@ void CShaders::OnPostRenderView(void)
 		{
 			float dt = 1.f;
 
-			if ( flTime - g_bMenuOpenTime <= g_Config.cvars.menu_blur_fadein_duration )
+			if ( flTime - g_flMenuOpenTime <= g_Config.cvars.menu_blur_fadein_duration )
 			{
-				dt = (flTime - g_bMenuOpenTime) / g_Config.cvars.menu_blur_fadein_duration;
+				dt = (flTime - g_flMenuOpenTime) / g_Config.cvars.menu_blur_fadein_duration;
 
 				dt = 3 * dt * dt - 2 * dt * dt * dt;
 			}
@@ -218,9 +218,9 @@ void CShaders::OnPostRenderView(void)
 		{
 			float dt = 1.f;
 
-			if ( flTime - g_bMenuCloseTime <= g_Config.cvars.menu_blur_fadeout_duration )
+			if ( flTime - g_flMenuCloseTime <= g_Config.cvars.menu_blur_fadeout_duration )
 			{
-				dt = (flTime - g_bMenuCloseTime) / g_Config.cvars.menu_blur_fadeout_duration;
+				dt = (flTime - g_flMenuCloseTime) / g_Config.cvars.menu_blur_fadeout_duration;
 
 				dt = 3 * dt * dt - 2 * dt * dt * dt;
 			}

@@ -15,10 +15,8 @@ extern int g_iMenuState;
 extern bool g_bMenuEnabled;
 extern bool g_bMenuClosed;
 
-extern float g_bMenuOpenTime;
-extern float g_bMenuCloseTime;
-extern float g_bMenuOpenTimePrev;
-extern float g_bMenuCloseTimePrev;
+extern float g_flMenuOpenTime;
+extern float g_flMenuCloseTime;
 
 //-----------------------------------------------------------------------------
 // Menu feature
