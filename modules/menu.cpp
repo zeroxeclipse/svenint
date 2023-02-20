@@ -88,8 +88,9 @@ GLuint menu_image = 0;
 
 bool m_Image = true;
 
-float Red = 0.0f, Green = 0.01f, Blue = 0.0f;
-int RainbowDelay = 0;
+float menu_flRainbowColor[3] = { 0,0,0 };
+float menu_flRainbowDelta = -1.0f;
+float menu_flRainbowUpdateTime = 0;
 
 int selectedTab = 0, selectedSubTab0 = 0, selectedSubTab1 = 0, selectedSubTab2 = 0, selectedSubTab3 = 0, selectedSubTab4 = 0;
 
@@ -179,87 +180,55 @@ obfuscated_string theme_items[] =
 // Functions
 //-----------------------------------------------------------------------------
 
-static void RainbowCycle()
+float Hue2RGB(float p, float q, float t)
 {
-	int Time = g_pEngineFuncs->Sys_FloatTime();
+	if (t < 0.f)
+		t += 1.f;
 
-	ImVec4 isRGB = ImVec4(Red, Green, Blue, 1.0f);
+	if (t > 1.f)
+		t -= 1.f;
 
-	RainbowDelay++;
+	if (t < 1.f / 6.f)
+		return p + (q - p) * 6.f * t;
 
-	if (Time % 1 == 0)
+	if (t < 1.f / 2.f)
+		return q;
+
+	if (t < 2.f / 3.f)
+		return p + (q - p) * ((2.f / 3.f) - t) * 6.f;
+
+	return p;
+}
+
+void HSL2RGB(float h, float s, float l, float& r, float& g, float& b)
+{
+	if (s == 0.f)
 	{
-		if (RainbowDelay == g_Config.cvars.rainbow_speed)
-		{
-			if (Green == 0.01f && Blue == 0.0f)
-			{
-				Red += 0.01f;
-
-			}
-
-			if (Red > 0.99f && Blue == 0.0f)
-			{
-				Red = 1.0f;
-
-				Green += 0.01f;
-
-			}
-
-			if (Green > 0.99f && Blue == 0.0f)
-			{
-				Green = 1.0f;
-
-				Red -= 0.01f;
-
-			}
-
-			if (Red < 0.01f && Green == 1.0f)
-			{
-				Red = 0.0f;
-
-				Blue += 0.01f;
-
-			}
-
-			if (Blue > 0.99f && Red == 0.0f)
-			{
-				Blue = 1.0f;
-
-				Green -= 0.01f;
-
-			}
-
-			if (Green < 0.01f && Blue == 1.0f)
-			{
-				Green = 0.0f;
-
-				Red += 0.01f;
-
-			}
-
-			if (Red > 0.99f && Green == 0.0f)
-			{
-				Red = 1.0f;
-
-				Blue -= 0.01f;
-
-			}
-
-			if (Blue < 0.01f && Green == 0.0f)
-			{
-				Blue = 0.0f;
-
-				Red += 0.01f;
-
-				if (Red < 0.01f)
-					Green = 0.01f;
-			}
-			RainbowDelay = 0;
-		}
+		r = g = b = l;
+		return;
 	}
 
-	if (RainbowDelay > g_Config.cvars.rainbow_speed) // This shit sometimes happens
-		RainbowDelay = 0;
+	float q = l < 0.5f ? l * (1.f + s) : l + s - l * s;
+	float p = 2.f * l - q;
+
+	r = Hue2RGB(p, q, h + (1.f / 3.f));
+	g = Hue2RGB(p, q, h);
+	b = Hue2RGB(p, q, h - (1.f / 3.f));
+}
+
+void UpdateRainbowColor()
+{
+	if (g_pEngineFuncs->GetClientTime() < menu_flRainbowUpdateTime)
+		return;
+
+	HSL2RGB(menu_flRainbowDelta, g_Config.cvars.menu_rainbow_saturation, g_Config.cvars.menu_rainbow_lightness, menu_flRainbowColor[0], menu_flRainbowColor[1], menu_flRainbowColor[2]);
+
+	menu_flRainbowDelta += g_Config.cvars.menu_rainbow_hue_delta;
+
+	while (menu_flRainbowDelta > 1.0f)
+		menu_flRainbowDelta -= 1.0f;
+
+	menu_flRainbowUpdateTime = g_pEngineFuncs->GetClientTime() + g_Config.cvars.menu_rainbow_update_delay;
 }
 
 // Simple helper function to load an image into a OpenGL texture with common settings
@@ -412,14 +381,14 @@ void CMenuModule::Draw()
 		ImGui::SetNextWindowSize({ 800, 600 });
 		ImGui::Begin(xs("Main"), 0, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
-		if (g_Config.cvars.rainbow[0] || g_Config.cvars.rainbow[1])
+		if (g_Config.cvars.menu_rainbow[0] || g_Config.cvars.menu_rainbow[1])
 		{
-			RainbowCycle();
+			UpdateRainbowColor();
 		}
 
 		ImGui::SetCursorPosY(0);
 
-		ImGuiCustom.Columns(2, nullptr, true, g_Config.cvars.rainbow[1] ? ImVec4(Red, Green, Blue, 150) : ImGui::GetStyleColorVec4(ImGuiCol_Separator));
+		ImGuiCustom.Columns(2, nullptr, true, g_Config.cvars.menu_rainbow[1] ? ImVec4(menu_flRainbowColor[0], menu_flRainbowColor[1], menu_flRainbowColor[2], 255) : ImGui::GetStyleColorVec4(ImGuiCol_Separator));
 		ImGui::SetColumnOffset(1, 130);
 
 		// Left Side Column
@@ -534,7 +503,7 @@ void CMenuModule::DrawLogo()
 	ImGui::SetCursorPosY(10);
 	ImGui::SetCursorPosX(9);
 
-	ImGui::Image((void*)(intptr_t)sven_int_logo, ImVec2(sven_int_width, sven_int_height), ImVec2(0, 0), ImVec2(1, 1), g_Config.cvars.rainbow[0] ? ImVec4(Red, Green, Blue, 255) : ImVec4(g_Config.cvars.logo_color[0], g_Config.cvars.logo_color[1], g_Config.cvars.logo_color[2], 255));
+	ImGui::Image((void*)(intptr_t)sven_int_logo, ImVec2(sven_int_width, sven_int_height), ImVec2(0, 0), ImVec2(1, 1), g_Config.cvars.menu_rainbow[0] ? ImVec4(menu_flRainbowColor[0], menu_flRainbowColor[1], menu_flRainbowColor[2], 255) : ImVec4(g_Config.cvars.logo_color[0], g_Config.cvars.logo_color[1], g_Config.cvars.logo_color[2], 255));
 
 	ImGui::SameLine();
 
@@ -3012,7 +2981,7 @@ void CMenuModule::DrawSettingsTabContent()
 	{
 	case 0: // Menu
 	{
-		ImGui::BeginChild(xs("menu"), ImVec2(328, 430), true);
+		ImGui::BeginChild(xs("menu"), ImVec2(328, 345), true);
 
 		ImGui::Text(xs("Toggle Key"));
 
@@ -3066,20 +3035,37 @@ void CMenuModule::DrawSettingsTabContent()
 
 		ImGui::Spacing();
 
-		ImGui::ColorEdit3(xs(""), g_Config.cvars.logo_color);
+		ImGui::ColorEdit3("", g_Config.cvars.logo_color);
 
 		ImGuiCustom.Spacing(8);
 
-		ImGui::Text(xs("Rainbow Elements"));
+		if (ImGui::BeginCombo("", xs("Rainbow Colors"), ImGuiComboFlags_HeightLargest))
+		{
+			ImGui::Checkbox(xs("Rainbow Logo"), &g_Config.cvars.menu_rainbow[0]);
+			ImGui::Checkbox(xs("Rainbow Separator"), &g_Config.cvars.menu_rainbow[1]);
 
-		ImGui::Spacing();
+			ImGuiCustom.Spacing(4);
 
-		ImGui::Checkbox(xs("Rainbow Logo"), &g_Config.cvars.rainbow[0]);
-		ImGui::Checkbox(xs("Rainbow Separator"), &g_Config.cvars.rainbow[1]);
+			ImGui::SliderFloat(xs("Rainbow Speed"), &g_Config.cvars.menu_rainbow_update_delay, 0.01, 0.150);
 
-		ImGui::Spacing();
+			ImGui::Spacing();
 
-		ImGui::SliderInt(xs("Rainbow Speed"), &g_Config.cvars.rainbow_speed, 1, 10);
+			ImGui::SliderFloat(xs("Rainbow Hue Delta"), &g_Config.cvars.menu_rainbow_hue_delta, 0.005, 0.100);
+			ImGui::SliderFloat(xs("Rainbow Saturation"), &g_Config.cvars.menu_rainbow_saturation, 0.01, 1);
+			ImGui::SliderFloat(xs("Rainbow Lightness"), &g_Config.cvars.menu_rainbow_lightness, 0.01, 1);
+
+			ImGui::Spacing();
+
+			if (ImGui::Button(xs("Restore Defaults")))
+			{
+				g_Config.cvars.menu_rainbow_update_delay = 0.050f;
+				g_Config.cvars.menu_rainbow_hue_delta = 0.005f;
+				g_Config.cvars.menu_rainbow_saturation = 0.8f;
+				g_Config.cvars.menu_rainbow_lightness = 0.5f;
+			}
+
+			ImGui::EndCombo();
+		}
 
 		ImGui::EndChild();
 

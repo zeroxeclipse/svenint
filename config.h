@@ -50,8 +50,11 @@ public:
 		float menu_opacity = 1.0f;
 		bool tooltips = false;
 		float logo_color[3] = { 1.0f, 1.0f, 1.0f };
-		bool rainbow[2] = { false, false };
-		int rainbow_speed = 3;
+		bool menu_rainbow[2] = { false,false };
+		float menu_rainbow_update_delay = 0.050f;
+		float menu_rainbow_hue_delta = 0.005f;
+		float menu_rainbow_saturation = 0.8f;
+		float menu_rainbow_lightness = 0.5f;
 
 		bool menu_blur = true;
 		float menu_blur_fadein_duration = 0.5f;
