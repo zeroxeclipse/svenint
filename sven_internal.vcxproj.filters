@@ -478,13 +478,13 @@
     <ClInclude Include="features\message_spammer.h">
       <Filter>Sven Internal\Features</Filter>
     </ClInclude>
+    <ClInclude Include="features\chat_colors.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
     <ClInclude Include="features\skybox.h">
       <Filter>Sven Internal\Features</Filter>
     </ClInclude>
     <ClInclude Include="features\dynamic_glow.h">
-      <Filter>Sven Internal\Features</Filter>
-    </ClInclude>
-    <ClInclude Include="features\chat_colors.h">
       <Filter>Sven Internal\Features</Filter>
     </ClInclude>
     <ClInclude Include="features\misc.h">
@@ -750,6 +750,12 @@
     </ClInclude>
     <ClInclude Include="utils\shaders\vignette_raw.h">
       <Filter>Sven Internal\Utils\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="features\menu_colors.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="features\chat_colors.h">
+      <Filter>Sven Internal\Features</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

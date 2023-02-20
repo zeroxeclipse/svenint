@@ -43,6 +43,7 @@
 #include "../features/skybox.h"
 #include "../features/dynamic_glow.h"
 #include "../features/chat_colors.h"
+#include "../features/menu_colors.h"
 #include "../features/models_manager.h"
 #include "../features/shaders.h"
 #include "../features/bsp.h"
@@ -959,6 +960,7 @@ HOOK_RESULT CClientHooks::HUD_VidInit(void)
 	g_Skybox.OnVideoInit();
 	g_VotePopup.OnVideoInit();
 	g_ChatColors.OnVideoInit();
+	g_MenuColors.OnVideoInit();
 	g_CamHack.OnVideoInit();
 	g_AntiAFK.OnVideoInit();
 	g_Misc.OnVideoInit();

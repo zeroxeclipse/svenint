@@ -17,8 +17,8 @@
 
 #include "../features/models_manager.h"
 #include "../features/thirdperson.h"
+#include "../features/menu_colors.h"
 
-#include "../utils/xorstr.h"
 #include "../utils/menu_styles.h"
 #include "../utils/menu_fonts.hpp"
 #include "../config.h"
@@ -87,10 +87,6 @@ int menu_image_height = 0;
 GLuint menu_image = 0;
 
 bool m_Image = true;
-
-float menu_flRainbowColor[3] = { 0,0,0 };
-float menu_flRainbowDelta = -1.0f;
-float menu_flRainbowUpdateTime = 0;
 
 int selectedTab = 0, selectedSubTab0 = 0, selectedSubTab1 = 0, selectedSubTab2 = 0, selectedSubTab3 = 0, selectedSubTab4 = 0;
 
@@ -179,57 +175,6 @@ obfuscated_string theme_items[] =
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
-
-float Hue2RGB(float p, float q, float t)
-{
-	if (t < 0.f)
-		t += 1.f;
-
-	if (t > 1.f)
-		t -= 1.f;
-
-	if (t < 1.f / 6.f)
-		return p + (q - p) * 6.f * t;
-
-	if (t < 1.f / 2.f)
-		return q;
-
-	if (t < 2.f / 3.f)
-		return p + (q - p) * ((2.f / 3.f) - t) * 6.f;
-
-	return p;
-}
-
-void HSL2RGB(float h, float s, float l, float& r, float& g, float& b)
-{
-	if (s == 0.f)
-	{
-		r = g = b = l;
-		return;
-	}
-
-	float q = l < 0.5f ? l * (1.f + s) : l + s - l * s;
-	float p = 2.f * l - q;
-
-	r = Hue2RGB(p, q, h + (1.f / 3.f));
-	g = Hue2RGB(p, q, h);
-	b = Hue2RGB(p, q, h - (1.f / 3.f));
-}
-
-void UpdateRainbowColor()
-{
-	if (g_pEngineFuncs->GetClientTime() < menu_flRainbowUpdateTime)
-		return;
-
-	HSL2RGB(menu_flRainbowDelta, g_Config.cvars.menu_rainbow_saturation, g_Config.cvars.menu_rainbow_lightness, menu_flRainbowColor[0], menu_flRainbowColor[1], menu_flRainbowColor[2]);
-
-	menu_flRainbowDelta += g_Config.cvars.menu_rainbow_hue_delta;
-
-	while (menu_flRainbowDelta > 1.0f)
-		menu_flRainbowDelta -= 1.0f;
-
-	menu_flRainbowUpdateTime = g_pEngineFuncs->GetClientTime() + g_Config.cvars.menu_rainbow_update_delay;
-}
 
 // Simple helper function to load an image into a OpenGL texture with common settings
 static bool LoadTextureFromFile(const char* filename, GLuint* out_texture, int* out_width, int* out_height)
@@ -383,12 +328,12 @@ void CMenuModule::Draw()
 
 		if (g_Config.cvars.menu_rainbow[0] || g_Config.cvars.menu_rainbow[1])
 		{
-			UpdateRainbowColor();
+			g_MenuColors.Think();
 		}
 
 		ImGui::SetCursorPosY(0);
 
-		ImGuiCustom.Columns(2, nullptr, true, g_Config.cvars.menu_rainbow[1] ? ImVec4(menu_flRainbowColor[0], menu_flRainbowColor[1], menu_flRainbowColor[2], 255) : ImGui::GetStyleColorVec4(ImGuiCol_Separator));
+		ImGuiCustom.Columns(2, nullptr, true, g_Config.cvars.menu_rainbow[1] ? ImVec4(g_MenuColors.m_flRainbowColor[0], g_MenuColors.m_flRainbowColor[1], g_MenuColors.m_flRainbowColor[2], 255) : ImGui::GetStyleColorVec4(ImGuiCol_Separator));
 		ImGui::SetColumnOffset(1, 130);
 
 		// Left Side Column
@@ -503,7 +448,7 @@ void CMenuModule::DrawLogo()
 	ImGui::SetCursorPosY(10);
 	ImGui::SetCursorPosX(9);
 
-	ImGui::Image((void*)(intptr_t)sven_int_logo, ImVec2(sven_int_width, sven_int_height), ImVec2(0, 0), ImVec2(1, 1), g_Config.cvars.menu_rainbow[0] ? ImVec4(menu_flRainbowColor[0], menu_flRainbowColor[1], menu_flRainbowColor[2], 255) : ImVec4(g_Config.cvars.logo_color[0], g_Config.cvars.logo_color[1], g_Config.cvars.logo_color[2], 255));
+	ImGui::Image((void*)(intptr_t)sven_int_logo, ImVec2(sven_int_width, sven_int_height), ImVec2(0, 0), ImVec2(1, 1), g_Config.cvars.menu_rainbow[0] ? ImVec4(g_MenuColors.m_flRainbowColor[0], g_MenuColors.m_flRainbowColor[1], g_MenuColors.m_flRainbowColor[2], 255) : ImVec4(g_Config.cvars.logo_color[0], g_Config.cvars.logo_color[1], g_Config.cvars.logo_color[2], 255));
 
 	ImGui::SameLine();
 
@@ -1875,7 +1820,7 @@ void CMenuModule::DrawHUDTabContent()
 
 		ImGui::Spacing();
 
-		ImGui::Checkbox(xs("Change HUD Color"), &g_Config.cvars.remap_hud_color); //g_Config.cvars.tooltips ? ImGui::SameLine(), ImGuiCustom.ToolTip(xs("Let's you change your HUD color")) : void(nullptr);
+		ImGui::Checkbox(xs("Change HUD Color"), &g_Config.cvars.remap_hud_color);
 
 		ImGui::Spacing();
 
@@ -1943,7 +1888,7 @@ void CMenuModule::DrawHUDTabContent()
 
 		ImGui::Spacing();
 
-		ImGui::Checkbox(xs("Show Grenade's Timer"), &g_Config.cvars.grenade_timer); //g_Config.cvars.tooltips ? ImGui::SameLine(), ImGuiCustom.ToolTip(xs("Shows a timer that indicates the relative time left to a player held grenade explosion")) : void(nullptr);
+		ImGui::Checkbox(xs("Show Grenade's Timer"), &g_Config.cvars.grenade_timer);
 
 		ImGui::Spacing();
 
@@ -3009,9 +2954,9 @@ void CMenuModule::DrawSettingsTabContent()
 
 		ImGui::Text(xs("Style"));
 
-		ImGuiCustom.Spacing(4);
+		ImGuiCustom.Spacing(4); //g_Config.cvars.tooltips ? ImGui::SameLine(), ImGuiCustom.ToolTip(xs("Enables little features help pop ups like this one!")) : void(nullptr);
 
-		ImGui::Checkbox(xs("Show Tooltips"), &g_Config.cvars.tooltips);
+		ImGui::Checkbox(xs("Show Tooltips"), &g_Config.cvars.tooltips); ImGui::SameLine(), ImGuiCustom.ToolTip(xs("Enables little features help pop ups like this one!"));
 
 		ImGuiCustom.Spacing(4);
 

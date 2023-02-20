@@ -140,6 +140,7 @@
     <ClCompile Include="imgui_custom\imgui_custom.cpp" />
     <ClCompile Include="imgui_impl\imgui_impl_opengl2.cpp" />
     <ClCompile Include="imgui_impl\imgui_impl_win32.cpp" />
+    <ClCompile Include="features\menu_colors.cpp" />
     <ClCompile Include="modules\opengl.cpp" />
     <ClCompile Include="modules\hooks.cpp" />
     <ClCompile Include="modules\menu.cpp" />
@@ -271,6 +272,7 @@
     <ClInclude Include="imgui_custom\imgui_custom.h" />
     <ClInclude Include="imgui_impl\imgui_impl_opengl2.h" />
     <ClInclude Include="imgui_impl\imgui_impl_win32.h" />
+    <ClInclude Include="features\menu_colors.h" />
     <ClInclude Include="modules\opengl.h" />
     <ClInclude Include="modules\hooks.h" />
     <ClInclude Include="modules\menu.h" />
