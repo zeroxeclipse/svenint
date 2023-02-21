@@ -268,6 +268,8 @@ static void LoadFont()
 {
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 
+	io.Fonts->Clear();
+
 	const unsigned char* CurFont = GetFont();
 
 	ImFontConfig CoolFontBigCfg;
