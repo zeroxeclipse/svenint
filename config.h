@@ -51,6 +51,7 @@ public:
 		bool tooltips = false;
 		float logo_color[3] = { 1.0f, 1.0f, 1.0f };
 		bool menu_rainbow[2] = { false,false };
+		int menu_font = 0;
 		float menu_rainbow_update_delay = 0.050f;
 		float menu_rainbow_hue_delta = 0.005f;
 		float menu_rainbow_saturation = 0.8f;

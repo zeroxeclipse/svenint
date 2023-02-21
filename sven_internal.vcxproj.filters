@@ -395,6 +395,9 @@
     <ClCompile Include="utils\shaders\vignette_raw.c">
       <Filter>Sven Internal\Utils\Shaders</Filter>
     </ClCompile>
+    <ClCompile Include="features\menu_colors.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">

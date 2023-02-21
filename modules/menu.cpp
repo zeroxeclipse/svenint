@@ -86,6 +86,13 @@ static GLuint menu_image = 0;
 
 static bool m_Image = true;
 
+static int menu_font_asize = 0;
+
+static int menu_font0_tsize[3] = { 24, 17, 18 };
+static int menu_font1_tsize[3] = { 20, 13.5, 15 };
+
+static int menu_text_size[3] = { 0,0,0 };
+
 static int selectedTab = 0, selectedSubTab0 = 0, selectedSubTab1 = 0, selectedSubTab2 = 0, selectedSubTab3 = 0, selectedSubTab4 = 0;
 
 // Tabs Strings Vars
@@ -168,6 +175,12 @@ static obfuscated_string theme_items[] =
 	xs("Sven-Cope")
 };
 
+static obfuscated_string font_items[] =
+{
+	xs("SvenInt"),
+	xs("Left 4 Dead 2"),
+};
+
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
@@ -207,53 +220,16 @@ static bool LoadTextureFromFile(const char* filename, GLuint* out_texture, int* 
 	return true;
 }
 
-static void LoadMenuImage()
+static void LoadTextures()
 {
-	std::string bPath = SvenModAPI()->GetBaseDirectory();
-
-	std::string sint_image = "\\sven_internal\\images\\menu_image.png";
-	std::string sint_image_fPath = bPath + sint_image;
-
-	bool sven_image = LoadTextureFromFile(sint_image_fPath.c_str(), &menu_image, &menu_image_width, &menu_image_height);
-
-	if ((!sven_image) || !(menu_image_width == 130 && menu_image_height == 248))
-	{
-		Warning("[SvenInt] Cannot load SvenInt menu image, make sure size is 130x248\n");
-		m_Image = false;
-	}
-
-}
-
-static void LoadFontAndTextures()
-{
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-
-	// Unless we make a config for the same font
-	// with different size the icons will not work wtf (?)
-	ImFontConfig CoolFontBigCfg;
-	CoolFontBigCfg.FontDataOwnedByAtlas = false; // if this is set to true it will try to free memory and crash 
-	cool_font_big = io.Fonts->AddFontFromMemoryTTF((void*)CoolFont, sizeof(CoolFont), 24, &CoolFontBigCfg);
-
-	ImFontConfig CoolFontSmallCfg;
-	CoolFontSmallCfg.FontDataOwnedByAtlas = false;
-	cool_font_small = io.Fonts->AddFontFromMemoryTTF((void*)CoolFont, sizeof(CoolFont), 17, &CoolFontSmallCfg);
-
-	ImFontConfig CoolFontCfg;
-	CoolFontCfg.FontDataOwnedByAtlas = false;
-	cool_font = io.Fonts->AddFontFromMemoryTTF((void*)CoolFont, sizeof(CoolFont), 18, &CoolFontCfg);
-
-	static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
-	ImFontConfig icons_config;
-	icons_config.MergeMode = true;
-	icons_config.PixelSnapH = true;
-	icons_config.FontDataOwnedByAtlas = false;
-	io.Fonts->AddFontFromMemoryTTF((void*)fontAwesome, sizeof(fontAwesome), 18, &icons_config, icons_ranges);
-
 	// This is a mess... but im too stupid to figure out another way
 	std::string bPath = SvenModAPI()->GetBaseDirectory();
 
 	std::string sint_logo = "\\sven_internal\\images\\logo.png";
 	std::string sint_logo_fPath = bPath + sint_logo;
+
+	std::string sint_image = "\\sven_internal\\images\\menu_image.png";
+	std::string sint_image_fPath = bPath + sint_image;
 
 	bool sven_logo = LoadTextureFromFile(sint_logo_fPath.c_str(), &sven_int_logo, &sven_int_width, &sven_int_height);
 
@@ -262,7 +238,56 @@ static void LoadFontAndTextures()
 		Warning("[SvenInt] Failed to load ImGui logo\n");
 	}
 
-	LoadMenuImage();
+	bool sven_image = LoadTextureFromFile(sint_image_fPath.c_str(), &menu_image, &menu_image_width, &menu_image_height);
+
+	if ((!sven_image) || !(menu_image_width == 130 && menu_image_height == 248))
+	{
+		Warning("[SvenInt] Cannot load SvenInt menu image, make sure size is 130x248\n");
+		m_Image = false;
+	}
+}
+
+const unsigned char* GetFont()
+{
+	switch (g_Config.cvars.menu_font)
+	{
+	default:
+		void(nullptr); // If this is not here, compiler complains about CurFont being uninitialized 
+	case 0:
+		menu_font_asize = sizeof(CoolFont);
+		memcpy(&menu_text_size, menu_font0_tsize, sizeof(menu_font0_tsize));
+		return CoolFont;
+	case 1:
+		menu_font_asize = sizeof(L4D2Font);
+		memcpy(&menu_text_size, menu_font1_tsize, sizeof(menu_font1_tsize));
+		return L4D2Font;
+	}
+}
+
+static void LoadFont()
+{
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+	const unsigned char* CurFont = GetFont();
+
+	ImFontConfig CoolFontBigCfg;
+	CoolFontBigCfg.FontDataOwnedByAtlas = false; // if this is set to true it will try to free memory and crash 
+	cool_font_big = io.Fonts->AddFontFromMemoryTTF((void*)CurFont, menu_font_asize, menu_text_size[0], &CoolFontBigCfg);
+
+	ImFontConfig CoolFontSmallCfg;
+	CoolFontSmallCfg.FontDataOwnedByAtlas = false;
+	cool_font_small = io.Fonts->AddFontFromMemoryTTF((void*)CurFont, menu_font_asize, menu_text_size[1], &CoolFontSmallCfg);
+
+	ImFontConfig CoolFontCfg;
+	CoolFontCfg.FontDataOwnedByAtlas = false;
+	cool_font = io.Fonts->AddFontFromMemoryTTF((void*)CurFont, menu_font_asize, menu_text_size[2], &CoolFontCfg);
+
+	static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+	ImFontConfig icons_config;
+	icons_config.MergeMode = true;
+	icons_config.PixelSnapH = true;
+	icons_config.FontDataOwnedByAtlas = false;
+	io.Fonts->AddFontFromMemoryTTF((void*)fontAwesome, sizeof(fontAwesome), 18, &icons_config, icons_ranges);
 }
 
 // Restores window style
@@ -276,9 +301,7 @@ void WindowStyle()
 	style->FrameRounding = 5;
 }
 
-// This is needed to align icons and text on the buttons 
-// due to different icons taking up different space
-// yes it's dumb thing from dumb person 
+// This is needed to align icons and text on the buttons
 static float ForIcon(int i)
 {
 	switch (i)
@@ -2954,7 +2977,7 @@ void CMenuModule::DrawSettingsTabContent()
 	{
 	case 0: // Menu
 	{
-		ImGui::BeginChild(xs("menu"), ImVec2(328, 345), true);
+		ImGui::BeginChild(xs("menu"), ImVec2(328, 375), true);
 
 		ImGui::Text(xs("Toggle Key"));
 
@@ -2996,6 +3019,14 @@ void CMenuModule::DrawSettingsTabContent()
 			LoadMenuTheme();
 			WindowStyle();
 		}
+
+		ImGui::Spacing();
+
+		if (ImGui::Combo(xs("Font"), &g_Config.cvars.menu_font, (const char**)font_items, IM_ARRAYSIZE(font_items)))
+		{
+			LoadFont();
+		}
+
 		ImGui::PopItemWidth();
 
 		ImGuiCustom.Spacing(4);
@@ -3144,7 +3175,8 @@ DECLARE_FUNC(BOOL, APIENTRY, HOOKED_wglSwapBuffers, HDC hdc)
 
 		style = &ImGui::GetStyle();
 
-		LoadFontAndTextures();
+		LoadFont();
+		LoadTextures();
 
 		//g_pImFont = io.Fonts->AddFontFromFileTTF(xs("C:\\Windows\\Fonts\\Draff.ttf"), 13.f);
 		//Assert( g_pImFont != NULL );
