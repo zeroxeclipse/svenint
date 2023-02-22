@@ -5,10 +5,15 @@
 #pragma once
 #endif
 
-#include <base_feature.h>
+#include <imgui.h>
 
+#include <base_feature.h>
 #include <IDetoursAPI.h>
 #include <IMemoryUtils.h>
+
+#include "opengl.h"
+
+#include "../imgui_custom/imgui_custom.h"
 
 extern int g_iMenuState;
 
@@ -24,6 +29,8 @@ extern float g_flMenuCloseTime;
 
 class CMenuModule : public CBaseFeature
 {
+	friend DECLARE_FUNC(BOOL, APIENTRY, HOOKED_wglSwapBuffers, HDC hdc);
+
 public:
 	CMenuModule();
 
@@ -34,8 +41,10 @@ public:
 
 public:
 	void Draw();
+	void WindowStyle();
 
 private:
+	// Draw menu windows
 	void DrawLogo();
 	void DrawMainTabs();
 	void DrawMenuImage();
@@ -54,11 +63,40 @@ private:
 	void DrawSettingsTabContent();
 
 private:
+	// Utilities
+	void LoadTextures();
+	bool LoadTextureFromFile(const char *filename, GLuint *out_texture, int *out_width, int *out_height);
+
+	void SelectCurrentFont();
+	void LoadFonts();
+	void LoadFont(int type, const void *pFont, int iFontSize, const float fontSizes[3]);
+	void MergeIconsToCurrentFont();
+
+	void ResetShaders();
+
+private:
+	CImGuiCustom ImGuiCustom;
+	ImGuiStyle *m_pStyle;
+
+	ImFont *m_pMenuFontDefault;
+	ImFont *m_pMenuFontBig;
+	ImFont *m_pMenuFontSmall;
+
 	void *m_pfnwglSwapBuffers;
 	void *m_pfnSetCursorPos;
 
 	DetourHandle_t m_hwglSwapBuffers;
 	DetourHandle_t m_hSetCursorPos;
+
+	int m_iLogoWidth;
+	int m_iLogoHeight;
+	GLuint m_hLogoTex;
+
+	int m_iMenuTexWidth;
+	int m_iMenuTexHeight;
+	GLuint m_hMenuTex;
+
+	bool m_bMenuTexLoaded;
 
 	bool m_bThemeLoaded;
 
@@ -79,6 +117,8 @@ extern CMenuModule g_MenuModule;
 // Menu obfuscation
 //-----------------------------------------------------------------------------
 
+#ifdef SVENINT_OBFUSCATE
+
 class obfuscated_string
 {
 public:
@@ -98,3 +138,9 @@ public:
 
 	const char* m_str;
 };
+
+#else
+
+typedef const char *obfuscated_string;
+
+#endif

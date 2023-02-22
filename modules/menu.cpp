@@ -13,8 +13,6 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_opengl2.h"
 
-#include "../imgui_custom/imgui_custom.h"
-
 #include "../features/models_manager.h"
 #include "../features/thirdperson.h"
 #include "../features/menu_colors.h"
@@ -36,6 +34,15 @@
 
 #endif
 
+// Types of fonts
+#define FONT_SVENINT ( 0 )
+#define FONT_L4D2 ( 1 )
+
+// Sizes of fonts
+#define FONT_BIG ( 0 )
+#define FONT_SMALL ( 1 )
+#define FONT_DEFAULT ( 2 )
+
 extern uint64 g_ullSteam64ID;
 extern std::vector<uint64> g_Gods;
 
@@ -52,11 +59,6 @@ LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARA
 // Vars
 //-----------------------------------------------------------------------------
 
-static CCommand s_DummyCommand;
-
-static HWND hGameWnd = NULL;
-static WNDPROC hGameWndProc = NULL;
-
 CMenuModule g_MenuModule;
 
 int g_iMenuState = 0;
@@ -67,31 +69,20 @@ bool g_bMenuClosed = true;
 float g_flMenuOpenTime = -1.f;
 float g_flMenuCloseTime = -1.f;
 
-//ImFont *g_pImFont = NULL;
+//-----------------------------------------------------------------------------
+// Static vars
+//-----------------------------------------------------------------------------
 
-ImGuiStyle* style;
-CImGuiCustom ImGuiCustom;
+static ImFont *pMenuFonts[][3] =
+{
+	{ NULL, NULL, NULL }, // SvenInt
+	{ NULL, NULL, NULL } // L4D2
+};
 
-static ImFont* cool_font = NULL;
-static ImFont* cool_font_big = NULL;
-static ImFont* cool_font_small = NULL;
+static CCommand s_DummyCommand;
 
-static int sven_int_width = 0;
-static int sven_int_height = 0;
-static GLuint sven_int_logo = 0;
-
-static int menu_image_width = 0;
-static int menu_image_height = 0;
-static GLuint menu_image = 0;
-
-static bool m_Image = true;
-
-static int menu_font_asize = 0;
-
-static int menu_font0_tsize[3] = { 24, 17, 18 };
-static int menu_font1_tsize[3] = { 20, 13.5, 15 };
-
-static int menu_text_size[3] = { 0,0,0 };
+static HWND hGameWnd = NULL;
+static WNDPROC hGameWndProc = NULL;
 
 static int selectedTab = 0, selectedSubTab0 = 0, selectedSubTab1 = 0, selectedSubTab2 = 0, selectedSubTab3 = 0, selectedSubTab4 = 0;
 
@@ -186,7 +177,7 @@ static obfuscated_string font_items[] =
 //-----------------------------------------------------------------------------
 
 // Simple helper function to load an image into a OpenGL texture with common settings
-static bool LoadTextureFromFile(const char* filename, GLuint* out_texture, int* out_width, int* out_height)
+bool CMenuModule::LoadTextureFromFile(const char* filename, GLuint* out_texture, int* out_width, int* out_height)
 {
 	// Load from file
 	int image_width = 0;
@@ -220,7 +211,7 @@ static bool LoadTextureFromFile(const char* filename, GLuint* out_texture, int* 
 	return true;
 }
 
-static void LoadTextures()
+void CMenuModule::LoadTextures()
 {
 	// This is a mess... but im too stupid to figure out another way
 	std::string bPath = SvenModAPI()->GetBaseDirectory();
@@ -231,76 +222,89 @@ static void LoadTextures()
 	std::string sint_image = "\\sven_internal\\images\\menu_image.png";
 	std::string sint_image_fPath = bPath + sint_image;
 
-	bool sven_logo = LoadTextureFromFile(sint_logo_fPath.c_str(), &sven_int_logo, &sven_int_width, &sven_int_height);
+	bool bLogoTextureLoaded = LoadTextureFromFile( sint_logo_fPath.c_str(), &m_hLogoTex, &m_iLogoWidth, &m_iLogoHeight );
 
-	if (!sven_logo)
+	if ( !bLogoTextureLoaded )
 	{
-		Warning("[SvenInt] Failed to load ImGui logo\n");
+		Warning(xs("[SvenInt] Failed to load ImGui logo\n"));
 	}
 
-	bool sven_image = LoadTextureFromFile(sint_image_fPath.c_str(), &menu_image, &menu_image_width, &menu_image_height);
+	bool bMenuTextureLoaded = LoadTextureFromFile( sint_image_fPath.c_str(), &m_hMenuTex, &m_iMenuTexWidth, &m_iMenuTexHeight );
 
-	if ((!sven_image) || !(menu_image_width == 130 && menu_image_height == 248))
+	if ( (!bMenuTextureLoaded) || !(m_iMenuTexWidth == 130 && m_iMenuTexHeight == 248) )
 	{
-		Warning("[SvenInt] Cannot load SvenInt menu image, make sure size is 130x248\n");
-		m_Image = false;
+		Warning(xs("[SvenInt] Cannot load SvenInt menu image, make sure size is 130x248\n"));
+		m_bMenuTexLoaded = false;
 	}
+
+	m_bMenuTexLoaded = true;
 }
 
-const unsigned char* GetFont()
+void CMenuModule::SelectCurrentFont()
 {
-	switch (g_Config.cvars.menu_font)
-	{
-	default:
-		void(nullptr); // If this is not here, compiler complains about CurFont being uninitialized 
-	case 0:
-		menu_font_asize = sizeof(CoolFont);
-		memcpy(&menu_text_size, menu_font0_tsize, sizeof(menu_font0_tsize));
-		return CoolFont;
-	case 1:
-		menu_font_asize = sizeof(L4D2Font);
-		memcpy(&menu_text_size, menu_font1_tsize, sizeof(menu_font1_tsize));
-		return L4D2Font;
-	}
+	m_pMenuFontBig = pMenuFonts[g_Config.cvars.menu_font][FONT_BIG];
+	m_pMenuFontSmall = pMenuFonts[g_Config.cvars.menu_font][FONT_SMALL];
+	m_pMenuFontDefault = pMenuFonts[g_Config.cvars.menu_font][FONT_DEFAULT];
 }
 
-static void LoadFont()
+void CMenuModule::LoadFonts() // Once initialized
 {
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGuiIO& io = ImGui::GetIO();
 
-	io.Fonts->Clear();
+	const float svenint_font_sizes[3] = { 24.f, 17.f, 18.f };
+	const float l4d2_font_sizes[3] = { 20.f, 13.5f, 15.f };
 
-	const unsigned char* CurFont = GetFont();
+	// Load SvenInt font
+	LoadFont( FONT_SVENINT, CoolFont, sizeof(CoolFont), svenint_font_sizes );
+	
+	// Load L4D2 font
+	LoadFont( FONT_L4D2, L4D2Font, sizeof(L4D2Font), l4d2_font_sizes );
+	
+	// Select a font from config
+	SelectCurrentFont();
+}
 
-	ImFontConfig CoolFontBigCfg;
-	CoolFontBigCfg.FontDataOwnedByAtlas = false; // if this is set to true it will try to free memory and crash 
-	cool_font_big = io.Fonts->AddFontFromMemoryTTF((void*)CurFont, menu_font_asize, menu_text_size[0], &CoolFontBigCfg);
+void CMenuModule::LoadFont(int type, const void *pFont, int iFontSize, const float fontSizes[3])
+{
+	ImFontConfig bigFont, smallFont, defaultFont;
 
-	ImFontConfig CoolFontSmallCfg;
-	CoolFontSmallCfg.FontDataOwnedByAtlas = false;
-	cool_font_small = io.Fonts->AddFontFromMemoryTTF((void*)CurFont, menu_font_asize, menu_text_size[1], &CoolFontSmallCfg);
+	ImGuiIO &io = ImGui::GetIO();
 
-	ImFontConfig CoolFontCfg;
-	CoolFontCfg.FontDataOwnedByAtlas = false;
-	cool_font = io.Fonts->AddFontFromMemoryTTF((void*)CurFont, menu_font_asize, menu_text_size[2], &CoolFontCfg);
+	bigFont.FontDataOwnedByAtlas = false;
+	smallFont.FontDataOwnedByAtlas = false;
+	defaultFont.FontDataOwnedByAtlas = false;
 
+	pMenuFonts[type][FONT_BIG] = io.Fonts->AddFontFromMemoryTTF( (void *)pFont, iFontSize, fontSizes[FONT_BIG], &bigFont );
+	pMenuFonts[type][FONT_SMALL] = io.Fonts->AddFontFromMemoryTTF( (void *)pFont, iFontSize, fontSizes[FONT_SMALL], &smallFont );
+	pMenuFonts[type][FONT_DEFAULT] = io.Fonts->AddFontFromMemoryTTF( (void *)pFont, iFontSize, fontSizes[FONT_DEFAULT], &defaultFont );
+
+	MergeIconsToCurrentFont();
+}
+
+void CMenuModule::MergeIconsToCurrentFont()
+{
 	static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+
 	ImFontConfig icons_config;
+
+	ImGuiIO &io = ImGui::GetIO();
+
 	icons_config.MergeMode = true;
 	icons_config.PixelSnapH = true;
 	icons_config.FontDataOwnedByAtlas = false;
-	io.Fonts->AddFontFromMemoryTTF((void*)fontAwesome, sizeof(fontAwesome), 18, &icons_config, icons_ranges);
+
+	io.Fonts->AddFontFromMemoryTTF( (void *)fontAwesome, sizeof(fontAwesome), 18, &icons_config, icons_ranges );
 }
 
 // Restores window style
-void WindowStyle()
+void CMenuModule::WindowStyle()
 {
-	style->WindowRounding = 5;
-	style->ChildRounding = 8;
-	style->FrameRounding = 5;
-	style->GrabRounding = 5;
-	style->PopupRounding = 5;
-	style->FrameRounding = 5;
+	m_pStyle->WindowRounding = 5;
+	m_pStyle->ChildRounding = 8;
+	m_pStyle->FrameRounding = 5;
+	m_pStyle->GrabRounding = 5;
+	m_pStyle->PopupRounding = 5;
+	m_pStyle->FrameRounding = 5;
 }
 
 // This is needed to align icons and text on the buttons
@@ -380,35 +384,29 @@ void CMenuModule::Draw()
 		{
 			ImGui::SetCursorPosY(8);
 
-			ImGui::PushFont(cool_font_small);
+			ImGui::PushFont( m_pMenuFontSmall );
 
 			switch (selectedTab)
 			{
 			case 0:
-			{
 				DrawVisualsSubTabs();
 				break;
-			}
+
 			case 1:
-			{
 				DrawHUDSubTabs();
 				break;
-			}
+
 			case 2:
-			{
 				DrawUtilitySubTabs();
 				break;
-			}
+
 			case 3:
-			{
 				DrawConfigsSubTabs();
 				break;
-			}
+
 			case 4:
-			{
 				DrawSettingsSubTabs();
 				break;
-			}
 			}
 		}
 
@@ -431,31 +429,26 @@ void CMenuModule::Draw()
 		switch (selectedTab)
 		{
 		case 0:
-		{
 			DrawVisualsTabContent();
 			break;
-		}
+
 		case 1:
-		{
 			DrawHUDTabContent();
 			break;
-		}
+
 		case 2:
-		{
 			DrawUtilityTabContent();
 			break;
-		}
+
 		case 3:
-		{
 			DrawTabConfigsContent();
 			break;
-		}
+
 		case 4:
-		{
 			DrawSettingsTabContent();
 			break;
 		}
-		}
+
 		ImGui::EndChild();
 	}
 	ImGuiCustom.End();
@@ -469,14 +462,14 @@ void CMenuModule::DrawLogo()
 	ImGui::SetCursorPosY(10);
 	ImGui::SetCursorPosX(9);
 
-	ImGui::Image((void*)(intptr_t)sven_int_logo, ImVec2(sven_int_width, sven_int_height), ImVec2(0, 0), ImVec2(1, 1), g_Config.cvars.menu_rainbow[0] ? ImVec4(g_MenuColors.m_flRainbowColor[0], g_MenuColors.m_flRainbowColor[1], g_MenuColors.m_flRainbowColor[2], 255) : ImVec4(g_Config.cvars.logo_color[0], g_Config.cvars.logo_color[1], g_Config.cvars.logo_color[2], 255));
+	ImGui::Image((void*)(intptr_t)m_hLogoTex, ImVec2(m_iLogoWidth, m_iLogoWidth), ImVec2(0, 0), ImVec2(1, 1), g_Config.cvars.menu_rainbow[0] ? ImVec4(g_MenuColors.m_flRainbowColor[0], g_MenuColors.m_flRainbowColor[1], g_MenuColors.m_flRainbowColor[2], 255) : ImVec4(g_Config.cvars.logo_color[0], g_Config.cvars.logo_color[1], g_Config.cvars.logo_color[2], 255));
 
 	ImGui::SameLine();
 
 	ImGui::SetCursorPosY(12);
 	ImGui::SetCursorPosX(50);
 
-	ImGui::PushFont(cool_font_big);
+	ImGui::PushFont( m_pMenuFontBig );
 
 	ImGui::TextUnformatted(xs("SvenInt"));
 
@@ -494,13 +487,13 @@ void CMenuModule::DrawMainTabs()
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
 
-	ImGui::PushFont(cool_font);
+	ImGui::PushFont( m_pMenuFontDefault );
 
 	for (int i = 0; i < ARRAYSIZE(MainTabNames); i++)
 	{
 		std::string it = MainTabNames[i];
 		ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(ForIcon(i), 0.5));
-		ImGui::PushStyleColor(ImGuiCol_Button, selectedTab == i ? style->Colors[ImGuiCol_ButtonActive] : ImVec4(0, 0, 0, 0));
+		ImGui::PushStyleColor(ImGuiCol_Button, selectedTab == i ? m_pStyle->Colors[ImGuiCol_ButtonActive] : ImVec4(0, 0, 0, 0));
 		ImGui::SetCursorPosX(7);
 		if (ImGui::Button(it.c_str(), ImVec2(140, 40))) selectedTab = i;
 		ImGui::PopStyleVar();
@@ -515,14 +508,14 @@ void CMenuModule::DrawMainTabs()
 
 void CMenuModule::DrawMenuImage()
 {
-	if (m_Image)
+	if ( m_bMenuTexLoaded )
 	{
 		ImGui::SetCursorPosX(0);
-		ImGui::Image((void*)(intptr_t)menu_image, ImVec2(menu_image_width, menu_image_height), ImVec2(0, 0), ImVec2(1, 1));
+		ImGui::Image((void*)(intptr_t)m_hMenuTex, ImVec2(m_iMenuTexWidth, m_iMenuTexHeight), ImVec2(0, 0), ImVec2(1, 1));
 	}
 	else
 	{
-		ImGui::Dummy(ImVec2(0.0f, ImGui::GetContentRegionAvail().y - 55 - style->ItemSpacing.y));
+		ImGui::Dummy(ImVec2(0.0f, ImGui::GetContentRegionAvail().y - 55 - m_pStyle->ItemSpacing.y));
 	}
 }
 
@@ -531,7 +524,7 @@ void CMenuModule::DrawStats()
 	ImGui::SetCursorPosX(4);
 	ImGui::BeginChild(xs("Frames"), ImVec2(123, 58), true);
 
-	ImGui::PushFont(cool_font);
+	ImGui::PushFont( m_pMenuFontDefault );
 
 	ImGui::Text(xs("%.3f ms/frame"), 1000.0f / ImGui::GetIO().Framerate);
 	ImGui::Text(xs("%.1f FPS"), ImGui::GetIO().Framerate);
@@ -550,7 +543,7 @@ void CMenuModule::DrawVisualsSubTabs()
 	{
 		std::string it = VisualsSubTabs[i];
 
-		ImGui::PushStyleColor(ImGuiCol_Button, selectedSubTab0 == i ? style->Colors[ImGuiCol_ButtonActive] : style->Colors[ImGuiCol_Button]);
+		ImGui::PushStyleColor(ImGuiCol_Button, selectedSubTab0 == i ? m_pStyle->Colors[ImGuiCol_ButtonActive] : m_pStyle->Colors[ImGuiCol_Button]);
 		if (ImGui::Button(it.c_str(), ImVec2(ImGui::CalcTextSize(it.c_str()).x + 10, 25)))
 		{
 			selectedSubTab0 = i;
@@ -566,7 +559,7 @@ void CMenuModule::DrawHUDSubTabs()
 	{
 		std::string it = HUDSubTabs[i];
 
-		ImGui::PushStyleColor(ImGuiCol_Button, selectedSubTab1 == i ? style->Colors[ImGuiCol_ButtonActive] : style->Colors[ImGuiCol_Button]);
+		ImGui::PushStyleColor(ImGuiCol_Button, selectedSubTab1 == i ? m_pStyle->Colors[ImGuiCol_ButtonActive] : m_pStyle->Colors[ImGuiCol_Button]);
 		if (ImGui::Button(it.c_str(), ImVec2(ImGui::CalcTextSize(it.c_str()).x + 10, 25)))
 		{
 			selectedSubTab1 = i;
@@ -582,7 +575,7 @@ void CMenuModule::DrawUtilitySubTabs()
 	{
 		std::string it = UtilitySubTabs[i];
 
-		ImGui::PushStyleColor(ImGuiCol_Button, selectedSubTab2 == i ? style->Colors[ImGuiCol_ButtonActive] : style->Colors[ImGuiCol_Button]);
+		ImGui::PushStyleColor(ImGuiCol_Button, selectedSubTab2 == i ? m_pStyle->Colors[ImGuiCol_ButtonActive] : m_pStyle->Colors[ImGuiCol_Button]);
 		if (ImGui::Button(it.c_str(), ImVec2(ImGui::CalcTextSize(it.c_str()).x + 10, 25)))
 		{
 			selectedSubTab2 = i;
@@ -598,7 +591,7 @@ void CMenuModule::DrawConfigsSubTabs()
 	{
 		std::string it = ConfigsSubTab[i];
 
-		ImGui::PushStyleColor(ImGuiCol_Button, selectedSubTab3 == i ? style->Colors[ImGuiCol_ButtonActive] : style->Colors[ImGuiCol_Button]);
+		ImGui::PushStyleColor(ImGuiCol_Button, selectedSubTab3 == i ? m_pStyle->Colors[ImGuiCol_ButtonActive] : m_pStyle->Colors[ImGuiCol_Button]);
 		if (ImGui::Button(it.c_str(), ImVec2(ImGui::CalcTextSize(it.c_str()).x + 10, 25)))
 		{
 			selectedSubTab3 = i;
@@ -614,7 +607,7 @@ void CMenuModule::DrawSettingsSubTabs()
 	{
 		std::string it = SettingsSubTab[i];
 
-		ImGui::PushStyleColor(ImGuiCol_Button, selectedSubTab4 == i ? style->Colors[ImGuiCol_ButtonActive] : style->Colors[ImGuiCol_Button]);
+		ImGui::PushStyleColor(ImGuiCol_Button, selectedSubTab4 == i ? m_pStyle->Colors[ImGuiCol_ButtonActive] : m_pStyle->Colors[ImGuiCol_Button]);
 		if (ImGui::Button(it.c_str(), ImVec2(ImGui::CalcTextSize(it.c_str()).x + 10, 25)))
 		{
 			selectedSubTab4 = i;
@@ -1351,10 +1344,17 @@ void CMenuModule::DrawVisualsTabContent()
 	}
 	case 8: // Shaders
 	{
-		ImGui::BeginChild(xs("shaders"), ImVec2(328, 355), true);
+		ImGui::BeginChild(xs("shaders"), ImVec2(328, 380), true);
 
 		ImGui::Checkbox(xs("Enable##shaders"), &g_Config.cvars.shaders);
 
+		ImGuiCustom.Spacing(4);
+
+		if (ImGui::Button(xs("Reset Shaders")))
+		{
+			ResetShaders();
+		}
+		
 		ImGuiCustom.Spacing(4);
 
 		ImGui::Text(xs("Depth Buffer"));
@@ -1457,6 +1457,26 @@ void CMenuModule::DrawVisualsTabContent()
 
 			ImGui::SliderFloat(xs("End##ssao"), &g_Config.cvars.shaders_ssao_mistend, 0.01f, 4096.f);
 
+			ImGui::Spacing();
+
+			if (ImGui::Button(xs("Reset##ssao")))
+			{
+				g_Config.cvars.shaders_ssao_znear = 4.f;
+				g_Config.cvars.shaders_ssao_zfar = 4096.f;
+				g_Config.cvars.shaders_ssao_strength = 1.f;
+				g_Config.cvars.shaders_ssao_samples = 32;
+				g_Config.cvars.shaders_ssao_radius = 2.5f;
+				g_Config.cvars.shaders_ssao_aoclamp = 0.14f;
+				g_Config.cvars.shaders_ssao_noise = true;
+				g_Config.cvars.shaders_ssao_noiseamount = 0.0002f;
+				g_Config.cvars.shaders_ssao_diffarea = 0.3f;
+				g_Config.cvars.shaders_ssao_gdisplace = 0.4f;
+				g_Config.cvars.shaders_ssao_mist = false;
+				g_Config.cvars.shaders_ssao_miststart = 0.f;
+				g_Config.cvars.shaders_ssao_mistend = 4096.f;
+				g_Config.cvars.shaders_ssao_lumInfluence = 0.7f;
+			}
+
 			ImGui::EndCombo();
 		}
 
@@ -1518,6 +1538,24 @@ void CMenuModule::DrawVisualsTabContent()
 
 			ImGui::SliderFloat(xs("Blue Channel Level##clrcor"), &g_Config.cvars.shaders_cc_B, 0.f, 1.f);
 
+			ImGui::Spacing();
+
+			if (ImGui::Button(xs("Reset##clrcor")))
+			{
+				g_Config.cvars.shaders_cc_target_gamma = 2.2f;
+				g_Config.cvars.shaders_cc_monitor_gamma = 2.2f;
+				g_Config.cvars.shaders_cc_hue_offset = 0.f;
+				g_Config.cvars.shaders_cc_saturation = 1.f;
+				g_Config.cvars.shaders_cc_contrast = 1.f;
+				g_Config.cvars.shaders_cc_luminance = 1.f;
+				g_Config.cvars.shaders_cc_black_level = 0.f;
+				g_Config.cvars.shaders_cc_bright_boost = 0.f;
+				g_Config.cvars.shaders_cc_R = 1.f;
+				g_Config.cvars.shaders_cc_G = 1.f;
+				g_Config.cvars.shaders_cc_B = 1.f;
+				g_Config.cvars.shaders_cc_grain = 0.f;
+			}
+
 			ImGui::EndCombo();
 		}
 
@@ -1558,6 +1596,17 @@ void CMenuModule::DrawVisualsTabContent()
 
 			ImGui::SliderFloat(xs("Strength##aberrat"), &g_Config.cvars.shaders_chromatic_aberration_strength, 0.f, 10.f);
 
+			ImGui::Spacing();
+
+			if (ImGui::Button(xs("Reset##aberrat")))
+			{
+				g_Config.cvars.shaders_chromatic_aberration_type = 1;
+				g_Config.cvars.shaders_chromatic_aberration_dir_x = 1.f;
+				g_Config.cvars.shaders_chromatic_aberration_dir_y = 1.f;
+				g_Config.cvars.shaders_chromatic_aberration_shift = 0.025f;
+				g_Config.cvars.shaders_chromatic_aberration_strength = 1.f;
+			}
+
 			ImGui::EndCombo();
 		}
 
@@ -1574,6 +1623,14 @@ void CMenuModule::DrawVisualsTabContent()
 			ImGui::Spacing();
 
 			ImGui::SliderFloat(xs("Amount##vignette"), &g_Config.cvars.shaders_vignette_amount, 0.f, 5.f);
+
+			ImGui::Spacing();
+
+			if (ImGui::Button(xs("Reset##vignette")))
+			{
+				g_Config.cvars.shaders_vignette_falloff = 0.5f;
+				g_Config.cvars.shaders_vignette_amount = 0.4f;
+			}
 
 			ImGui::EndCombo();
 		}
@@ -1614,6 +1671,17 @@ void CMenuModule::DrawVisualsTabContent()
 
 			ImGui::SliderInt(xs("Quality##mblur"), &g_Config.cvars.menu_blur_samples, 1, 50);
 
+			ImGui::Spacing();
+
+			if (ImGui::Button(xs("Reset##mblur")))
+			{
+				g_Config.cvars.menu_blur_fadein_duration = 0.5f;
+				g_Config.cvars.menu_blur_fadeout_duration = 0.4f;
+				g_Config.cvars.menu_blur_radius = 20.f;
+				g_Config.cvars.menu_blur_bokeh = 0.7f;
+				g_Config.cvars.menu_blur_samples = 20;
+			}
+
 			ImGui::EndCombo();
 		}
 
@@ -1647,6 +1715,18 @@ void CMenuModule::DrawVisualsTabContent()
 
 			ImGui::SliderFloat(xs("Bokeh Coefficient##dof"), &g_Config.cvars.shaders_dof_blur_bokeh, 0.f, 1.f);
 
+			ImGui::Spacing();
+
+			if (ImGui::Button(xs("Reset##dof")))
+			{
+				g_Config.cvars.shaders_dof_blur_min_range = 1024.f;
+				g_Config.cvars.shaders_dof_blur_max_range = 4096.f;
+				g_Config.cvars.shaders_dof_blur_interp_type = 1;
+				g_Config.cvars.shaders_dof_blur_bluriness_range = 20.f;
+				g_Config.cvars.shaders_dof_blur_quality = 20;
+				g_Config.cvars.shaders_dof_blur_bokeh = 0.7f;
+			}
+
 			ImGui::EndCombo();
 		}
 
@@ -1668,6 +1748,15 @@ void CMenuModule::DrawVisualsTabContent()
 
 			ImGui::SliderFloat(xs("Strength##motblur"), &g_Config.cvars.shaders_motion_blur_strength, 0.0f, 50.f);
 
+			ImGui::Spacing();
+
+			if (ImGui::Button(xs("Reset##motblur")))
+			{
+				g_Config.cvars.shaders_motion_blur_strength = 2.f;
+				g_Config.cvars.shaders_motion_blur_min_speed = 270.f;
+				g_Config.cvars.shaders_motion_blur_max_speed = 700.f;
+			}
+
 			ImGui::EndCombo();
 		}
 
@@ -1684,6 +1773,14 @@ void CMenuModule::DrawVisualsTabContent()
 			ImGui::Spacing();
 
 			ImGui::SliderFloat(xs("Strength##radblur"), &g_Config.cvars.shaders_radial_blur_strength, 0.0f, 50.f);
+
+			ImGui::Spacing();
+
+			if (ImGui::Button(xs("Reset##radblur")))
+			{
+				g_Config.cvars.shaders_radial_blur_distance = 1.f;
+				g_Config.cvars.shaders_radial_blur_strength = 2.f;
+			}
 
 			ImGui::EndCombo();
 		}
@@ -1706,6 +1803,15 @@ void CMenuModule::DrawVisualsTabContent()
 
 			ImGui::SliderInt(xs("Quality##bokeh"), &g_Config.cvars.shaders_bokeh_blur_samples, 1, 50);
 
+			ImGui::Spacing();
+
+			if (ImGui::Button(xs("Reset##bokeh")))
+			{
+				g_Config.cvars.shaders_bokeh_blur_radius = 20.f;
+				g_Config.cvars.shaders_bokeh_blur_coeff = 0.7f;
+				g_Config.cvars.shaders_bokeh_blur_samples = 20;
+			}
+
 			ImGui::EndCombo();
 		}
 
@@ -1719,6 +1825,13 @@ void CMenuModule::DrawVisualsTabContent()
 
 			ImGui::SliderFloat(xs("Radius##gaussian"), &g_Config.cvars.shaders_gaussian_blur_radius, 0.0f, 150.f);
 
+			ImGui::Spacing();
+
+			if (ImGui::Button(xs("Reset##gaussian")))
+			{
+				g_Config.cvars.shaders_gaussian_blur_radius = 10.f;
+			}
+
 			ImGui::EndCombo();
 		}
 
@@ -1731,6 +1844,13 @@ void CMenuModule::DrawVisualsTabContent()
 			ImGui::Spacing();
 
 			ImGui::SliderFloat(xs("Radius##gaussianfast"), &g_Config.cvars.shaders_gaussian_blur_fast_radius, 0.0f, 15.f);
+
+			ImGui::Spacing();
+
+			if (ImGui::Button(xs("Reset##gaussianfast")))
+			{
+				g_Config.cvars.shaders_gaussian_blur_fast_radius = 1.f;
+			}
 
 			ImGui::EndCombo();
 		}
@@ -2921,9 +3041,9 @@ void CMenuModule::DrawUtilityTabContent()
 void CMenuModule::DrawTabConfigsContent()
 {
 	switch (selectedSubTab3)
-		case 0: // List
+	case 0: // List
 	{
-		ImGui::BeginChild(xs("configs"), ImVec2(328, 240), true);
+		ImGui::BeginChild(xs("configs"), ImVec2(328, 280), true);
 
 		ImGui::Text(xs("List of Configs"));
 
@@ -2933,17 +3053,26 @@ void CMenuModule::DrawTabConfigsContent()
 		{
 			for (size_t i = 0; i < g_Config.configs.size(); i++)
 			{
-				bool bSelected = (g_Config.current_config.compare(g_Config.configs[i]) == 0);
+				bool bSelected = ( g_Config.current_config.compare( g_Config.configs[i] ) == 0 );
 
-				if (ImGui::Selectable(g_Config.configs[i].c_str(), bSelected))
+				if ( ImGui::Selectable( g_Config.configs[i].c_str(), bSelected ) )
+				{
 					g_Config.current_config = g_Config.configs[i];
 
-				if (bSelected)
+					strncpy( g_szCurrentConfigInputText, g_Config.current_config.c_str(), sizeof(g_szCurrentConfigInputText) );
+					g_szCurrentConfigInputText[ M_ARRAYSIZE(g_szCurrentConfigInputText) - 1 ] = '\0';
+				}
+
+				if ( bSelected )
+				{
 					ImGui::SetItemDefaultFocus();
+				}
 			}
 
 			ImGui::EndListBox();
 		}
+
+		ImGui::Spacing();
 
 		if (ImGui::Button(xs("Load")))
 		{
@@ -2967,6 +3096,82 @@ void CMenuModule::DrawTabConfigsContent()
 
 		if (ImGui::Button(xs("Delete")))
 			g_Config.Remove();
+
+		ImGuiCustom.Spacing(4);
+
+		ImGui::InputText(xs("##renamecfg"), g_szCurrentConfigInputText, IM_ARRAYSIZE(g_szCurrentConfigInputText));
+
+		ImGui::SameLine();
+
+		if (ImGui::Button(xs("Rename")))
+			g_Config.Rename();
+
+		ImGui::EndChild();
+		
+
+		ImGui::NextColumn();
+
+		ImGui::SetCursorPosX(332);
+
+		ImGui::BeginChild(xs("shader_configs"), ImVec2(328.5, 280), true);
+
+		ImGui::Text(xs("List of Shader Configs"));
+
+		ImGui::Spacing();
+
+		if (ImGui::BeginListBox(xs("##shader_configs_list"), ImVec2(-FLT_MIN, 8 * ImGui::GetTextLineHeightWithSpacing())))
+		{
+			for (size_t i = 0; i < g_ShadersConfig.configs.size(); i++)
+			{
+				bool bSelected = ( g_ShadersConfig.current_config.compare( g_ShadersConfig.configs[i] ) == 0 );
+
+				if ( ImGui::Selectable( g_ShadersConfig.configs[i].c_str(), bSelected ) )
+				{
+					g_ShadersConfig.current_config = g_ShadersConfig.configs[i];
+
+					strncpy( g_szCurrentShaderConfigInputText, g_ShadersConfig.current_config.c_str(), sizeof(g_szCurrentShaderConfigInputText) );
+					g_szCurrentShaderConfigInputText[ M_ARRAYSIZE(g_szCurrentShaderConfigInputText) - 1 ] = '\0';
+				}
+
+				if ( bSelected )
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+
+			ImGui::EndListBox();
+		}
+
+		ImGui::Spacing();
+
+		if (ImGui::Button(xs("Load##shader")))
+		{
+			g_ShadersConfig.Load();
+		}
+
+		ImGui::SameLine();
+
+		if (ImGui::Button(xs("Save##shader")))
+			g_ShadersConfig.Save();
+
+		ImGui::SameLine();
+
+		if (ImGui::Button(xs("New##shader")))
+			g_ShadersConfig.New();
+
+		ImGui::SameLine();
+
+		if (ImGui::Button(xs("Delete##shader")))
+			g_ShadersConfig.Remove();
+
+		ImGuiCustom.Spacing(4);
+
+		ImGui::InputText(xs("##renamecfgshader"), g_szCurrentShaderConfigInputText, IM_ARRAYSIZE(g_szCurrentShaderConfigInputText));
+
+		ImGui::SameLine();
+
+		if (ImGui::Button(xs("Rename##shader")))
+			g_ShadersConfig.Rename();
 
 		ImGui::EndChild();
 		break;
@@ -3026,7 +3231,7 @@ void CMenuModule::DrawSettingsTabContent()
 
 		if (ImGui::Combo(xs("Font"), &g_Config.cvars.menu_font, (const char**)font_items, IM_ARRAYSIZE(font_items)))
 		{
-			LoadFont();
+			SelectCurrentFont();
 		}
 
 		ImGui::PopItemWidth();
@@ -3094,6 +3299,84 @@ void CMenuModule::DrawSettingsTabContent()
 		break;
 	}
 	}
+}
+
+//-----------------------------------------------------------------------------
+// Resets all shaders
+//-----------------------------------------------------------------------------
+
+void CMenuModule::ResetShaders()
+{
+	// bruh
+	g_Config.cvars.menu_blur_fadein_duration = 0.5f;
+	g_Config.cvars.menu_blur_fadeout_duration = 0.4f;
+	g_Config.cvars.menu_blur_radius = 20.f;
+	g_Config.cvars.menu_blur_bokeh = 0.7f;
+	g_Config.cvars.menu_blur_samples = 20;
+
+	g_Config.cvars.shaders_depth_buffer_znear = 4.f;
+	g_Config.cvars.shaders_depth_buffer_zfar = 4096.f;
+	g_Config.cvars.shaders_depth_buffer_brightness = 1.f;
+
+	g_Config.cvars.shaders_ssao_znear = 4.f;
+	g_Config.cvars.shaders_ssao_zfar = 4096.f;
+	g_Config.cvars.shaders_ssao_strength = 1.f;
+	g_Config.cvars.shaders_ssao_samples = 32;
+	g_Config.cvars.shaders_ssao_radius = 2.5f;
+	g_Config.cvars.shaders_ssao_aoclamp = 0.14f;
+	g_Config.cvars.shaders_ssao_noise = true;
+	g_Config.cvars.shaders_ssao_noiseamount = 0.0002f;
+	g_Config.cvars.shaders_ssao_diffarea = 0.3f;
+	g_Config.cvars.shaders_ssao_gdisplace = 0.4f;
+	g_Config.cvars.shaders_ssao_mist = false;
+	g_Config.cvars.shaders_ssao_miststart = 0.f;
+	g_Config.cvars.shaders_ssao_mistend = 4096.f;
+	g_Config.cvars.shaders_ssao_lumInfluence = 0.7f;
+
+	g_Config.cvars.shaders_cc_target_gamma = 2.2f;
+	g_Config.cvars.shaders_cc_monitor_gamma = 2.2f;
+	g_Config.cvars.shaders_cc_hue_offset = 0.f;
+	g_Config.cvars.shaders_cc_saturation = 1.f;
+	g_Config.cvars.shaders_cc_contrast = 1.f;
+	g_Config.cvars.shaders_cc_luminance = 1.f;
+	g_Config.cvars.shaders_cc_black_level = 0.f;
+	g_Config.cvars.shaders_cc_bright_boost = 0.f;
+	g_Config.cvars.shaders_cc_R = 1.f;
+	g_Config.cvars.shaders_cc_G = 1.f;
+	g_Config.cvars.shaders_cc_B = 1.f;
+	g_Config.cvars.shaders_cc_grain = 0.f;
+	//float shaders_cc_sharpness = 0.f;
+
+	g_Config.cvars.shaders_chromatic_aberration_type = 1;
+	g_Config.cvars.shaders_chromatic_aberration_dir_x = 1.f;
+	g_Config.cvars.shaders_chromatic_aberration_dir_y = 1.f;
+	g_Config.cvars.shaders_chromatic_aberration_shift = 0.025f;
+	g_Config.cvars.shaders_chromatic_aberration_strength = 1.f;
+
+	g_Config.cvars.shaders_dof_blur_min_range = 1024.f;
+	g_Config.cvars.shaders_dof_blur_max_range = 4096.f;
+	g_Config.cvars.shaders_dof_blur_interp_type = 1;
+	g_Config.cvars.shaders_dof_blur_bluriness_range = 20.f;
+	g_Config.cvars.shaders_dof_blur_quality = 20;
+	g_Config.cvars.shaders_dof_blur_bokeh = 0.7f;
+
+	g_Config.cvars.shaders_motion_blur_strength = 2.f;
+	g_Config.cvars.shaders_motion_blur_min_speed = 270.f;
+	g_Config.cvars.shaders_motion_blur_max_speed = 700.f;
+
+	g_Config.cvars.shaders_radial_blur_distance = 1.f;
+	g_Config.cvars.shaders_radial_blur_strength = 2.f;
+
+	g_Config.cvars.shaders_bokeh_blur_radius = 20.f;
+	g_Config.cvars.shaders_bokeh_blur_coeff = 0.7f;
+	g_Config.cvars.shaders_bokeh_blur_samples = 20;
+
+	g_Config.cvars.shaders_gaussian_blur_radius = 10.f;
+
+	g_Config.cvars.shaders_gaussian_blur_fast_radius = 1.f;
+
+	g_Config.cvars.shaders_vignette_falloff = 0.5f;
+	g_Config.cvars.shaders_vignette_amount = 0.4f;
 }
 
 //-----------------------------------------------------------------------------
@@ -3175,13 +3458,10 @@ DECLARE_FUNC(BOOL, APIENTRY, HOOKED_wglSwapBuffers, HDC hdc)
 		io.IniFilename = NULL;
 		io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 
-		style = &ImGui::GetStyle();
+		g_MenuModule.m_pStyle = &ImGui::GetStyle();
 
-		LoadFont();
-		LoadTextures();
-
-		//g_pImFont = io.Fonts->AddFontFromFileTTF(xs("C:\\Windows\\Fonts\\Draff.ttf"), 13.f);
-		//Assert( g_pImFont != NULL );
+		g_MenuModule.LoadFonts();
+		g_MenuModule.LoadTextures();
 
 		bImGuiInitialized = true;
 	}
@@ -3210,7 +3490,7 @@ DECLARE_FUNC(BOOL, APIENTRY, HOOKED_wglSwapBuffers, HDC hdc)
 
 DECLARE_FUNC(BOOL, WINAPI, HOOKED_SetCursorPos, int X, int Y)
 {
-	if (g_bMenuEnabled  )
+	if ( g_bMenuEnabled )
 		return FALSE;
 
 	return ORIG_SetCursorPos(X, Y);
@@ -3222,11 +3502,27 @@ DECLARE_FUNC(BOOL, WINAPI, HOOKED_SetCursorPos, int X, int Y)
 
 CMenuModule::CMenuModule()
 {
+	m_pStyle = NULL;
+
+	m_pMenuFontDefault = NULL;
+	m_pMenuFontBig = NULL;
+	m_pMenuFontSmall = NULL;
+
 	m_pfnwglSwapBuffers = NULL;
 	m_pfnSetCursorPos = NULL;
 
 	m_hwglSwapBuffers = 0;
 	m_hSetCursorPos = 0;
+
+	m_iLogoWidth = 0;
+	m_iLogoHeight = 0;
+	m_hLogoTex = 0;
+
+	m_iMenuTexWidth = 0;
+	m_iMenuTexHeight = 0;
+	m_hMenuTex = 0;
+
+	m_bMenuTexLoaded = false;
 
 	m_bThemeLoaded = false;
 	m_bMenuSettings = false;
