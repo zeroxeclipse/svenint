@@ -34,9 +34,9 @@ public:
 
 	bool Load();
 	void Save();
-
 	void New();
 	void Remove();
+	void Rename();
 
 	struct config_vars
 	{
@@ -50,12 +50,18 @@ public:
 		float menu_opacity = 1.0f;
 		bool tooltips = false;
 		float logo_color[3] = { 1.0f, 1.0f, 1.0f };
-		bool menu_rainbow[2] = { false,false };
+		bool menu_rainbow[2] = { false, false };
 		int menu_font = 0;
 		float menu_rainbow_update_delay = 0.050f;
 		float menu_rainbow_hue_delta = 0.005f;
 		float menu_rainbow_saturation = 0.8f;
 		float menu_rainbow_lightness = 0.5f;
+
+		//-----------------------------------------------------------------------------
+		// Shaders
+		//-----------------------------------------------------------------------------
+		
+		bool shaders = true;
 
 		bool menu_blur = true;
 		float menu_blur_fadein_duration = 0.5f;
@@ -63,12 +69,6 @@ public:
 		float menu_blur_radius = 20.f;
 		float menu_blur_bokeh = 0.7f;
 		int menu_blur_samples = 20;
-
-		//-----------------------------------------------------------------------------
-		// Shaders
-		//-----------------------------------------------------------------------------
-		
-		bool shaders = true;
 
 		bool shaders_show_depth_buffer = false;
 		float shaders_depth_buffer_znear = 4.f;
@@ -668,9 +668,33 @@ public:
 };
 
 //-----------------------------------------------------------------------------
+// CShadersConfig
+//-----------------------------------------------------------------------------
+
+class CShadersConfig
+{
+public:
+	void Init();
+	void UpdateConfigs();
+
+	bool Load();
+	void Save();
+	void New();
+	void Remove();
+	void Rename();
+
+	std::string current_config;
+	std::vector<std::string> configs;
+};
+
+//-----------------------------------------------------------------------------
 // Export
 //-----------------------------------------------------------------------------
 
 extern CConfig g_Config;
+extern CShadersConfig g_ShadersConfig;
+
+extern char g_szCurrentConfigInputText[MAX_PATH];
+extern char g_szCurrentShaderConfigInputText[MAX_PATH];
 
 #endif // CONFIG_H

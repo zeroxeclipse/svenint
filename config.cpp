@@ -6,6 +6,8 @@
 
 #include "config.h"
 
+#include "modules/menu.h"
+
 #include "features/skybox.h"
 #include "features/strafer.h"
 #include "features/thirdperson.h"
@@ -13,15 +15,18 @@
 
 #include "utils/menu_styles.h"
 
-extern void WindowStyle();
-
 //-----------------------------------------------------------------------------
 // Vars
 //-----------------------------------------------------------------------------
 
 CConfig g_Config;
+CShadersConfig g_ShadersConfig;
+
+char g_szCurrentConfigInputText[MAX_PATH] = { 0 };
+char g_szCurrentShaderConfigInputText[MAX_PATH] = { 0 };
 
 static char s_szConfigsDir[MAX_PATH] = { 0 };
+static char s_szShadersConfigsDir[MAX_PATH] = { 0 };
 
 //-----------------------------------------------------------------------------
 // Init config stuff
@@ -31,13 +36,8 @@ void CConfig::Init()
 {
 	std::string sDir = g_pSvenModAPI->GetBaseDirectory();
 
-#ifdef PLATFORM_WINDOWS
 	snprintf(s_szConfigsDir, sizeof(s_szConfigsDir), "%s\\sven_internal\\config", g_pSvenModAPI->GetBaseDirectory());
-#else
-	snprintf(s_szConfigsDir, sizeof(s_szConfigsDir), "%s/sven_internal/config", g_pSvenModAPI->GetBaseDirectory());
-#endif
 
-#ifdef PLATFORM_WINDOWS
 	DWORD ret = GetFileAttributes( (sDir + "\\sven_internal\\config\\default.ini").c_str() );
 
 	if ( ret == INVALID_FILE_ATTRIBUTES || ret & FILE_ATTRIBUTE_DIRECTORY )
@@ -45,21 +45,24 @@ void CConfig::Init()
 		FILE *file = fopen("sven_internal/config/default.ini", "w");
 		if (file) fclose(file);
 	}
-#else
-#error Implement Linux equivalent
-#endif
 
 	UpdateConfigs();
+
 	current_config = "default.ini";
 
+	strncpy( g_szCurrentConfigInputText, current_config.c_str(), sizeof(g_szCurrentConfigInputText) );
+	g_szCurrentConfigInputText[ M_ARRAYSIZE(g_szCurrentConfigInputText) - 1 ] = '\0';
+
 	sDir.clear();
+
+	// Init subconfig
+	g_ShadersConfig.Init();
 }
 
 void CConfig::UpdateConfigs()
 {
 	configs.clear();
 
-#ifdef PLATFORM_WINDOWS
 	HANDLE hFile;
 	WIN32_FIND_DATAA FileInformation;
 
@@ -106,18 +109,18 @@ void CConfig::UpdateConfigs()
 
 		::FindClose(hFile);
 	}
-#else
-#error Implement Linux equivalent
-#endif
 
-	std::vector<std::string>::iterator it = std::find(configs.begin(), configs.end(), current_config.c_str());
+	std::vector<std::string>::iterator it = std::find( configs.begin(), configs.end(), current_config.c_str() );
 
-	if (it == configs.end())
+	if ( it == configs.end() )
 	{
 		current_config.clear();
 	}
 
-	std::sort(configs.begin(), configs.end());
+	std::sort( configs.begin(), configs.end() );
+
+	// Update subconfig
+	g_ShadersConfig.UpdateConfigs();
 }
 
 //-----------------------------------------------------------------------------
@@ -1602,23 +1605,372 @@ void CConfig::New()
 
 void CConfig::Remove()
 {
-	if (current_config.empty())
+	if ( current_config.empty() )
 		return;
 
-	std::string sDir = g_pSvenModAPI->GetBaseDirectory();
+	std::string sDir = s_szConfigsDir;
 
-#ifdef PLATFORM_WINDOWS
-	sDir += "\\sven_internal\\config\\";
-#else
-	sDir += "/sven_internal/config/";
-#endif
+	sDir += "\\";
 	sDir += current_config;
 
-#ifdef PLATFORM_WINDOWS
-	DeleteFile(sDir.c_str());
-#else
-#error Implement Linux equivalent
-#endif
+	DeleteFile( sDir.c_str() );
+
+	current_config.clear();
+}
+
+void CConfig::Rename()
+{
+	auto str_ends_with = [](std::string const &value, std::string const &ending) -> bool
+	{
+		if ( ending.size() > value.size() )
+			return false;
+
+		return std::equal( ending.rbegin(), ending.rend(), value.rbegin() );
+	};
+
+	if ( current_config.empty() || g_szCurrentConfigInputText[0] == '\0' )
+		return;
+
+	std::string sNewConfigName = g_szCurrentConfigInputText;
+
+	if ( !str_ends_with(sNewConfigName, ".ini") )
+	{
+		sNewConfigName += ".ini";
+	}
+
+	std::string sCurrentName = s_szConfigsDir;
+	std::string sNewName = sCurrentName;
+
+	sCurrentName += "\\";
+	sNewName += "\\";
+
+	sCurrentName += current_config;
+	sNewName += sNewConfigName;
+
+	MoveFile( sCurrentName.c_str(), sNewName.c_str() );
+
+	current_config.clear();
+}
+
+//-----------------------------------------------------------------------------
+// CShadersConfig
+//-----------------------------------------------------------------------------
+
+void CShadersConfig::Init()
+{
+	std::string sDir = g_pSvenModAPI->GetBaseDirectory();
+
+	snprintf(s_szShadersConfigsDir, sizeof(s_szShadersConfigsDir), "%s\\sven_internal\\config\\shaders", g_pSvenModAPI->GetBaseDirectory());
+
+	UpdateConfigs();
+
+	sDir.clear();
+}
+
+void CShadersConfig::UpdateConfigs()
+{
+	configs.clear();
+
+	HANDLE hFile;
+	WIN32_FIND_DATAA FileInformation;
+
+	char szFolderInitialPath[MAX_PATH] = { 0 };
+
+	snprintf(szFolderInitialPath, sizeof(szFolderInitialPath), "%s\\*.*", s_szShadersConfigsDir);
+
+	hFile = ::FindFirstFileA(szFolderInitialPath, &FileInformation);
+
+	if (hFile != INVALID_HANDLE_VALUE)
+	{
+		do
+		{
+			if (FileInformation.cFileName[0] != '.')
+			{
+			#pragma warning(push)
+			#pragma warning(push)
+			#pragma warning(disable: 26450)
+			#pragma warning(disable: 4307)
+
+				if ( !(FileInformation.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) )
+				{
+					const char *pszExtension = NULL;
+					const char *buffer = FileInformation.cFileName;
+
+					while (*buffer)
+					{
+						if (*buffer == '.')
+							pszExtension = buffer;
+
+						buffer++;
+					}
+
+					if (pszExtension && !stricmp(pszExtension, ".ini"))
+					{
+						configs.push_back(FileInformation.cFileName);
+					}
+				}
+
+			#pragma warning(pop)
+			#pragma warning(pop)
+			}
+		} while (::FindNextFileA(hFile, &FileInformation) == TRUE);
+
+		::FindClose(hFile);
+	}
+
+	std::vector<std::string>::iterator it = std::find( configs.begin(), configs.end(), current_config.c_str() );
+
+	if ( it == configs.end() )
+	{
+		current_config.clear();
+	}
+
+	std::sort( configs.begin(), configs.end() );
+}
+
+bool CShadersConfig::Load()
+{
+	if ( current_config.empty() )
+		return false;
+
+	if (ConfigManager()->BeginImport( (std::string("sven_internal/config/shaders/") + current_config).c_str() ))
+	{
+		if (ConfigManager()->BeginSectionImport("SHADERS"))
+		{
+			ConfigManager()->ImportParam("ShowDepthBuffer", g_Config.cvars.shaders_show_depth_buffer);
+			ConfigManager()->ImportParam("DepthBufferZNear", g_Config.cvars.shaders_depth_buffer_znear);
+			ConfigManager()->ImportParam("DepthBufferZFar", g_Config.cvars.shaders_depth_buffer_zfar);
+			ConfigManager()->ImportParam("DepthBufferBrightness", g_Config.cvars.shaders_depth_buffer_brightness);
+
+			ConfigManager()->ImportParam("SSAO", g_Config.cvars.shaders_ssao);
+			ConfigManager()->ImportParam("SSAOOnlyAO", g_Config.cvars.shaders_ssao_onlyAO);
+			ConfigManager()->ImportParam("SSAOZNear", g_Config.cvars.shaders_ssao_znear);
+			ConfigManager()->ImportParam("SSAOZFar", g_Config.cvars.shaders_ssao_zfar);
+			ConfigManager()->ImportParam("SSAOStrength", g_Config.cvars.shaders_ssao_strength);
+			ConfigManager()->ImportParam("SSAOSamples", g_Config.cvars.shaders_ssao_samples);
+			ConfigManager()->ImportParam("SSAORadius", g_Config.cvars.shaders_ssao_radius);
+			ConfigManager()->ImportParam("SSAODepthClamp", g_Config.cvars.shaders_ssao_aoclamp);
+			ConfigManager()->ImportParam("SSAOLuminanceAffection", g_Config.cvars.shaders_ssao_lumInfluence);
+			ConfigManager()->ImportParam("SSAONoise", g_Config.cvars.shaders_ssao_noise);
+			ConfigManager()->ImportParam("SSAONoiseAmount", g_Config.cvars.shaders_ssao_noiseamount);
+			ConfigManager()->ImportParam("SSAOReduction", g_Config.cvars.shaders_ssao_diffarea);
+			ConfigManager()->ImportParam("SSAOGaussBell", g_Config.cvars.shaders_ssao_gdisplace);
+			ConfigManager()->ImportParam("SSAOMist", g_Config.cvars.shaders_ssao_mist);
+			ConfigManager()->ImportParam("SSAOMistStart", g_Config.cvars.shaders_ssao_miststart);
+			ConfigManager()->ImportParam("SSAOMistEnd", g_Config.cvars.shaders_ssao_mistend);
+
+			ConfigManager()->ImportParam("ColorCorrection", g_Config.cvars.shaders_color_correction);
+			ConfigManager()->ImportParam("CCFilmGrain", g_Config.cvars.shaders_cc_grain);
+			ConfigManager()->ImportParam("CCGamma", g_Config.cvars.shaders_cc_target_gamma);
+			ConfigManager()->ImportParam("CCMonitorGamma", g_Config.cvars.shaders_cc_monitor_gamma);
+			ConfigManager()->ImportParam("CCHueOffset", g_Config.cvars.shaders_cc_hue_offset);
+			ConfigManager()->ImportParam("CCSaturation", g_Config.cvars.shaders_cc_saturation);
+			ConfigManager()->ImportParam("CCContrast", g_Config.cvars.shaders_cc_contrast);
+			ConfigManager()->ImportParam("CCLuminance", g_Config.cvars.shaders_cc_luminance);
+			ConfigManager()->ImportParam("CCBlackLevel", g_Config.cvars.shaders_cc_black_level);
+			ConfigManager()->ImportParam("CCBrightBoost", g_Config.cvars.shaders_cc_bright_boost);
+			ConfigManager()->ImportParam("CCRedLevel", g_Config.cvars.shaders_cc_R);
+			ConfigManager()->ImportParam("CCGreenLevel", g_Config.cvars.shaders_cc_G);
+			ConfigManager()->ImportParam("CCBlueLevel", g_Config.cvars.shaders_cc_B);
+
+			ConfigManager()->ImportParam("ChromaticAberration", g_Config.cvars.shaders_chromatic_aberration);
+			ConfigManager()->ImportParam("ChromaticAberrationType", g_Config.cvars.shaders_chromatic_aberration_type);
+			ConfigManager()->ImportParam("ChromaticAberrationDirX", g_Config.cvars.shaders_chromatic_aberration_dir_x);
+			ConfigManager()->ImportParam("ChromaticAberrationDirY", g_Config.cvars.shaders_chromatic_aberration_dir_y);
+			ConfigManager()->ImportParam("ChromaticAberrationShift", g_Config.cvars.shaders_chromatic_aberration_shift);
+			ConfigManager()->ImportParam("ChromaticAberrationStrength", g_Config.cvars.shaders_chromatic_aberration_strength);
+
+			ConfigManager()->ImportParam("DoFBlur", g_Config.cvars.shaders_dof_blur);
+			ConfigManager()->ImportParam("DoFBlurMinRange", g_Config.cvars.shaders_dof_blur_min_range);
+			ConfigManager()->ImportParam("DoFBlurMaxRange", g_Config.cvars.shaders_dof_blur_max_range);
+			ConfigManager()->ImportParam("DoFBlurInterpType", g_Config.cvars.shaders_dof_blur_interp_type);
+			ConfigManager()->ImportParam("DoFBlurBlurinessRange", g_Config.cvars.shaders_dof_blur_bluriness_range);
+			ConfigManager()->ImportParam("DoFBlurQuality", g_Config.cvars.shaders_dof_blur_quality);
+			ConfigManager()->ImportParam("DoFBlurBokeh", g_Config.cvars.shaders_dof_blur_bokeh);
+
+			ConfigManager()->ImportParam("MotionBlur", g_Config.cvars.shaders_motion_blur);
+			ConfigManager()->ImportParam("MotionBlurStrength", g_Config.cvars.shaders_motion_blur_strength);
+			ConfigManager()->ImportParam("MotionBlurMinSpeed", g_Config.cvars.shaders_motion_blur_min_speed);
+			ConfigManager()->ImportParam("MotionBlurMaxSpeed", g_Config.cvars.shaders_motion_blur_max_speed);
+
+			ConfigManager()->ImportParam("RadialBlur", g_Config.cvars.shaders_radial_blur);
+			ConfigManager()->ImportParam("RadialBlurDistance", g_Config.cvars.shaders_radial_blur_distance);
+			ConfigManager()->ImportParam("RadialBlurStrength", g_Config.cvars.shaders_radial_blur_strength);
+
+			ConfigManager()->ImportParam("BokehBlur", g_Config.cvars.shaders_bokeh_blur);
+			ConfigManager()->ImportParam("BokehBlurRadius", g_Config.cvars.shaders_bokeh_blur_radius);
+			ConfigManager()->ImportParam("BokehBlurCoefficient", g_Config.cvars.shaders_bokeh_blur_coeff);
+			ConfigManager()->ImportParam("BokehBlurSamplesCount", g_Config.cvars.shaders_bokeh_blur_samples);
+
+			ConfigManager()->ImportParam("GaussianBlur", g_Config.cvars.shaders_gaussian_blur);
+			ConfigManager()->ImportParam("GaussianBlurRadius", g_Config.cvars.shaders_gaussian_blur_radius);
+
+			ConfigManager()->ImportParam("GaussianBlurFast", g_Config.cvars.shaders_gaussian_blur_fast);
+			ConfigManager()->ImportParam("GaussianBlurFastRadius", g_Config.cvars.shaders_gaussian_blur_fast_radius);
+
+			ConfigManager()->ImportParam("Vignette", g_Config.cvars.shaders_vignette);
+			ConfigManager()->ImportParam("VignetteFalloff", g_Config.cvars.shaders_vignette_falloff);
+			ConfigManager()->ImportParam("VignetteAmount", g_Config.cvars.shaders_vignette_amount);
+
+			ConfigManager()->EndSectionImport();
+		}
+
+		ConfigManager()->EndImport();
+		return true;
+	}
+
+	return false;
+}
+
+void CShadersConfig::Save()
+{
+	if ( current_config.empty() )
+		return;
+
+	if (ConfigManager()->BeginExport( (std::string("sven_internal/config/shaders/") + current_config).c_str()))
+	{
+		if (ConfigManager()->BeginSectionExport("SHADERS"))
+		{
+			ConfigManager()->ExportParam("ShowDepthBuffer", g_Config.cvars.shaders_show_depth_buffer);
+			ConfigManager()->ExportParam("DepthBufferZNear", g_Config.cvars.shaders_depth_buffer_znear);
+			ConfigManager()->ExportParam("DepthBufferZFar", g_Config.cvars.shaders_depth_buffer_zfar);
+			ConfigManager()->ExportParam("DepthBufferBrightness", g_Config.cvars.shaders_depth_buffer_brightness);
+
+			ConfigManager()->ExportParam("SSAO", g_Config.cvars.shaders_ssao);
+			ConfigManager()->ExportParam("SSAOOnlyAO", g_Config.cvars.shaders_ssao_onlyAO);
+			ConfigManager()->ExportParam("SSAOZNear", g_Config.cvars.shaders_ssao_znear);
+			ConfigManager()->ExportParam("SSAOZFar", g_Config.cvars.shaders_ssao_zfar);
+			ConfigManager()->ExportParam("SSAOStrength", g_Config.cvars.shaders_ssao_strength);
+			ConfigManager()->ExportParam("SSAOSamples", g_Config.cvars.shaders_ssao_samples);
+			ConfigManager()->ExportParam("SSAORadius", g_Config.cvars.shaders_ssao_radius);
+			ConfigManager()->ExportParam("SSAODepthClamp", g_Config.cvars.shaders_ssao_aoclamp);
+			ConfigManager()->ExportParam("SSAOLuminanceAffection", g_Config.cvars.shaders_ssao_lumInfluence);
+			ConfigManager()->ExportParam("SSAONoise", g_Config.cvars.shaders_ssao_noise);
+			ConfigManager()->ExportParam("SSAONoiseAmount", g_Config.cvars.shaders_ssao_noiseamount);
+			ConfigManager()->ExportParam("SSAOReduction", g_Config.cvars.shaders_ssao_diffarea);
+			ConfigManager()->ExportParam("SSAOGaussBell", g_Config.cvars.shaders_ssao_gdisplace);
+			ConfigManager()->ExportParam("SSAOMist", g_Config.cvars.shaders_ssao_mist);
+			ConfigManager()->ExportParam("SSAOMistStart", g_Config.cvars.shaders_ssao_miststart);
+			ConfigManager()->ExportParam("SSAOMistEnd", g_Config.cvars.shaders_ssao_mistend);
+
+			ConfigManager()->ExportParam("ColorCorrection", g_Config.cvars.shaders_color_correction);
+			ConfigManager()->ExportParam("CCFilmGrain", g_Config.cvars.shaders_cc_grain);
+			ConfigManager()->ExportParam("CCGamma", g_Config.cvars.shaders_cc_target_gamma);
+			ConfigManager()->ExportParam("CCMonitorGamma", g_Config.cvars.shaders_cc_monitor_gamma);
+			ConfigManager()->ExportParam("CCHueOffset", g_Config.cvars.shaders_cc_hue_offset);
+			ConfigManager()->ExportParam("CCSaturation", g_Config.cvars.shaders_cc_saturation);
+			ConfigManager()->ExportParam("CCContrast", g_Config.cvars.shaders_cc_contrast);
+			ConfigManager()->ExportParam("CCLuminance", g_Config.cvars.shaders_cc_luminance);
+			ConfigManager()->ExportParam("CCBlackLevel", g_Config.cvars.shaders_cc_black_level);
+			ConfigManager()->ExportParam("CCBrightBoost", g_Config.cvars.shaders_cc_bright_boost);
+			ConfigManager()->ExportParam("CCRedLevel", g_Config.cvars.shaders_cc_R);
+			ConfigManager()->ExportParam("CCGreenLevel", g_Config.cvars.shaders_cc_G);
+			ConfigManager()->ExportParam("CCBlueLevel", g_Config.cvars.shaders_cc_B);
+
+			ConfigManager()->ExportParam("ChromaticAberration", g_Config.cvars.shaders_chromatic_aberration);
+			ConfigManager()->ExportParam("ChromaticAberrationType", g_Config.cvars.shaders_chromatic_aberration_type);
+			ConfigManager()->ExportParam("ChromaticAberrationDirX", g_Config.cvars.shaders_chromatic_aberration_dir_x);
+			ConfigManager()->ExportParam("ChromaticAberrationDirY", g_Config.cvars.shaders_chromatic_aberration_dir_y);
+			ConfigManager()->ExportParam("ChromaticAberrationShift", g_Config.cvars.shaders_chromatic_aberration_shift);
+			ConfigManager()->ExportParam("ChromaticAberrationStrength", g_Config.cvars.shaders_chromatic_aberration_strength);
+
+			ConfigManager()->ExportParam("DoFBlur", g_Config.cvars.shaders_dof_blur);
+			ConfigManager()->ExportParam("DoFBlurMinRange", g_Config.cvars.shaders_dof_blur_min_range);
+			ConfigManager()->ExportParam("DoFBlurMaxRange", g_Config.cvars.shaders_dof_blur_max_range);
+			ConfigManager()->ExportParam("DoFBlurInterpType", g_Config.cvars.shaders_dof_blur_interp_type);
+			ConfigManager()->ExportParam("DoFBlurBlurinessRange", g_Config.cvars.shaders_dof_blur_bluriness_range);
+			ConfigManager()->ExportParam("DoFBlurQuality", g_Config.cvars.shaders_dof_blur_quality);
+			ConfigManager()->ExportParam("DoFBlurBokeh", g_Config.cvars.shaders_dof_blur_bokeh);
+
+			ConfigManager()->ExportParam("MotionBlur", g_Config.cvars.shaders_motion_blur);
+			ConfigManager()->ExportParam("MotionBlurStrength", g_Config.cvars.shaders_motion_blur_strength);
+			ConfigManager()->ExportParam("MotionBlurMinSpeed", g_Config.cvars.shaders_motion_blur_min_speed);
+			ConfigManager()->ExportParam("MotionBlurMaxSpeed", g_Config.cvars.shaders_motion_blur_max_speed);
+
+			ConfigManager()->ExportParam("RadialBlur", g_Config.cvars.shaders_radial_blur);
+			ConfigManager()->ExportParam("RadialBlurDistance", g_Config.cvars.shaders_radial_blur_distance);
+			ConfigManager()->ExportParam("RadialBlurStrength", g_Config.cvars.shaders_radial_blur_strength);
+
+			ConfigManager()->ExportParam("BokehBlur", g_Config.cvars.shaders_bokeh_blur);
+			ConfigManager()->ExportParam("BokehBlurRadius", g_Config.cvars.shaders_bokeh_blur_radius);
+			ConfigManager()->ExportParam("BokehBlurCoefficient", g_Config.cvars.shaders_bokeh_blur_coeff);
+			ConfigManager()->ExportParam("BokehBlurSamplesCount", g_Config.cvars.shaders_bokeh_blur_samples);
+
+			ConfigManager()->ExportParam("GaussianBlur", g_Config.cvars.shaders_gaussian_blur);
+			ConfigManager()->ExportParam("GaussianBlurRadius", g_Config.cvars.shaders_gaussian_blur_radius);
+
+			ConfigManager()->ExportParam("GaussianBlurFast", g_Config.cvars.shaders_gaussian_blur_fast);
+			ConfigManager()->ExportParam("GaussianBlurFastRadius", g_Config.cvars.shaders_gaussian_blur_fast_radius);
+
+			ConfigManager()->ExportParam("Vignette", g_Config.cvars.shaders_vignette);
+			ConfigManager()->ExportParam("VignetteFalloff", g_Config.cvars.shaders_vignette_falloff);
+			ConfigManager()->ExportParam("VignetteAmount", g_Config.cvars.shaders_vignette_amount);
+
+			ConfigManager()->EndSectionExport();
+		}
+
+		ConfigManager()->EndExport();
+	}
+}
+
+void CShadersConfig::New()
+{
+	std::string sSavedConfig = current_config;
+
+	current_config = "new_config.ini";
+
+	Save();
+
+	current_config = sSavedConfig;
+}
+
+void CShadersConfig::Remove()
+{
+	if ( current_config.empty() )
+		return;
+
+	std::string sDir = s_szShadersConfigsDir;
+
+	sDir += "\\";
+	sDir += current_config;
+
+	DeleteFile( sDir.c_str() );
+
+	current_config.clear();
+}
+
+void CShadersConfig::Rename()
+{
+	auto str_ends_with = [](std::string const &value, std::string const &ending) -> bool
+	{
+		if ( ending.size() > value.size() )
+			return false;
+
+		return std::equal( ending.rbegin(), ending.rend(), value.rbegin() );
+	};
+
+	if ( current_config.empty() || g_szCurrentShaderConfigInputText[0] == '\0' )
+		return;
+
+	std::string sNewConfigName = g_szCurrentShaderConfigInputText;
+
+	if ( !str_ends_with(sNewConfigName, ".ini") )
+	{
+		sNewConfigName += ".ini";
+	}
+
+	std::string sCurrentName = s_szShadersConfigsDir;
+	std::string sNewName = sCurrentName;
+
+	sCurrentName += "\\";
+	sNewName += "\\";
+	
+	sCurrentName += current_config;
+	sNewName += sNewConfigName;
+
+	MoveFile( sCurrentName.c_str(), sNewName.c_str() );
+
+	current_config.clear();
 }
 
 //-----------------------------------------------------------------------------
@@ -1627,7 +1979,7 @@ void CConfig::Remove()
 
 CON_COMMAND(sc_load_config, "Load a config file from folder \"../sven_internal/config/*.ini\"\nUsage:  sc_load_config <optional: filename>")
 {
-	if (args.ArgC() > 1)
+	if ( args.ArgC() > 1 )
 	{
 		const char *pszFileName = args[1];
 
@@ -1642,7 +1994,7 @@ CON_COMMAND(sc_load_config, "Load a config file from folder \"../sven_internal/c
 			buffer++;
 		}
 
-		if (pszExtension && stricmp(pszExtension, ".ini"))
+		if ( pszExtension && stricmp(pszExtension, ".ini") )
 		{
 			Msg("sc_load_config: expected name of the file with \".ini\" extension\n");
 			return;
@@ -1651,7 +2003,7 @@ CON_COMMAND(sc_load_config, "Load a config file from folder \"../sven_internal/c
 		std::string sPrevConfig;
 		std::string sFileName = args[1];
 
-		if (!pszExtension)
+		if ( !pszExtension )
 		{
 			sFileName += ".ini";
 		}
@@ -1666,7 +2018,7 @@ CON_COMMAND(sc_load_config, "Load a config file from folder \"../sven_internal/c
 		else
 		{
 			LoadMenuTheme();
-			WindowStyle();
+			g_MenuModule.WindowStyle();
 		}
 	}
 	else

@@ -48,6 +48,7 @@ const char *g_pszPathsToCreate[] =
     "\\svenmod\\plugins\\",
     "\\sven_internal\\",
     "\\sven_internal\\config\\",
+    "\\sven_internal\\config\\shaders\\",
     "\\sven_internal\\images\\",
     "\\sven_internal\\input_manager\\",
     "\\sven_internal\\message_spammer\\",
