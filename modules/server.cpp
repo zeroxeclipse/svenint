@@ -177,5 +177,9 @@ bool InitServerDLL()
 		return false;
 	}
 
+	// Tertiary attack glitch
+	extern void InitTertiaryAttackGlitch_Server(HMODULE hServerDLL);
+	InitTertiaryAttackGlitch_Server( g_hServerDLL );
+
 	return true;
 }

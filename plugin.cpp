@@ -321,6 +321,7 @@ void CSvenInternal::OnDisconnect(void)
 void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPostRunCmd)
 {
 	extern bool g_bScreenshot;
+
 	static bool s_bRemoveAntiScreen = false;
 	static float s_flRemoveAntiScreenDuration = -1.f;
 
@@ -353,17 +354,20 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 	}
 	else
 	{
-		if ( s_bRemoveAntiScreen && s_flRemoveAntiScreenDuration <= flPlatTime )
+		// Stupid anti screen decision
+		if ( s_bRemoveAntiScreen )
 		{
-			g_bScreenshot = false;
-			s_bRemoveAntiScreen = false;
-			s_flRemoveAntiScreenDuration = -1.f;
+			if ( s_flRemoveAntiScreenDuration <= flPlatTime )
+			{
+				g_bScreenshot = false;
+				s_bRemoveAntiScreen = false;
+				s_flRemoveAntiScreenDuration = -1.f;
+			}
 		}
-		
-		if ( g_bScreenshot )
+		else if ( g_bScreenshot )
 		{
 			s_bRemoveAntiScreen = true;
-			s_flRemoveAntiScreenDuration = flPlatTime + 0.1f;
+			s_flRemoveAntiScreenDuration = flPlatTime + 1.0f;
 		}
 
 		// Auto Update debugging messages
@@ -387,39 +391,39 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 			g_AUColorMsgQueue.clear();
 		}
 
-		if (state >= CLS_CONNECTED)
+		if ( state >= CLS_CONNECTED )
 		{
 			//SaveSoundcache();
 
-			if (state == CLS_ACTIVE)
+			if ( state == CLS_ACTIVE )
 			{
 				g_Skybox.Think();
 				g_ChatColors.Think();
 				g_SpeedrunTools.GameFrame();
 
-				static int wait_frames_TAGS = 0;
+				//static int wait_frames_TAGS = 0;
 
-				wait_frames_TAGS++;
+				//wait_frames_TAGS++;
 
-				if (wait_frames_TAGS >= 100)
-				{
-					if ( !IsTertiaryAttackGlitchInit_Server() )
-					{
-					#ifdef PLATFORM_WINDOWS
-						HMODULE hServerDLL = Sys_GetModuleHandle(xs("server.dll"));
-					#else
-						HMODULE hServerDLL = Sys_GetModuleHandle(xs("server.so"));
-					#endif
+				//if ( wait_frames_TAGS >= 100 )
+				//{
+				//	if ( !IsTertiaryAttackGlitchInit_Server() )
+				//	{
+				//	#ifdef PLATFORM_WINDOWS
+				//		HMODULE hServerDLL = Sys_GetModuleHandle(xs("server.dll"));
+				//	#else
+				//		HMODULE hServerDLL = Sys_GetModuleHandle(xs("server.so"));
+				//	#endif
 
-						if (hServerDLL)
-						{
-							extern void InitTertiaryAttackGlitch_Server(HMODULE hServerDLL);
-							InitTertiaryAttackGlitch_Server(hServerDLL);
-						}
-					}
+				//		if ( hServerDLL )
+				//		{
+				//			extern void InitTertiaryAttackGlitch_Server(HMODULE hServerDLL);
+				//			InitTertiaryAttackGlitch_Server(hServerDLL);
+				//		}
+				//	}
 
-					wait_frames_TAGS = 0;
-				}
+				//	wait_frames_TAGS = 0;
+				//}
 			}
 			else
 			{
@@ -533,6 +537,11 @@ void CSvenInternal::InitFolders(ISvenModAPI *pSvenModAPI)
 	{
 		Warning(xs("[Sven Internal] Failed to create \"../sven_internal/config/\" directory\n"));
 	}
+	
+	if ( !CreateDirectory((sDir + xs("\\sven_internal\\config\\shaders\\")).c_str(), NULL) && GetLastError() != ERROR_ALREADY_EXISTS )
+	{
+		Warning(xs("[Sven Internal] Failed to create \"../sven_internal/config/shaders/\" directory\n"));
+	}
 
 	if ( !CreateDirectory((sDir + xs("\\sven_internal\\message_spammer\\")).c_str(), NULL) && GetLastError() != ERROR_ALREADY_EXISTS )
 	{
@@ -622,11 +631,11 @@ static void SaveSoundcache()
 		snprintf(szSoundcacheDirectory, MAX_PATH, "%s\\svencoop_downloads\\maps\\soundcache\\", SvenModAPI()->GetBaseDirectory());
 	}
 
-	if (g_Config.cvars.save_soundcache)
+	if ( g_Config.cvars.save_soundcache )
 	{
 		sleep_frames++;
 
-		if (sleep_frames >= 75)
+		if ( sleep_frames >= 75 )
 		{
 			SetFilesAttributes(szSoundcacheDirectory, FILE_ATTRIBUTE_NORMAL | FILE_ATTRIBUTE_READONLY);
 			sleep_frames = 0;
