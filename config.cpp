@@ -22,6 +22,9 @@
 CConfig g_Config;
 CShadersConfig g_ShadersConfig;
 
+std::string g_sShadersPreset;
+char g_szShadersPresetInputText[MAX_PATH] = { 0 };
+
 char g_szCurrentConfigInputText[MAX_PATH] = { 0 };
 char g_szCurrentShaderConfigInputText[MAX_PATH] = { 0 };
 
@@ -124,6 +127,44 @@ void CConfig::UpdateConfigs()
 }
 
 //-----------------------------------------------------------------------------
+// Load a default preset for shaders
+//-----------------------------------------------------------------------------
+
+void CConfig::LoadShadersPreset()
+{
+	// Made it just like an idiot but it works
+	if ( cvars.shaders_default_preset != NULL )
+	{
+		std::string sShadersPreset = cvars.shaders_default_preset;
+		std::string sDir = s_szConfigsDir;
+
+		sDir += "\\shaders\\" + sShadersPreset;
+
+		DWORD ret = GetFileAttributes(sDir.c_str());
+
+		if ( !(ret == INVALID_FILE_ATTRIBUTES || ret & FILE_ATTRIBUTE_DIRECTORY) )
+		{
+			g_sShadersPreset = sShadersPreset;
+
+			strncpy( g_szShadersPresetInputText, g_sShadersPreset.c_str(), sizeof(g_szShadersPresetInputText) );
+			g_szShadersPresetInputText[ M_ARRAYSIZE(g_szShadersPresetInputText) - 1 ] = '\0';
+
+
+			g_ShadersConfig.current_config = g_sShadersPreset;
+
+			strncpy( g_szCurrentShaderConfigInputText, g_sShadersPreset.c_str(), sizeof(g_szCurrentShaderConfigInputText) );
+			g_szCurrentShaderConfigInputText[ M_ARRAYSIZE(g_szCurrentShaderConfigInputText) - 1 ] = '\0';
+
+
+			g_ShadersConfig.Load();
+		}
+
+		free( (void *)g_Config.cvars.shaders_default_preset );
+		g_Config.cvars.shaders_default_preset = NULL;
+	}
+}
+
+//-----------------------------------------------------------------------------
 // Import config vars
 //-----------------------------------------------------------------------------
 
@@ -170,7 +211,11 @@ bool CConfig::Load()
 		
 		if (ConfigManager()->BeginSectionImport("SHADERS"))
 		{
+			cvars.shaders_default_preset = NULL;
+
 			ConfigManager()->ImportParam("Enable", cvars.shaders);
+
+			ConfigManager()->ImportParam("DefaultPreset", cvars.shaders_default_preset);
 
 			ConfigManager()->ImportParam("ShowDepthBuffer", cvars.shaders_show_depth_buffer);
 			ConfigManager()->ImportParam("DepthBufferZNear", cvars.shaders_depth_buffer_znear);
@@ -392,6 +437,11 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam("SkipFrames", cvars.skip_frames);
 			ConfigManager()->ImportParam("SkipFramesCount", cvars.skip_frames_count);
 			ConfigManager()->ImportParam("DrawEntities", cvars.draw_entities);
+
+			ConfigManager()->ImportParam("ShowHitMarkers", cvars.show_hitmarkers);
+			ConfigManager()->ImportParam("HitMarkersSound", cvars.hitmarkers_sound);
+			ConfigManager()->ImportParam("HitMarkersSize", cvars.hitmarkers_size);
+			ConfigManager()->ImportParam("HitMarkersStayTime", cvars.hitmarkers_stay_time);
 
 			ConfigManager()->ImportParam("ShowSpeed", cvars.show_speed);
 			ConfigManager()->ImportParam("ShowJumpSpeed", cvars.show_jumpspeed);
@@ -856,6 +906,9 @@ bool CConfig::Load()
 		g_Skybox.OnConfigLoad();
 		g_ThirdPerson.OnConfigLoad();
 
+		// Load default shaders preset
+		LoadShadersPreset();
+
 		return true;
 	}
 
@@ -906,7 +959,29 @@ void CConfig::Save()
 
 		if (ConfigManager()->BeginSectionExport("SHADERS"))
 		{
+			auto str_ends_with = [](std::string const &value, std::string const &ending) -> bool
+			{
+				if ( ending.size() > value.size() )
+					return false;
+
+				return std::equal( ending.rbegin(), ending.rend(), value.rbegin() );
+			};
+
+			std::string sShadersPreset = g_sShadersPreset;
+
+			if ( !sShadersPreset.empty() && sShadersPreset[0] != '\0' )
+			{
+				if ( !str_ends_with(sShadersPreset, ".ini") )
+					sShadersPreset += ".ini";
+			}
+			else
+			{
+				sShadersPreset = "default.ini";
+			}
+
 			ConfigManager()->ExportParam("Enable", cvars.shaders);
+
+			ConfigManager()->ExportParam("DefaultPreset", sShadersPreset.c_str());
 
 			ConfigManager()->ExportParam("ShowDepthBuffer", cvars.shaders_show_depth_buffer);
 			ConfigManager()->ExportParam("DepthBufferZNear", cvars.shaders_depth_buffer_znear);
@@ -1126,6 +1201,11 @@ void CConfig::Save()
 			ConfigManager()->ExportParam("SkipFrames", cvars.skip_frames);
 			ConfigManager()->ExportParam("SkipFramesCount", cvars.skip_frames_count);
 			ConfigManager()->ExportParam("DrawEntities", cvars.draw_entities);
+
+			ConfigManager()->ExportParam("ShowHitMarkers", cvars.show_hitmarkers);
+			ConfigManager()->ExportParam("HitMarkersSound", cvars.hitmarkers_sound);
+			ConfigManager()->ExportParam("HitMarkersSize", cvars.hitmarkers_size);
+			ConfigManager()->ExportParam("HitMarkersStayTime", cvars.hitmarkers_stay_time);
 
 			ConfigManager()->ExportParam("ShowSpeed", cvars.show_speed);
 			ConfigManager()->ExportParam("ShowJumpSpeed", cvars.show_jumpspeed);

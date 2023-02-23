@@ -38,6 +38,8 @@ public:
 	void Remove();
 	void Rename();
 
+	void LoadShadersPreset();
+
 	struct config_vars
 	{
 		//-----------------------------------------------------------------------------
@@ -62,6 +64,8 @@ public:
 		//-----------------------------------------------------------------------------
 		
 		bool shaders = true;
+
+		const char *shaders_default_preset = NULL;
 
 		bool menu_blur = true;
 		float menu_blur_fadein_duration = 0.5f;
@@ -220,6 +224,11 @@ public:
 		int skip_frames_count = 1;
 
 		bool show_sound_origin = false;
+
+		bool show_hitmarkers = false;
+		bool hitmarkers_sound = true;
+		int hitmarkers_size = 24;
+		float hitmarkers_stay_time = 0.3f;
 
 		bool show_players_push_direction = false;
 		float push_direction_length = 16.0f;
@@ -693,6 +702,9 @@ public:
 
 extern CConfig g_Config;
 extern CShadersConfig g_ShadersConfig;
+
+extern std::string g_sShadersPreset;
+extern char g_szShadersPresetInputText[MAX_PATH];
 
 extern char g_szCurrentConfigInputText[MAX_PATH];
 extern char g_szCurrentShaderConfigInputText[MAX_PATH];
