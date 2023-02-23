@@ -57,12 +57,14 @@
 static void SaveSoundcache();
 
 extern bool g_bForceFreeze2;
+extern bool g_bAutoUpdateInProcess;
 
 //-----------------------------------------------------------------------------
 // Vars
 //-----------------------------------------------------------------------------
 
 uint64 g_ullSteam64ID = 0uLL;
+int g_hAutoUpdateThread = 0;
 
 //-----------------------------------------------------------------------------
 // SvenMod's plugin
@@ -230,7 +232,6 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 	g_Config.Init();
 	g_Config.Load();
 
-	g_Radar.Init();
 	g_Drawing.Init();
 	g_Visual.ResetJumpSpeed();
 
@@ -264,11 +265,14 @@ void CSvenInternal::PostLoad(bool bGlobalLoad)
 
 	g_CamHack.Init();
 
-	AutoUpdate();
+	g_hAutoUpdateThread = AutoUpdate();
 }
 
 void CSvenInternal::Unload(void)
 {
+	if ( g_bAutoUpdateInProcess )
+		CloseHandle( (HANDLE)g_hAutoUpdateThread );
+
 	GL_Shutdown();
 
 	UnloadFeatures();
@@ -399,6 +403,7 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 			{
 				g_Skybox.Think();
 				g_ChatColors.Think();
+				g_Visual.GameFrame();
 				g_SpeedrunTools.GameFrame();
 
 				//static int wait_frames_TAGS = 0;
