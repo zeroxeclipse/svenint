@@ -23,6 +23,7 @@
 #include "../scripts/scripts.h"
 #include "../utils/xorstr.h"
 
+#include "../game/utils.h"
 #include "../game/drawing.h"
 #include "../game/entitylist.h"
 
@@ -123,6 +124,7 @@ bool g_bLoading = false;
 bool g_bOverrideHUD = true;
 bool g_bOverrideVirtualVA = false;
 float g_flClientDataLastUpdate = -1.f;
+float g_flWeaponLastAttack = -1.f;
 
 Vector g_oldviewangles(0.f, 0.f, 0.f);
 Vector g_newviewangles(0.f, 0.f, 0.f);
@@ -220,6 +222,11 @@ FORCEINLINE void RunClientMoveHooks(float frametime, usercmd_t *cmd, int active)
 		}
 
 		return;
+	}
+
+	if ( !Client()->IsDead() && UTIL_IsFiring(cmd) )
+	{
+		g_flWeaponLastAttack = (float)*dbRealtime;
 	}
 
 	g_KeySpam.CreateMove(frametime, cmd, active);

@@ -626,7 +626,7 @@ void CMenuModule::DrawVisualsTabContent()
 	{
 	case 0: // Render
 	{
-		ImGui::BeginChild(xs("render"), ImVec2(328, 430), true);
+		ImGui::BeginChild(xs("render"), ImVec2(328, 460), true);
 
 		ImGui::PushItemWidth(180);
 
@@ -637,6 +637,7 @@ void CMenuModule::DrawVisualsTabContent()
 		ImGui::Checkbox(xs("No Shake"), &g_Config.cvars.no_shake); ImGui::SameLine();
 		ImGui::Checkbox(xs("No Fade"), &g_Config.cvars.no_fade); ImGui::SameLine();
 		ImGui::Checkbox(xs("Remove FOV Cap"), &g_Config.cvars.remove_fov_cap);
+		ImGui::Checkbox(xs("Show Sound Origin"), &g_Config.cvars.show_sound_origin);
 
 		ImGuiCustom.Spacing(8);
 
@@ -686,9 +687,32 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::EndChild();
 
+
 		ImGui::NextColumn();
 
-		ImGui::PopItemWidth();
+		ImGui::SetCursorPosX(332);
+
+		ImGui::BeginChild(xs("hitmarkers"), ImVec2(328.5, 180), true);
+
+		ImGui::Text(xs("Hitmarkers"));
+
+		ImGuiCustom.Spacing(4);
+
+		ImGui::Checkbox(xs("Show Hitmarkers"), &g_Config.cvars.show_hitmarkers);
+
+		ImGui::Spacing();
+
+		ImGui::Checkbox(xs("Play Sound##hitmarkers"), &g_Config.cvars.hitmarkers_sound);
+
+		ImGuiCustom.Spacing(4);
+
+		ImGui::SliderInt(xs("Size##hitmarkers"), &g_Config.cvars.hitmarkers_size, 2, 100);
+		
+		ImGui::Spacing();
+
+		ImGui::SliderFloat(xs("Stay Time##hitmarkers"), &g_Config.cvars.hitmarkers_stay_time, 0.01f, 3.0f);
+
+		ImGui::EndChild();
 		break;
 	}
 	case 1: // ESP
@@ -1344,9 +1368,15 @@ void CMenuModule::DrawVisualsTabContent()
 	}
 	case 8: // Shaders
 	{
-		ImGui::BeginChild(xs("shaders"), ImVec2(328, 380), true);
+		ImGui::BeginChild(xs("shaders"), ImVec2(328, 415), true);
 
 		ImGui::Checkbox(xs("Enable##shaders"), &g_Config.cvars.shaders);
+
+		ImGuiCustom.Spacing(4);
+
+		ImGui::InputText(xs("Default Preset##shaders"), g_szShadersPresetInputText, IM_ARRAYSIZE(g_szShadersPresetInputText));
+
+		g_sShadersPreset = g_szShadersPresetInputText;
 
 		ImGuiCustom.Spacing(4);
 
@@ -3574,6 +3604,16 @@ void CMenuModule::Unload()
 	if ( hGameWnd && hGameWndProc )
 	{
 		SetWindowLong(hGameWnd, GWL_WNDPROC, (LONG)hGameWndProc);
+	}
+
+	if ( m_hLogoTex )
+	{
+		glDeleteTextures(1, &m_hLogoTex);
+	}
+	
+	if ( m_hMenuTex )
+	{
+		glDeleteTextures(1, &m_hMenuTex);
 	}
 
 	DetoursAPI()->RemoveDetour( m_hwglSwapBuffers );

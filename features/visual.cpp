@@ -12,6 +12,8 @@
 #include <IPlayerUtils.h>
 #include <ISvenModAPI.h>
 
+#include <messagebuffer.h>
+
 #include <hl_sdk/engine/studio.h>
 #include <hl_sdk/cl_dll/cl_dll.h>
 #include <hl_sdk/cl_dll/StudioModelRenderer.h>
@@ -53,6 +55,8 @@ bone_s g_Bones[MAXENTS + 1];
 #endif
 
 DECLARE_CLASS_HOOK(void, CClient_SoundEngine__PlayFMODSound, void *thisptr, int a2, int a3, float *pos, int a5, char *name, float a7, float a8, int a9, int a10, int a11, float a12);
+//DECLARE_HOOK(void, __cdecl, EV_HLDM_PlayTextureSound, int idx, pmtrace_t *trace, float *vecSrc, float *vecEnd, int iBulletType);
+//DECLARE_HOOK(char, __cdecl, HUD_PlayerMoveTexture, const char *name);
 
 //-----------------------------------------------------------------------------
 // Vars
@@ -63,11 +67,14 @@ bone_matrix3x4_t *g_pBoneTransform = NULL;
 
 cvar_t *r_drawentities = NULL;
 
-UserMsgHookFn ORIG_UserMsgHook_StartSound = NULL;
+static bool bHitmarkerOnce = true;
+
+//UserMsgHookFn ORIG_UserMsgHook_StartSound = NULL;
+UserMsgHookFn ORIG_UserMsgHook_CreateBlood = NULL;
 UserMsgHookFn ORIG_UserMsgHook_ScreenShake = NULL;
 UserMsgHookFn ORIG_UserMsgHook_ScreenFade = NULL;
 
-static bool bInStartSound = false;
+//static bool bInStartSound = false;
 
 //-----------------------------------------------------------------------------
 // Console Commands
@@ -131,7 +138,15 @@ void CVisual::OnVideoInit()
 {
 	m_flTime = 0.f;
 
+	m_vSounds.clear();
+	m_vHitMarkers.clear();
+
 	ResetJumpSpeed();
+}
+
+void CVisual::GameFrame()
+{
+	bHitmarkerOnce = true;
 }
 
 void CVisual::OnHUDRedraw(float flTime)
@@ -149,6 +164,7 @@ void CVisual::Draw()
 
 	Lightmap();
 	ShowSounds();
+	DrawHitmarkers();
 
 	ESP();
 
@@ -284,6 +300,34 @@ void CVisual::ShowSpeed()
 								  "%.1f",
 								  flSpeed);
 		}
+	}
+}
+
+void CVisual::DrawHitmarkers()
+{
+	if ( !g_Config.cvars.show_hitmarkers )
+		return;
+
+	int size = g_Config.cvars.hitmarkers_size;
+	float flTime = (float)*dbRealtime;
+
+	for (size_t i = 0; i < m_vHitMarkers.size(); i++)
+	{
+		float vecScreen[2];
+		hitmarker_t &hitmarker = m_vHitMarkers[i];
+
+		if ( hitmarker.time <= flTime || !UTIL_WorldToScreen( hitmarker.origin, vecScreen ) )
+		{
+			m_vHitMarkers.erase( m_vHitMarkers.begin() + i );
+			i--;
+
+			continue;
+		}
+
+		int x = vecScreen[0] - (size / 2);
+		int y = vecScreen[1] - (size / 2);
+
+		g_Drawing.DrawTexture( m_hHitMarkerTexture, x, y, x + size, y + size, 255, 255, 255, 255 );
 	}
 }
 
@@ -1392,6 +1436,11 @@ void CVisual::AddSound(const Vector &vecOrigin)
 	m_vSounds.push_back( { vecOrigin, (float)*dbRealtime + 2.f});
 }
 
+void CVisual::AddHitmarker(const Vector &vecOrigin, float flStayTime)
+{
+	m_vHitMarkers.push_back( { vecOrigin, flStayTime } );
+}
+
 //-----------------------------------------------------------------------------
 // Hooks
 //-----------------------------------------------------------------------------
@@ -1424,19 +1473,57 @@ DECLARE_CLASS_FUNC(void, HOOKED_CClient_SoundEngine__PlayFMODSound, void *thispt
 	}
 }
 
+//static char chTextureType = 0;
+//
+//DECLARE_FUNC(void, __cdecl, HOOKED_EV_HLDM_PlayTextureSound, int idx, pmtrace_t *trace, float *vecSrc, float *vecEnd, int iBulletType)
+//{
+//	ORIG_EV_HLDM_PlayTextureSound(idx, trace, vecSrc, vecEnd, iBulletType);
+//
+//	Warning("EV_HLDM_PlayTextureSound: %hhu\n", chTextureType);
+//}
+//
+//DECLARE_FUNC(char, __cdecl, HOOKED_HUD_PlayerMoveTexture, const char *name)
+//{
+//	return ( chTextureType = ORIG_HUD_PlayerMoveTexture(name) );
+//}
+
 //-----------------------------------------------------------------------------
 // Hooked user messages
 //-----------------------------------------------------------------------------
 
-int UserMsgHook_StartSound(const char *pszUserMsg, int iSize, void *pBuffer)
+//int UserMsgHook_StartSound(const char *pszUserMsg, int iSize, void *pBuffer)
+//{
+//	bInStartSound = true;
+//
+//	auto result = ORIG_UserMsgHook_StartSound(pszUserMsg, iSize, pBuffer);
+//
+//	bInStartSound = false;
+//
+//	return result;
+//}
+
+int UserMsgHook_CreateBlood(const char *pszUserMsg, int iSize, void *pBuffer)
 {
-	bInStartSound = true;
+	extern float g_flWeaponLastAttack;
 
-	auto result = ORIG_UserMsgHook_StartSound(pszUserMsg, iSize, pBuffer);
+	if ( g_Config.cvars.show_hitmarkers && bHitmarkerOnce && (float)*dbRealtime - g_flWeaponLastAttack <= 0.3f )
+	{
+		Vector vecOrigin;
+		CMessageBuffer message(pBuffer, iSize, true);
 
-	bInStartSound = false;
+		vecOrigin.x = message.ReadCoord();
+		vecOrigin.y = message.ReadCoord();
+		vecOrigin.z = message.ReadCoord();
 
-	return result;
+		if ( g_Config.cvars.hitmarkers_sound )
+			g_pEngineFuncs->PlaySoundByName("sven_internal/hitmarker.wav", 1.5f);
+
+		g_Visual.AddHitmarker( vecOrigin, (float)*dbRealtime + g_Config.cvars.hitmarkers_stay_time );
+
+		bHitmarkerOnce = false;
+	}
+
+	return ORIG_UserMsgHook_CreateBlood(pszUserMsg, iSize, pBuffer);
 }
 
 int UserMsgHook_ScreenShake(const char *pszUserMsg, int iSize, void *pBuffer)
@@ -1474,9 +1561,12 @@ CVisual::CVisual()
 
 	m_pfnCClient_SoundEngine__PlayFMODSound = NULL;
 
-	m_hUserMsgHook_StartSound = 0;
+	//m_hUserMsgHook_StartSound = 0;
+	m_hUserMsgHook_CreateBlood = 0;
 	m_hUserMsgHook_ScreenShake = 0;
 	m_hUserMsgHook_ScreenFade = 0;
+
+	m_hHitMarkerTexture = -1;
 
 	m_iScreenWidth = 1920;
 	m_iScreenHeight = 1080;
@@ -1499,28 +1589,60 @@ bool CVisual::Load()
 		Warning("Failed to find function \"CClient_SoundEngine::PlayFMODSound\"\n");
 		return false;
 	}
+	
+	//m_pfnEV_HLDM_PlayTextureSound = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Client, Patterns::Client::EV_HLDM_PlayTextureSound );
+
+	//if ( m_pfnEV_HLDM_PlayTextureSound == NULL )
+	//{
+	//	Warning("Failed to find function \"EV_HLDM_PlayTextureSound\"\n");
+	//	return false;
+	//}
 
 	return true;
 }
 
 void CVisual::PostLoad()
 {
+	//unsigned char *pfnHUD_PlayerMoveTexture = (unsigned char *)g_pClientFuncs->HUD_PlayerMoveTexture;
+
+	//if ( *pfnHUD_PlayerMoveTexture == 0xE9 ) // JMP
+	//{
+	//	pfnHUD_PlayerMoveTexture = (unsigned char *)MemoryUtils()->CalcAbsoluteAddress( pfnHUD_PlayerMoveTexture );
+
+	//	if ( *pfnHUD_PlayerMoveTexture == 0xE9 ) // JMP
+	//	{
+	//		pfnHUD_PlayerMoveTexture = (unsigned char *)MemoryUtils()->CalcAbsoluteAddress( pfnHUD_PlayerMoveTexture );
+	//	}
+	//}
+
 	g_Drawing.SetupFonts();
+
+	m_hHitMarkerTexture = VGUI()->Surface()->CreateNewTextureID( true );
+	VGUI()->Surface()->DrawSetTextureFile( m_hHitMarkerTexture, "sven_internal/tex/hitmarker", true, false );
 
 	g_pBoneTransform = (bone_matrix3x4_t *)g_pEngineStudio->StudioGetLightTransform();
 
 	m_hCClient_SoundEngine__PlayFMODSound = DetoursAPI()->DetourFunction( m_pfnCClient_SoundEngine__PlayFMODSound, HOOKED_CClient_SoundEngine__PlayFMODSound, GET_FUNC_PTR(ORIG_CClient_SoundEngine__PlayFMODSound) );
+	//m_hEV_HLDM_PlayTextureSound = DetoursAPI()->DetourFunction( m_pfnEV_HLDM_PlayTextureSound, HOOKED_EV_HLDM_PlayTextureSound, GET_FUNC_PTR(ORIG_EV_HLDM_PlayTextureSound) );
+	//m_hHUD_PlayerMoveTexture = DetoursAPI()->DetourFunction( pfnHUD_PlayerMoveTexture, HOOKED_HUD_PlayerMoveTexture, GET_FUNC_PTR(ORIG_HUD_PlayerMoveTexture) );
 
-	m_hUserMsgHook_StartSound = Hooks()->HookUserMessage( "StartSound", UserMsgHook_StartSound, &ORIG_UserMsgHook_StartSound );
+	//m_hUserMsgHook_StartSound = Hooks()->HookUserMessage( "StartSound", UserMsgHook_StartSound, &ORIG_UserMsgHook_StartSound );
+	m_hUserMsgHook_CreateBlood = Hooks()->HookUserMessage( "CreateBlood", UserMsgHook_CreateBlood, &ORIG_UserMsgHook_CreateBlood );
 	m_hUserMsgHook_ScreenShake = Hooks()->HookUserMessage( "ScreenShake", UserMsgHook_ScreenShake, &ORIG_UserMsgHook_ScreenShake );
 	m_hUserMsgHook_ScreenFade = Hooks()->HookUserMessage( "ScreenFade", UserMsgHook_ScreenFade, &ORIG_UserMsgHook_ScreenFade );
 }
 
 void CVisual::Unload()
 {
+	if ( VGUI()->Surface()->IsTextureIDValid( m_hHitMarkerTexture ) )
+		VGUI()->Surface()->DeleteTextureByID( m_hHitMarkerTexture );
+
 	DetoursAPI()->RemoveDetour( m_hCClient_SoundEngine__PlayFMODSound );
+	//DetoursAPI()->RemoveDetour( m_hEV_HLDM_PlayTextureSound );
+	//DetoursAPI()->RemoveDetour( m_hHUD_PlayerMoveTexture );
 	
-	Hooks()->UnhookUserMessage( m_hUserMsgHook_StartSound );
+	//Hooks()->UnhookUserMessage( m_hUserMsgHook_StartSound );
+	Hooks()->UnhookUserMessage( m_hUserMsgHook_CreateBlood );
 	Hooks()->UnhookUserMessage( m_hUserMsgHook_ScreenShake );
 	Hooks()->UnhookUserMessage( m_hUserMsgHook_ScreenFade );
 }

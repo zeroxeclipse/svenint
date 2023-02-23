@@ -25,6 +25,12 @@ struct display_sound_origin_t
 	float time;
 };
 
+struct hitmarker_t
+{
+	Vector origin;
+	float time;
+};
+
 //-----------------------------------------------------------------------------
 // Visuals
 //-----------------------------------------------------------------------------
@@ -45,14 +51,17 @@ public:
 	bool StudioRenderModel();
 
 	void OnVideoInit();
+	void GameFrame();
 	void OnHUDRedraw(float flTime);
 
 	void ResetJumpSpeed();
 	void AddSound(const Vector &vecOrigin);
+	void AddHitmarker(const Vector &vecOrigin, float flStayTime);
 
 private:
 	void ESP();
 	void ShowSounds();
+	void DrawHitmarkers();
 	void DrawCrosshair();
 	void ShowSpeed();
 	void ShowGrenadeTimer();
@@ -72,6 +81,7 @@ private:
 
 private:
 	std::vector<display_sound_origin_t> m_vSounds;
+	std::vector<hitmarker_t> m_vHitMarkers;
 
 	float m_flTime;
 
@@ -84,11 +94,17 @@ private:
 	bool m_bOnGround;
 
 	void *m_pfnCClient_SoundEngine__PlayFMODSound;
+	void *m_pfnEV_HLDM_PlayTextureSound;
 
 	DetourHandle_t m_hCClient_SoundEngine__PlayFMODSound;
-	DetourHandle_t m_hUserMsgHook_StartSound;
+	//DetourHandle_t m_hEV_HLDM_PlayTextureSound;
+	//DetourHandle_t m_hHUD_PlayerMoveTexture;
+	//DetourHandle_t m_hUserMsgHook_StartSound;
+	DetourHandle_t m_hUserMsgHook_CreateBlood;
 	DetourHandle_t m_hUserMsgHook_ScreenShake;
 	DetourHandle_t m_hUserMsgHook_ScreenFade;
+
+	int m_hHitMarkerTexture;
 
 	int m_iScreenWidth;
 	int m_iScreenHeight;
