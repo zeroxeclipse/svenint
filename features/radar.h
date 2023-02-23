@@ -5,16 +5,21 @@
 
 #pragma once
 
-class CRadar
+#include <base_feature.h>
+
+class CRadar : public CBaseFeature
 {
 public:
 	CRadar();
 
-	void Init();
+	virtual void PostLoad();
+
+	virtual void Unload();
+
 	void Draw();
 
 private:
-	int m_iRadarRoundTexture;
+	int m_hRadarRoundTexture;
 };
 
 extern CRadar g_Radar;

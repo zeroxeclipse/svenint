@@ -27,13 +27,20 @@ CRadar g_Radar;
 
 CRadar::CRadar()
 {
-	m_iRadarRoundTexture = -1;
+	m_hRadarRoundTexture = -1;
 }
 
-void CRadar::Init()
+void CRadar::PostLoad()
 {
-	m_iRadarRoundTexture = VGUI()->Surface()->CreateNewTextureID(true);
-	VGUI()->Surface()->DrawSetTextureFile(m_iRadarRoundTexture, "sven_internal/tex/radar_round", true, false);
+	m_hRadarRoundTexture = VGUI()->Surface()->CreateNewTextureID( true );
+
+	VGUI()->Surface()->DrawSetTextureFile( m_hRadarRoundTexture, "sven_internal/tex/radar_round", true, false );
+}
+
+void CRadar::Unload()
+{
+	if ( VGUI()->Surface()->IsTextureIDValid( m_hRadarRoundTexture ) )
+		VGUI()->Surface()->DeleteTextureByID( m_hRadarRoundTexture );
 }
 
 void CRadar::Draw()
@@ -68,7 +75,7 @@ void CRadar::Draw()
 			//g_Drawing.FillArea(x, y, g_Config.cvars.radar_size, g_Config.cvars.radar_size, 0, 0, 0, 255 / 2);
 
 			// Round background
-			g_Drawing.DrawTexture(m_iRadarRoundTexture, x, y, x + g_Config.cvars.radar_size, y + g_Config.cvars.radar_size, 255, 255, 255, 127);
+			g_Drawing.DrawTexture(m_hRadarRoundTexture, x, y, x + g_Config.cvars.radar_size, y + g_Config.cvars.radar_size, 255, 255, 255, 127);
 
 			// Cross
 			g_Drawing.DrawLine(x + g_Config.cvars.radar_size / 2, y, x + g_Config.cvars.radar_size / 2, y + g_Config.cvars.radar_size, 90, 90, 90, 127);
