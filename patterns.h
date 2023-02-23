@@ -67,6 +67,8 @@ namespace Patterns
 		EXTERN_PATTERN(CClient_SoundEngine__Play2DSound);
 		EXTERN_PATTERN(CClient_SoundEngine__LoadSoundList);
 
+		EXTERN_PATTERN(EV_HLDM_PlayTextureSound);
+
 		EXTERN_PATTERN(HACK_GetPlayerUniqueID);
 
 		EXTERN_PATTERN(GetClientColor);

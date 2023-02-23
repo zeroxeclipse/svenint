@@ -60,6 +60,8 @@ namespace Patterns
 		DEFINE_PATTERN(CClient_SoundEngine__Play2DSound, "83 EC ? F3 0F 10 44 24 14");
 		DEFINE_PATTERN(CClient_SoundEngine__LoadSoundList, "81 EC ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 A8 08 00 00");
 
+		DEFINE_PATTERN(EV_HLDM_PlayTextureSound, "81 EC ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 AC 00 00 00 8B 84 24 B8 00 00 00");
+
 		DEFINE_PATTERN(HACK_GetPlayerUniqueID, "FF 74 24 08 FF 74 24 08 FF 15 ? ? ? ? 83 C4 08 85 C0 0F 95 C0 C3");
 
 		DEFINE_PATTERN(GetClientColor, "8B 4C 24 04 85 C9 7E 35 6B C1 ? 0F BF 80 ? ? ? ? 48 83 F8 03");
