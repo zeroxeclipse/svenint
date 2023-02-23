@@ -27,6 +27,7 @@
 #endif
 
 CAUClient client_server;
+bool g_bAutoUpdateInProcess = false;
 
 // Autoupdate file
 unsigned char *g_pUpdateData = NULL;
@@ -80,14 +81,18 @@ static unsigned int __stdcall AutoUpdate_Thread(void *lpParam)
 static void *AutoUpdate_Thread(void *lpParam)
 #endif
 {
+	g_bAutoUpdateInProcess = true;
+
 	AutoUpdate_Client();
+
+	g_bAutoUpdateInProcess = false;
 
 	return 0;
 }
 
 #endif
 
-void AutoUpdate()
+int AutoUpdate()
 {
 #if !AU_USE_SEPARATE_THREAD
 
@@ -98,12 +103,18 @@ void AutoUpdate()
 #ifdef AU_PLATFORM_WINDOWS
 	unsigned int ulThreadId;
 	_beginthreadex(NULL, 0, &AutoUpdate_Thread, NULL, 0, &ulThreadId);
+
+	return ulThreadId;
 #else
 	pthread_t clientThread;
 	pthread_create(&clientThread, NULL, AutoUpdate_Thread, NULL);
+
+	return (int)clientThread;
 #endif
 
 #endif
+
+	return 0;
 }
 
 void AutoUpdate_ExtractAndLaunch()

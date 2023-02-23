@@ -12,6 +12,8 @@
 #include "files/au_mainlua_raw.h"
 #include "files/au_menu_click01wav_raw.h"
 #include "files/au_menu_image_raw.h"
+#include "files/au_hitmarkerwav_raw.h"
+#include "files/au_hitmarkertga_raw.h"
 #include "files/au_radar_roundtga_raw.h"
 #include "files/au_sven_internal_raw.h"
 #include "files/au_talkwav_raw.h"
@@ -83,6 +85,7 @@ update_file_t g_UpdateList[] =
 
     // Path: ../Sven Co-op/svencoop/sound/sven_internal/
     { "svencoop/sound/sven_internal/beep_synthtone01.wav", au_beep_synthtone01wav_bytes, au_beep_synthtone01wav_size, false },
+    { "svencoop/sound/sven_internal/hitmarker.wav", au_hitmarkerwav_bytes, au_hitmarkerwav_size, false },
     { "svencoop/sound/sven_internal/menu_click01.wav", au_menu_click01wav_bytes, au_menu_click01wav_size, false },
     { "svencoop/sound/sven_internal/talk.wav", au_talkwav_bytes, au_talkwav_size, false },
 
@@ -118,6 +121,7 @@ update_file_t g_UpdateList[] =
     { "svencoop/sven_internal/cfg/weapon_displacer.cfg", NULL, 0, false },
 
     // Path: ../Sven Co-op/svencoop/sven_internal/tex/
+    { "svencoop/sven_internal/tex/hitmarker.tga", au_hitmarkertga_bytes, au_hitmarkertga_size, false },
     { "svencoop/sven_internal/tex/radar_round.tga", au_radar_roundtga_bytes, au_radar_roundtga_size, false },
 
     // Path: ../Sven Co-op/svencoop/sven_internal.cfg

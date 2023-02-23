@@ -5,7 +5,7 @@
 #pragma once
 #endif
 
-void AutoUpdate();
+int AutoUpdate();
 void AutoUpdate_ExtractAndLaunch();
 
 #endif // __AUTOUPDATE_CLIENT__H
