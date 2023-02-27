@@ -692,7 +692,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::SetCursorPosX(332);
 
-		ImGui::BeginChild(xs("hitmarkers"), ImVec2(328.5, 180), true);
+		ImGui::BeginChild(xs("hitmarkers"), ImVec2(328.5, 460), true);
 
 		ImGui::Text(xs("Hitmarkers"));
 
@@ -711,6 +711,38 @@ void CMenuModule::DrawVisualsTabContent()
 		ImGui::Spacing();
 
 		ImGui::SliderFloat(xs("Stay Time##hitmarkers"), &g_Config.cvars.hitmarkers_stay_time, 0.01f, 3.0f);
+		
+		ImGuiCustom.Spacing(4);
+
+		ImGui::Text(xs("Grenade Trajectory"));
+
+		ImGuiCustom.Spacing(4);
+
+		ImGui::Checkbox(xs("Show Grenade Trajectory"), &g_Config.cvars.show_grenade_trajectory);
+
+		ImGuiCustom.Spacing(4);
+
+		ImGui::ColorEdit4(xs("Color##grendtraj"), g_Config.cvars.grenade_trajectory_color);
+		
+		ImGui::Spacing();
+
+		ImGui::ColorEdit4(xs("Impact Color##grendtraj"), g_Config.cvars.grenade_trajectory_impact_color);
+		
+		ImGuiCustom.Spacing(4);
+
+		ImGui::Text(xs("AR Grenade Trajectory"));
+
+		ImGuiCustom.Spacing(4);
+
+		ImGui::Checkbox(xs("Show AR Grenade Trajectory"), &g_Config.cvars.show_ar_grenade_trajectory);
+
+		ImGuiCustom.Spacing(4);
+
+		ImGui::ColorEdit4(xs("Color##artraj"), g_Config.cvars.ar_grenade_trajectory_color);
+		
+		ImGui::Spacing();
+
+		ImGui::ColorEdit4(xs("Impact Color##artraj"), g_Config.cvars.ar_grenade_trajectory_impact_color);
 
 		ImGui::EndChild();
 		break;

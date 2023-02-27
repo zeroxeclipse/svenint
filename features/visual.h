@@ -53,6 +53,7 @@ public:
 	void OnVideoInit();
 	void GameFrame();
 	void OnHUDRedraw(float flTime);
+	void V_CalcRefdef(struct ref_params_s *pparams);
 
 	void ResetJumpSpeed();
 	void AddSound(const Vector &vecOrigin);
@@ -65,6 +66,8 @@ private:
 	void DrawCrosshair();
 	void ShowSpeed();
 	void ShowGrenadeTimer();
+	void ShowGrenadeTrajectory();
+	void ShowARGrenadeTrajectory();
 	void Lightmap();
 
 	void DrawPlayerInfo_Default(int index, int iHealth, bool bIsEntityFriend, float top_mid_x, float top_mid_y, float bottom_mid_x, float bottom_mid_y);

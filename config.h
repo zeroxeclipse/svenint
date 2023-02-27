@@ -230,6 +230,14 @@ public:
 		int hitmarkers_size = 24;
 		float hitmarkers_stay_time = 0.3f;
 
+		bool show_grenade_trajectory = true;
+		float grenade_trajectory_color[4] = { 0.0f, 1.f, 0.f, 1.f };
+		float grenade_trajectory_impact_color[4] = { 1.0f, 0.f, 0.f, 1.f };
+		
+		bool show_ar_grenade_trajectory = true;
+		float ar_grenade_trajectory_color[4] = { 0.0f, 1.f, 0.f, 1.f };
+		float ar_grenade_trajectory_impact_color[4] = { 1.0f, 0.f, 0.f, 1.f };
+
 		bool show_players_push_direction = false;
 		float push_direction_length = 16.0f;
 		float push_direction_width = 1.0f;

@@ -76,6 +76,8 @@ UserMsgHookFn ORIG_UserMsgHook_ScreenFade = NULL;
 
 //static bool bInStartSound = false;
 
+static cvar_t *fps_max = NULL;
+
 //-----------------------------------------------------------------------------
 // Console Commands
 //-----------------------------------------------------------------------------
@@ -131,6 +133,178 @@ static bool IsWorldModelItem(const char *pszModelName)
 }
 
 //-----------------------------------------------------------------------------
+// Trajectory
+//-----------------------------------------------------------------------------
+
+class CDrawTrajectory : public IDrawContext
+{
+public:
+	CDrawTrajectory(const Color &lineColor, const Color &impactColor, float flWidth = 2.f);
+	virtual ~CDrawTrajectory();
+
+	virtual void Draw() override;
+	virtual bool ShouldStopDraw() override;
+
+	virtual const Vector &GetDrawOrigin() const override;
+
+public:
+	void AddLine(const Vector &start, const Vector &end);
+	void AddImpact(const Vector &impact);
+
+private:
+	std::vector<Vector> m_trajectoryLines;
+	std::vector<Vector> m_impacts;
+
+	Color m_lineColor;
+	Color m_impactColor;
+
+	float m_flWidth;
+};
+
+CDrawTrajectory::CDrawTrajectory(const Color &lineColor, const Color &impactColor, float flWidth)
+{
+	m_lineColor = lineColor;
+	m_impactColor = impactColor;
+	m_flWidth = flWidth;
+}
+
+CDrawTrajectory::~CDrawTrajectory()
+{
+	m_trajectoryLines.clear();
+	m_impacts.clear();
+}
+
+void CDrawTrajectory::Draw()
+{
+	glEnable( GL_BLEND );
+	glDisable( GL_DEPTH_TEST );
+	glDisable( GL_ALPHA_TEST );
+	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+	glDisable( GL_TEXTURE_2D );
+
+	if ( !m_trajectoryLines.empty() )
+	{
+		glColor4ub( m_lineColor.r, m_lineColor.g, m_lineColor.b, m_lineColor.a );
+		glLineWidth( m_flWidth );
+
+		glBegin( GL_LINES );
+
+		for (const Vector &point : m_trajectoryLines)
+		{
+			glVertex3f( VectorExpand(point) );
+		}
+
+		glEnd();
+
+		glLineWidth( 1.f );
+	}
+
+	if ( !m_impacts.empty() )
+	{
+		Vector vecPoints[8];
+
+		glColor4ub( m_impactColor.r, m_impactColor.g, m_impactColor.b, m_impactColor.a );
+
+		for (const Vector &impact : m_impacts)
+		{
+			Vector vecMins(-2, -2, -2);
+			Vector vecMaxs(2, 2, 2);
+
+			VectorAdd( vecMins, impact, vecMins );
+			VectorAdd( vecMaxs, impact, vecMaxs );
+
+			// Build points of box
+			vecPoints[0].x = vecMins.x;
+			vecPoints[0].y = vecMins.y;
+			vecPoints[0].z = vecMins.z;
+
+			vecPoints[1].x = vecMins.x;
+			vecPoints[1].y = vecMaxs.y;
+			vecPoints[1].z = vecMins.z;
+
+			vecPoints[2].x = vecMaxs.x;
+			vecPoints[2].y = vecMaxs.y;
+			vecPoints[2].z = vecMins.z;
+
+			vecPoints[3].x = vecMaxs.x;
+			vecPoints[3].y = vecMins.y;
+			vecPoints[3].z = vecMins.z;
+
+			vecPoints[4].x = vecMins.x;
+			vecPoints[4].y = vecMins.y;
+			vecPoints[4].z = vecMaxs.z;
+
+			vecPoints[5].x = vecMins.x;
+			vecPoints[5].y = vecMaxs.y;
+			vecPoints[5].z = vecMaxs.z;
+
+			vecPoints[6].x = vecMaxs.x;
+			vecPoints[6].y = vecMaxs.y;
+			vecPoints[6].z = vecMaxs.z;
+
+			vecPoints[7].x = vecMaxs.x;
+			vecPoints[7].y = vecMins.y;
+			vecPoints[7].z = vecMaxs.z;
+
+			for (int i = 0; i < 4; i++)
+			{
+				int j = (i + 1) % 4;
+
+				glBegin( GL_TRIANGLE_STRIP );
+					glVertex3f( VectorExpand(vecPoints[i]) );
+					glVertex3f( VectorExpand(vecPoints[j]) );
+					glVertex3f( VectorExpand(vecPoints[i + 4]) );
+					glVertex3f( VectorExpand(vecPoints[j + 4]) );
+				glEnd();
+			}
+
+			// Bottom
+			glBegin( GL_TRIANGLE_STRIP );
+				glVertex3f( VectorExpand(vecPoints[2]) );
+				glVertex3f( VectorExpand(vecPoints[1]) );
+				glVertex3f( VectorExpand(vecPoints[3]) );
+				glVertex3f( VectorExpand(vecPoints[0]) );
+			glEnd();
+
+			// Top
+			glBegin( GL_TRIANGLE_STRIP );
+				glVertex3f( VectorExpand(vecPoints[4]) );
+				glVertex3f( VectorExpand(vecPoints[5]) );
+				glVertex3f( VectorExpand(vecPoints[7]) );
+				glVertex3f( VectorExpand(vecPoints[6]) );
+			glEnd();
+		}
+	}
+
+	glEnable( GL_TEXTURE_2D );
+
+	glEnable( GL_DEPTH_TEST );
+	glDisable( GL_BLEND );
+}
+
+bool CDrawTrajectory::ShouldStopDraw()
+{
+	return false;
+}
+
+const Vector &CDrawTrajectory::GetDrawOrigin() const
+{
+	return g_vecZero;
+}
+
+void CDrawTrajectory::AddLine(const Vector &start, const Vector &end)
+{
+	m_trajectoryLines.push_back( start );
+	m_trajectoryLines.push_back( end );
+}
+
+void CDrawTrajectory::AddImpact(const Vector &impact)
+{
+	m_impacts.push_back( impact );
+}
+
+//-----------------------------------------------------------------------------
 // Visual Hack
 //-----------------------------------------------------------------------------
 
@@ -155,6 +329,15 @@ void CVisual::OnHUDRedraw(float flTime)
 
 	ShowSpeed();
 	ShowGrenadeTimer();
+}
+
+void CVisual::V_CalcRefdef(struct ref_params_s *pparams)
+{
+	if ( !Client()->IsDead() )
+	{
+		ShowGrenadeTrajectory();
+		ShowARGrenadeTrajectory();
+	}
 }
 
 void CVisual::Draw()
@@ -329,6 +512,276 @@ void CVisual::DrawHitmarkers()
 
 		g_Drawing.DrawTexture( m_hHitMarkerTexture, x, y, x + size, y + size, 255, 255, 255, 255 );
 	}
+}
+
+void CVisual::ShowGrenadeTrajectory()
+{
+	const float flFrametime = 1.f / fps_max->value;
+	const float flEntGravity = 1.f;
+	const float flFriction = 0.8f;
+	const float flBoomTime = 4.f;
+	const float flSpeed = 700.f;
+
+	auto ClipVelocity = [](const Vector &in, const Vector &normal, Vector &out, float overbounce)
+	{
+		// Determine how far along plane to slide based on incoming direction.
+		// Scale by overbounce factor.
+
+		constexpr float kStop_Epsilon = 0.1f;
+		const float backoff = in.Dot(normal) * overbounce;
+
+		for ( int i = 0; i < 3; i++ )
+		{
+			out[i] = in[i] - ( normal[i] * backoff );
+
+			// If out velocity is too small, zero it out.
+			if ( out[i] > -kStop_Epsilon && out[i] < kStop_Epsilon )
+				out[i] = 0;
+		}
+	};
+
+	float flThrowStart, tillBoom;
+
+	if ( !g_Config.cvars.show_grenade_trajectory )
+		return;
+
+	if ( Client()->GetCurrentWeaponID() != WEAPON_HANDGRENADE )
+		return;
+
+	if ( ( flThrowStart = -ClientWeapon()->GetWeaponData()->fuser1 ) == 0.f || flThrowStart >= flBoomTime )
+		return;
+
+	Vector va, forward, right;
+
+	g_pEngineFuncs->GetViewAngles( va );
+
+	Vector angThrow = va; // todo: va + punch angle
+
+	if ( angThrow.x < 0.f )
+		angThrow.x = -10.f + angThrow.x * ( ( 90.f - 10.f ) / 90.f );
+	else
+		angThrow.x = -10.f + angThrow.x * ( ( 90.f + 10.f ) / 90.f );
+
+	float flVel = ( 90.f - angThrow.x ) * 10.f;
+
+	if ( flVel > flSpeed )
+		flVel = flSpeed;
+
+	g_pEngineFuncs->AngleVectors( angThrow, forward, right, NULL );
+
+	tillBoom = flBoomTime - flThrowStart;
+
+	int iBounces = 0;
+	float flTime = 0.f;
+	float flNextThink = 0.f;
+	float flBounceThink = 0.f;
+
+	Vector vecOrigin = g_pPlayerMove->origin + g_pPlayerMove->view_ofs + forward * 16;
+	Vector vecVelocity = g_pPlayerMove->velocity + forward * flVel;
+
+	if ( tillBoom < 0.1 )
+	{
+		vecVelocity.Zero();
+	}
+	else
+	{
+		flNextThink = 0.1f;
+	}
+
+	int r = int(255.f * g_Config.cvars.grenade_trajectory_color[0]);
+	int g = int(255.f * g_Config.cvars.grenade_trajectory_color[1]);
+	int b = int(255.f * g_Config.cvars.grenade_trajectory_color[2]);
+	int a = int(255.f * g_Config.cvars.grenade_trajectory_color[3]);
+
+	int impact_r = int(255.f * g_Config.cvars.grenade_trajectory_impact_color[0]);
+	int impact_g = int(255.f * g_Config.cvars.grenade_trajectory_impact_color[1]);
+	int impact_b = int(255.f * g_Config.cvars.grenade_trajectory_impact_color[2]);
+	int impact_a = int(255.f * g_Config.cvars.grenade_trajectory_impact_color[3]);
+
+	CDrawTrajectory *pTrajectoryRenderer = new CDrawTrajectory( { r, g, b, a }, { impact_r, impact_g, impact_b, impact_a } );
+
+	// Loop
+	do
+	{
+		// Apply gravity
+		vecVelocity.z -= flEntGravity * g_pPlayerMove->movevars->gravity * flFrametime;
+
+		Vector vecMove = vecVelocity * flFrametime;
+
+		// Trace forward
+		const int old_hull = g_pPlayerMove->usehull;
+		g_pPlayerMove->usehull = 2;
+
+		pmtrace_t trace = g_pPlayerMove->PM_PlayerTrace( vecOrigin, vecOrigin + vecMove, PM_NORMAL, -1 );
+
+		g_pPlayerMove->usehull = old_hull;
+
+		//Render()->DrawLine( vecOrigin, trace.endpos, { r, g, b, a } );
+		pTrajectoryRenderer->AddLine( vecOrigin, trace.endpos );
+
+		// Save trace pos
+		vecOrigin = trace.endpos;
+
+		// Tumble think
+		if ( flTime >= flNextThink )
+		{
+			if ( trace.inwater )
+			{
+				vecVelocity = vecVelocity * 0.5f;
+			}
+
+			flNextThink = flTime + 0.1f;
+		}
+
+		// Did hit a wall
+		if ( ( trace.fraction != 1.f && !trace.allsolid ) || trace.startsolid )
+		{
+			if ( flTime >= flBounceThink )
+			{
+				// On ground
+				if ( trace.plane.normal[2] > 0.7f )
+				{
+					vecVelocity *= 0.9f;
+
+					flBounceThink = flTime + 0.1f;
+				}
+			}
+
+			//if ( iBounces >= 10 )
+			//	vecVelocity.Zero();
+
+			//iBounces++;
+
+			//Render()->DrawBox( vecOrigin, Vector(-2, -2, -2), Vector(2, 2, 2), { impact_r, impact_g, impact_b, impact_a } );
+			pTrajectoryRenderer->AddImpact( vecOrigin );
+
+			// Started in solid
+			if ( trace.startsolid )
+				break;
+		}
+
+		if ( trace.fraction != 1.f )
+		{
+			ClipVelocity( vecVelocity, trace.plane.normal, vecVelocity, 2.f - flFriction /* reflection factor */ );
+
+			// On ground
+			if ( trace.plane.normal[2] > 0.7f )
+			{
+				if ( vecVelocity.z < g_pPlayerMove->movevars->gravity * flFrametime )
+					vecVelocity.z = 0.f;
+
+				if ( vecVelocity.LengthSqr() < 100.f )
+				{
+					vecVelocity.Zero();
+					break;
+				}
+			}
+
+		}
+
+		flTime += flFrametime;
+	}
+	while ( flTime <= tillBoom );
+
+	Render()->AddDrawContext( pTrajectoryRenderer );
+}
+
+void CVisual::ShowARGrenadeTrajectory()
+{
+	const float flFrametime = 1.f / fps_max->value;
+	const float flEntGravity = 0.7f;
+
+	int iWeaponID = Client()->GetCurrentWeaponID();
+
+	if ( !g_Config.cvars.show_ar_grenade_trajectory )
+		return;
+
+	if ( iWeaponID != WEAPON_MP5 && iWeaponID != WEAPON_M16 )
+		return;
+	
+	if ( ClientWeapon()->SecondaryAmmo() == 0 )
+	{
+		if ( iWeaponID == WEAPON_M16 )
+		{
+			if ( ClientWeapon()->GetWeaponData()->fuser1 == 8.f )
+				return;
+		}
+		else
+		{
+			return;
+		}
+	}
+
+	float flSpeed = 900.f;
+
+	if ( iWeaponID == WEAPON_M16 )
+		flSpeed = 1000.f;
+
+	int it = 0;
+	Vector va, forward, right;
+
+	g_pEngineFuncs->GetViewAngles( va );
+	g_pEngineFuncs->AngleVectors( va, forward, right, NULL );
+
+	Vector vecOrigin;
+	Vector vecVelocity = forward * flSpeed;
+
+	if ( Client()->IsDucked() )
+	{
+		vecOrigin = g_pPlayerMove->origin + forward * 16.f + right * 6.f;
+	}
+	else
+	{
+		vecOrigin = g_pPlayerMove->origin + g_pPlayerMove->view_ofs * 0.5f + forward * 16.f + right * 6.f;
+	}
+
+	int r = int(255.f * g_Config.cvars.ar_grenade_trajectory_color[0]);
+	int g = int(255.f * g_Config.cvars.ar_grenade_trajectory_color[1]);
+	int b = int(255.f * g_Config.cvars.ar_grenade_trajectory_color[2]);
+	int a = int(255.f * g_Config.cvars.ar_grenade_trajectory_color[3]);
+	
+	int impact_r = int(255.f * g_Config.cvars.ar_grenade_trajectory_impact_color[0]);
+	int impact_g = int(255.f * g_Config.cvars.ar_grenade_trajectory_impact_color[1]);
+	int impact_b = int(255.f * g_Config.cvars.ar_grenade_trajectory_impact_color[2]);
+	int impact_a = int(255.f * g_Config.cvars.ar_grenade_trajectory_impact_color[3]);
+
+	CDrawTrajectory *pTrajectoryRenderer = new CDrawTrajectory( { r, g, b, a }, { impact_r, impact_g, impact_b, impact_a } );
+
+	// Loop
+	do
+	{
+		// Apply gravity
+		vecVelocity.z -= flEntGravity * g_pPlayerMove->movevars->gravity * flFrametime;
+
+		Vector vecMove = vecVelocity * flFrametime;
+
+		// Trace forward
+		const int old_hull = g_pPlayerMove->usehull;
+		g_pPlayerMove->usehull = 2;
+
+		pmtrace_t trace = g_pPlayerMove->PM_PlayerTrace( vecOrigin, vecOrigin + vecMove, PM_NORMAL, -1 );
+
+		g_pPlayerMove->usehull = old_hull;
+
+		//Render()->DrawLine( vecOrigin, trace.endpos, { r, g, b, a } );
+		pTrajectoryRenderer->AddLine( vecOrigin, trace.endpos );
+
+		// Save trace pos
+		vecOrigin = trace.endpos;
+
+		// Did hit a wall or started in solid
+		if ( ( trace.fraction != 1.f && !trace.allsolid ) || trace.startsolid )
+		{
+			//Render()->DrawBox( vecOrigin, Vector(-2, -2, -2), Vector(2, 2, 2), { impact_r, impact_g, impact_b, impact_a } );
+			pTrajectoryRenderer->AddImpact( vecOrigin );
+			break;
+		}
+
+		it++;
+	}
+	while ( it < 3000 );
+
+	Render()->AddDrawContext( pTrajectoryRenderer );
 }
 
 void CVisual::ShowGrenadeTimer()
@@ -1574,6 +2027,7 @@ CVisual::CVisual()
 
 bool CVisual::Load()
 {
+	fps_max = CVar()->FindCvar("fps_max");
 	r_drawentities = CVar()->FindCvar("r_drawentities");
 
 	if ( !r_drawentities )

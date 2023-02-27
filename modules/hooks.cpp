@@ -1066,6 +1066,7 @@ HOOK_RESULT CClientHooks::V_CalcRefdef(ref_params_t *pparams)
 	s_iWaterLevel = pparams->waterlevel;
 
 	g_Aim.Pre_V_CalcRefdef(pparams);
+	g_Visual.V_CalcRefdef(pparams);
 	g_Bsp.V_CalcRefdef();
 	g_SpeedrunTools.V_CalcRefDef();
 
