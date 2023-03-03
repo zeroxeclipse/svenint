@@ -112,7 +112,8 @@ static obfuscated_string draw_entities_items[] =
 	xs("3 - Draw Model & Hitboxes"),
 	xs("4 - Draw Hulls"),
 	xs("5 - Draw Players Bones"),
-	xs("6 - Draw Players Hitboxes")
+	xs("6 - Draw Players Hitboxes"),
+	xs("7 - Don't Draw Player Models")
 };
 
 static obfuscated_string esp_style[] = { xs("0 - Default"), xs("1 - SAMP"), xs("2 - Left 4 Dead") };
