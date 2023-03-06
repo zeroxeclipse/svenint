@@ -170,9 +170,38 @@ static obfuscated_string theme_items[] =
 static obfuscated_string font_items[] =
 {
 	xs("SvenInt"),
-	xs("Left 4 Dead 2"),
+	xs("Left 4 Dead 2")
 };
 
+static obfuscated_string tool_tips_visuals[] =
+{
+	xs("- Draw Entities: Changes drawing method of all entities or only players\n"
+	"- Light Map: Overrides entire game lightmap, basically a customizable fullbright\n"
+	"- Skip Frames: Skips game frames on a set interval, can boost or lower your FPS\n"),
+	xs("Displays entities information like Name, HP, Armor, etc. with fully customizable look"),
+	xs("As short for Chameleon, Chams are a method of wallhacks but with colors!"),
+	xs("Fully customizable entities/players animated glow!"),
+	xs("Shows shape and position of spawns and any selected game trigger from the list with customizable look"),
+	xs("- Depth Buffer: Shows the depth buffer compression scheme used to render the motion blur\n"
+	"- SSAO: Shading technique that emulates better lightning and shadows.\n"
+	"- Color Correction: Alterates the color balance and more of the game to achieve a desired effect\n"
+	"- Chromatic aberration: Screen-based method that mimics lens distortions\n"
+	"- Vignette: Effect that simulates the darkening like real-world camera lenses\n"
+	"- Blur: Visual effect that adds a blur to objects in motion, customizable with different types of blur")
+};
+
+static obfuscated_string tool_tips_hud[] =
+{
+	xs("Feature that lets you change the color of nickname of players when they write something in the chat"),
+	xs("Replaces the legacy vote pop-up with a better one and prevents the vote from stopping player movement")
+};
+
+static obfuscated_string tool_tips_utility[] =
+{
+	xs("- Auto Wallstrafing: Automatically moves and strafes for you near any wall\n"
+	"- Strafer: Most comfy feature, automatically strafes for you while bunny hopping, just jump!"),
+	xs("Automatically loops through your player model colors by the given delay")
+};
 //-----------------------------------------------------------------------------
 // Functions
 //-----------------------------------------------------------------------------
@@ -633,6 +662,8 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Text(xs("Game"));
 
+		g_Config.cvars.tooltips ? ImGuiCustom.ToolTip(tool_tips_visuals[0], true, 300) : void(nullptr);
+
 		ImGuiCustom.Spacing(4);
 
 		ImGui::Checkbox(xs("No Shake"), &g_Config.cvars.no_shake); ImGui::SameLine();
@@ -754,8 +785,11 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::PushItemWidth(180);
 
-		ImGui::Checkbox(xs("Enable ESP"), &g_Config.cvars.esp); ImGui::SameLine();
+		ImGui::Checkbox(xs("Enable ESP"), &g_Config.cvars.esp); ImGui::SameLine(); 
 		ImGui::Checkbox(xs("Debug##esp"), &g_Config.cvars.esp_debug);
+
+		g_Config.cvars.tooltips ? ImGuiCustom.ToolTip(tool_tips_visuals[1], true, 300) : void(nullptr);
+
 		ImGui::Checkbox(xs("Optimize##esp"), &g_Config.cvars.esp_optimize); ImGui::SameLine();
 		ImGui::Checkbox(xs("Snap Lines##esp"), &g_Config.cvars.esp_snaplines); ImGui::SameLine();
 		ImGui::Checkbox(xs("Outline Box"), &g_Config.cvars.esp_box_outline);
@@ -884,6 +918,8 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Checkbox(xs("Enable Chams"), &g_Config.cvars.chams);
 
+		g_Config.cvars.tooltips ? ImGuiCustom.ToolTip(tool_tips_visuals[2], true, 300) : void(nullptr);
+
 		ImGuiCustom.Spacing(8);
 
 		ImGui::Text(xs("Players"));
@@ -953,6 +989,8 @@ void CMenuModule::DrawVisualsTabContent()
 		ImGui::PushItemWidth(180);
 
 		ImGui::Checkbox(xs("Enable Glow"), &g_Config.cvars.glow);
+
+		g_Config.cvars.tooltips ? ImGuiCustom.ToolTip(tool_tips_visuals[3], true, 300) : void(nullptr);
 
 		ImGui::SameLine();
 
@@ -1231,6 +1269,8 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Text(xs("BSP Info"));
 
+		g_Config.cvars.tooltips ? ImGuiCustom.ToolTip(tool_tips_visuals[4], true, 300) : void(nullptr);
+
 		ImGui::Spacing();
 
 		ImGui::Checkbox(xs("Show Spawns"), &g_Config.cvars.show_spawns);
@@ -1404,6 +1444,8 @@ void CMenuModule::DrawVisualsTabContent()
 		ImGui::BeginChild(xs("shaders"), ImVec2(328, 415), true);
 
 		ImGui::Checkbox(xs("Enable##shaders"), &g_Config.cvars.shaders);
+
+		g_Config.cvars.tooltips ? ImGuiCustom.ToolTip(tool_tips_visuals[5], true, 300) : void(nullptr);
 
 		ImGuiCustom.Spacing(4);
 
@@ -2269,6 +2311,8 @@ void CMenuModule::DrawHUDTabContent()
 
 		ImGui::Checkbox(xs("Enable Chat Colors"), &g_Config.cvars.enable_chat_colors);
 
+		g_Config.cvars.tooltips ? ImGuiCustom.ToolTip(tool_tips_hud[0], true, 300) : void(nullptr);
+
 		ImGuiCustom.Spacing(4);
 
 		if (ImGui::Button(xs("Load Players List")))
@@ -2358,6 +2402,8 @@ void CMenuModule::DrawHUDTabContent()
 
 		ImGui::Checkbox(xs("Enable Custom Vote Popup"), &g_Config.cvars.vote_popup);
 
+		g_Config.cvars.tooltips ? ImGuiCustom.ToolTip(tool_tips_hud[1], true, 300) : void(nullptr);
+
 		ImGui::Spacing();
 
 		ImGui::InputInt(xs("Yes Key##votepopup"), &g_Config.cvars.vote_popup_yes_key);
@@ -2423,6 +2469,8 @@ void CMenuModule::DrawUtilityTabContent()
 		extern void ConCommand_DropEmptyWeapon();
 
 		ImGui::Text(xs("General"));
+
+		g_Config.cvars.tooltips ? ImGuiCustom.ToolTip(tool_tips_utility[0], true, 300) : void(nullptr);
 
 		ImGui::Spacing();
 
@@ -2629,6 +2677,8 @@ void CMenuModule::DrawUtilityTabContent()
 		ImGui::BeginChild(xs("color-pulsator"), ImVec2(328, 200), true);
 
 		ImGui::Checkbox(xs("Enable Pulsator"), &g_Config.cvars.color_pulsator);
+
+		g_Config.cvars.tooltips ? ImGuiCustom.ToolTip(tool_tips_utility[1], true, 300) : void(nullptr);
 
 		ImGui::Spacing();
 
@@ -3275,9 +3325,11 @@ void CMenuModule::DrawSettingsTabContent()
 
 		ImGui::Text(xs("Style"));
 
-		ImGuiCustom.Spacing(4); //g_Config.cvars.tooltips ? ImGui::SameLine(), ImGuiCustom.ToolTip(xs("Enables little features help pop ups like this one!")) : void(nullptr);
+		ImGuiCustom.Spacing(4);
 
-		ImGui::Checkbox(xs("Show Tooltips"), &g_Config.cvars.tooltips); ImGui::SameLine(), ImGuiCustom.ToolTip(xs("Enables little features help pop ups like this one!"));
+		ImGui::Checkbox(xs("Show Tooltips"), &g_Config.cvars.tooltips); 
+		
+		ImGuiCustom.ToolTip(xs("Displays (?) a tool tip for most uncommon features."), true, 125);
 
 		ImGuiCustom.Spacing(4);
 

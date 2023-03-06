@@ -8,7 +8,7 @@ public:
 	void End();
 
 	void Spacing(float value);
-	void ToolTip(const char* desc);
+	void ToolTip(const char* desc, bool sameline, float x);
 private:
 
 };

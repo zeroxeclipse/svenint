@@ -118,14 +118,13 @@ void CImGuiCustom::Spacing(float value)
 }
 
 // For tool tips
-void CImGuiCustom::ToolTip(const char* desc)
+void CImGuiCustom::ToolTip(const char* desc, bool sameline, float x)
 {
-    // Can't color the text because this shit does not work
-    // neither TextColored works, same reason as columns
+    sameline ? ImGui::SameLine() : void(nullptr);
 
-    //ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(101, 164, 212, 255));
+    ImGui::SetCursorPosX(x);
+
     ImGui::Text("(?)");
-    //ImGui::PopStyleColor();
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
     {
         ImGui::BeginTooltip();
