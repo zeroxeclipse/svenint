@@ -183,7 +183,7 @@ static obfuscated_string tool_tips_visuals[] =
 	xs("As short for Chameleon, Chams are a method of wallhacks but with colors!"),
 	xs("Fully customizable entities/players animated glow!"),
 	xs("Shows shape and position of spawns and any selected game trigger from the list with customizable look"),
-	xs("- Depth Buffer: Shows the depth buffer compression scheme used to render the motion blur\n"
+	xs("- Depth Buffer: Shows the depth buffer of the rendered scene\n"
 	"- SSAO: Shading technique that emulates better lightning and shadows.\n"
 	"- Color Correction: Alterates the color balance and more of the game to achieve a desired effect\n"
 	"- Chromatic aberration: Screen-based method that mimics lens distortions\n"
@@ -3347,8 +3347,34 @@ void CMenuModule::DrawSettingsTabContent()
 		{
 			ImGui::PushItemWidth(100);
 			ImGui::SameLine();
-			if (ImGui::BeginCombo("", xs("Customize")))
+			if (ImGui::BeginCombo("", xs("Customize"), ImGuiComboFlags_HeightLargest))
 			{
+				if ( ImGui::Button(xs("Reset##custom_style")) )
+				{
+					g_Config.cvars.WindowBg = { 0,	0, 0, 230 };
+					g_Config.cvars.Border = { 0, 0, 0, 0 };
+					g_Config.cvars.Button = { 56, 58, 74, 255 };
+					g_Config.cvars.ButtonActive = { 101, 164, 212, 255 };
+					g_Config.cvars.ButtonHovered = { 114, 187, 242, 255 };
+					g_Config.cvars.FrameBg = { 56, 58, 74, 255 };
+					g_Config.cvars.FrameBgActive = { 94, 140, 166, 255 };
+					g_Config.cvars.FrameBgHovered = { 114, 187, 242, 255 };
+					g_Config.cvars.Text = { 255, 255, 255, 255 };
+					g_Config.cvars.ChildBg = { 33, 34, 45, 255 };
+					g_Config.cvars.CheckMark = { 255, 255, 255, 255 };
+					g_Config.cvars.SliderGrab = { 101, 164, 212, 255 };
+					g_Config.cvars.SliderGrabActive = { 101, 164, 212, 255 };
+					g_Config.cvars.Header = { 101, 164, 212, 255 };
+					g_Config.cvars.HeaderHovered = { 114, 187, 242, 255 };
+					g_Config.cvars.HeaderActive = { 101, 164, 212, 255 };
+					g_Config.cvars.ResizeGripActive = { 20, 50, 66, 255 };
+					g_Config.cvars.SeparatorActive = { 20, 50, 66, 255 };
+					g_Config.cvars.TitleBgActive = { 20, 50, 66, 255 };
+					g_Config.cvars.Separator = { 47, 96, 133, 255 };
+				}
+
+				ImGuiCustom.Spacing(4);
+
 				ImGui::ColorEdit4(xs("Window Color##1"), (float*)(&g_Config.cvars.WindowBg), ImGuiColorEditFlags_AlphaBar);
 				ImGui::ColorEdit4(xs("Border Color##1"), (float*)&g_Config.cvars.Border, ImGuiColorEditFlags_AlphaBar);
 				ImGui::ColorEdit4(xs("Button Color##1"), (float*)&g_Config.cvars.Button, ImGuiColorEditFlags_AlphaBar);
