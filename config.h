@@ -11,6 +11,8 @@
 #include <platform.h>
 #include <convar.h>
 
+#include <imgui.h>
+
 #include <keydefs.h>
 
 #ifdef PLATFORM_WINDOWS
@@ -675,6 +677,54 @@ public:
 		int vote_popup_h_border_pix = 7;
 		float vote_popup_width_frac = 0.015f;
 		float vote_popup_height_frac = 0.37f;
+
+		//-----------------------------------------------------------------------------
+		// Custom Style
+		//-----------------------------------------------------------------------------
+
+		bool custom_style = false;
+
+		ImU32 WindowBgU32 = 3858759680;
+		ImU32 BorderU32 = 0;
+		ImU32 ButtonU32 = 4283054648;
+		ImU32 ButtonActiveU32 = 4292125797;
+		ImU32 ButtonHoveredU32 = 4294097778;
+		ImU32 FrameBgU32 = 4283054648;
+		ImU32 FrameBgActiveU32 = 4294097778;
+		ImU32 FrameBgHoveredU32 = 4289104990;
+		ImU32 TextU32 = 4294967295;
+		ImU32 ChildBgU32 = 4281147937;
+		ImU32 CheckMarkU32 = 4294967295;
+		ImU32 SliderGrabU32 = 4292125797;
+		ImU32 SliderGrabActiveU32 = 4292125797;
+		ImU32 HeaderU32 = 4292125797;
+		ImU32 HeaderHoveredU32 = 4294097778;
+		ImU32 HeaderActiveU32 = 4292125797;
+		ImU32 ResizeGripActiveU32 = 4282528276;
+		ImU32 SeparatorActiveU32 = 2353148666;
+		ImU32 TitleBgActiveU32 = 4282528276;
+		ImU32 SeparatorU32 = 4286930991;
+
+		ImColor WindowBg = { 0,	0, 0, 230 };
+		ImColor Border = { 0, 0, 0, 0 };
+		ImColor Button = { 56, 58, 74, 255 };
+		ImColor ButtonActive = { 101, 164, 212, 255 };
+		ImColor ButtonHovered = { 114, 187, 242, 255 };
+		ImColor FrameBg = { 56, 58, 74, 255 };
+		ImColor FrameBgActive = { 94, 140, 166, 255 };
+		ImColor FrameBgHovered = { 114, 187, 242, 255 };
+		ImColor Text = { 255, 255, 255, 255 };
+		ImColor ChildBg = { 33, 34, 45, 255 };
+		ImColor CheckMark = { 255, 255, 255, 255 };
+		ImColor SliderGrab = { 101, 164, 212, 255 };
+		ImColor SliderGrabActive = { 101, 164, 212, 255 };
+		ImColor Header = { 101, 164, 212, 255 };
+		ImColor HeaderHovered = { 114, 187, 242, 255 };
+		ImColor HeaderActive = { 101, 164, 212, 255 };
+		ImColor ResizeGripActive = { 20, 50, 66, 255 };
+		ImColor SeparatorActive = { 20, 50, 66, 255 };
+		ImColor TitleBgActive = { 20, 50, 66, 255 };
+		ImColor Separator = { 47, 96, 133, 255 };
 	};
 
 	config_vars cvars;

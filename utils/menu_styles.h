@@ -12,4 +12,7 @@ void LoadMenuTheme();
 void SaveCurrentStyle();
 void LoadSavedStyle();
 
+void ConvertToU32();
+void RefreshCustomStyle();
+
 #endif // MENU_STYLES_H

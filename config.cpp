@@ -907,6 +907,32 @@ bool CConfig::Load()
 			ConfigManager()->EndSectionImport();
 		}
 
+		if (ConfigManager()->BeginSectionImport("CUSTOMSTYLE"))
+		{
+			ConfigManager()->ImportParam("WindowBg", g_Config.cvars.WindowBgU32);
+			ConfigManager()->ImportParam("Border", g_Config.cvars.BorderU32);
+			ConfigManager()->ImportParam("Button", g_Config.cvars.ButtonU32);
+			ConfigManager()->ImportParam("ButtonActive", g_Config.cvars.ButtonActiveU32);
+			ConfigManager()->ImportParam("ButtonHovered", g_Config.cvars.ButtonHoveredU32);
+			ConfigManager()->ImportParam("FrameBg", g_Config.cvars.FrameBgU32);
+			ConfigManager()->ImportParam("FrameBgHovered", g_Config.cvars.FrameBgActiveU32);
+			ConfigManager()->ImportParam("FrameBgActive", g_Config.cvars.FrameBgHoveredU32);
+			ConfigManager()->ImportParam("Text", g_Config.cvars.TextU32);
+			ConfigManager()->ImportParam("ChildBg", g_Config.cvars.ChildBgU32);
+			ConfigManager()->ImportParam("Checkmark", g_Config.cvars.CheckMarkU32);
+			ConfigManager()->ImportParam("SliderGrab", g_Config.cvars.SliderGrabU32);
+			ConfigManager()->ImportParam("SliderGrabActive", g_Config.cvars.SliderGrabActiveU32);
+			ConfigManager()->ImportParam("header", g_Config.cvars.HeaderU32);
+			ConfigManager()->ImportParam("HeaderHovered", g_Config.cvars.HeaderHoveredU32);
+			ConfigManager()->ImportParam("HeaderActive", g_Config.cvars.HeaderActiveU32);
+			ConfigManager()->ImportParam("ResizeGripActive", g_Config.cvars.ResizeGripActiveU32);
+			ConfigManager()->ImportParam("SeparatorActive", g_Config.cvars.SeparatorActiveU32);
+			ConfigManager()->ImportParam("TitleBgActive", g_Config.cvars.TitleBgActiveU32);
+			ConfigManager()->ImportParam("Separator", g_Config.cvars.SeparatorU32);
+
+			g_Config.cvars.custom_style = true;
+		}
+
 		//if (ConfigManager()->BeginSectionImport("AUTOVOTE"))
 		//{
 		//	ConfigManager()->ImportParam("Mode", cvars.autovote_mode);
@@ -1687,7 +1713,31 @@ void CConfig::Save()
 			ConfigManager()->ExportParam("HeightFraction", cvars.vote_popup_height_frac);
 
 			ConfigManager()->EndSectionExport();
+
+		if (ConfigManager()->BeginSectionExport("CUSTOMSTYLE"))
+		{
+			ConfigManager()->ExportParam("WindowBg", g_Config.cvars.WindowBgU32);
+			ConfigManager()->ExportParam("Border", g_Config.cvars.BorderU32);
+			ConfigManager()->ExportParam("Button", g_Config.cvars.ButtonU32);
+			ConfigManager()->ExportParam("ButtonActive", g_Config.cvars.ButtonActiveU32);
+			ConfigManager()->ExportParam("ButtonHovered", g_Config.cvars.ButtonHoveredU32);
+			ConfigManager()->ExportParam("FrameBg", g_Config.cvars.FrameBgU32);
+			ConfigManager()->ExportParam("FrameBgHovered", g_Config.cvars.FrameBgActiveU32);
+			ConfigManager()->ExportParam("FrameBgActive", g_Config.cvars.FrameBgHoveredU32);
+			ConfigManager()->ExportParam("Text", g_Config.cvars.TextU32);
+			ConfigManager()->ExportParam("ChildBg", g_Config.cvars.ChildBgU32);
+			ConfigManager()->ExportParam("Checkmark", g_Config.cvars.CheckMarkU32);
+			ConfigManager()->ExportParam("SliderGrab", g_Config.cvars.SliderGrabU32);
+			ConfigManager()->ExportParam("SliderGrabActive", g_Config.cvars.SliderGrabActiveU32);
+			ConfigManager()->ExportParam("header", g_Config.cvars.HeaderU32);
+			ConfigManager()->ExportParam("HeaderHovered", g_Config.cvars.HeaderHoveredU32);
+			ConfigManager()->ExportParam("HeaderActive", g_Config.cvars.HeaderActiveU32);
+			ConfigManager()->ExportParam("ResizeGripActive", g_Config.cvars.ResizeGripActiveU32);
+			ConfigManager()->ExportParam("SeparatorActive", g_Config.cvars.SeparatorActiveU32);
+			ConfigManager()->ExportParam("TitleBgActive", g_Config.cvars.TitleBgActiveU32);
+			ConfigManager()->ExportParam("Separator", g_Config.cvars.SeparatorU32);
 		}
+	}
 
 		//if (ConfigManager()->BeginSectionExport("AUTOVOTE"))
 		//{

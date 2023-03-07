@@ -164,7 +164,8 @@ static obfuscated_string theme_items[] =
 	xs("Monochrome"),
 	xs("Pink"),
 	xs("Half-Life"),
-	xs("Sven-Cope")
+	xs("Sven-Cope"),
+	xs("Custom"),
 };
 
 static obfuscated_string font_items[] =
@@ -3342,6 +3343,46 @@ void CMenuModule::DrawSettingsTabContent()
 			WindowStyle();
 		}
 
+		if (g_Config.cvars.menu_theme == 16)
+		{
+			ImGui::PushItemWidth(100);
+			ImGui::SameLine();
+			if (ImGui::BeginCombo("", xs("Customize")))
+			{
+				ImGui::ColorEdit4(xs("Window Color##1"), (float*)(&g_Config.cvars.WindowBg), ImGuiColorEditFlags_AlphaBar);
+				ImGui::ColorEdit4(xs("Border Color##1"), (float*)&g_Config.cvars.Border, ImGuiColorEditFlags_AlphaBar);
+				ImGui::ColorEdit4(xs("Button Color##1"), (float*)&g_Config.cvars.Button, ImGuiColorEditFlags_AlphaBar);
+				ImGui::ColorEdit4(xs("ButtonActive Color##1"), (float*)&g_Config.cvars.ButtonActive, ImGuiColorEditFlags_AlphaBar);
+				ImGui::ColorEdit4(xs("ButtonHovered Color##1"), (float*)&g_Config.cvars.ButtonHovered, ImGuiColorEditFlags_AlphaBar);
+				ImGui::ColorEdit4(xs("FrameBg Color##1"), (float*)&g_Config.cvars.FrameBg, ImGuiColorEditFlags_AlphaBar);
+				ImGui::ColorEdit4(xs("FrameBgActive Color##1"), (float*)&g_Config.cvars.FrameBgActive, ImGuiColorEditFlags_AlphaBar);
+				ImGui::ColorEdit4(xs("FrameBgHovered Color##1"), (float*)&g_Config.cvars.FrameBgHovered, ImGuiColorEditFlags_AlphaBar);
+				ImGui::ColorEdit4(xs("Text Color##1"), (float*)&g_Config.cvars.Text, ImGuiColorEditFlags_AlphaBar);
+				ImGui::ColorEdit4(xs("ChildBg Color##1"), (float*)&g_Config.cvars.ChildBg, ImGuiColorEditFlags_AlphaBar);
+				ImGui::ColorEdit4(xs("CheckMark Color##1"), (float*)&g_Config.cvars.CheckMark, ImGuiColorEditFlags_AlphaBar);
+				ImGui::ColorEdit4(xs("SliderGrab Color##1"), (float*)&g_Config.cvars.SliderGrab, ImGuiColorEditFlags_AlphaBar);
+				ImGui::ColorEdit4(xs("SliderGrabActive Color##1"), (float*)&g_Config.cvars.SliderGrabActive, ImGuiColorEditFlags_AlphaBar);
+				ImGui::ColorEdit4(xs("Header Color##1"), (float*)&g_Config.cvars, ImGuiColorEditFlags_AlphaBar);
+				ImGui::ColorEdit4(xs("HeaderHovered Color##1"), (float*)&g_Config.cvars.HeaderHovered, ImGuiColorEditFlags_AlphaBar);
+				ImGui::ColorEdit4(xs("HeaderActive Color##1"), (float*)&g_Config.cvars.HeaderActive, ImGuiColorEditFlags_AlphaBar);
+				ImGui::ColorEdit4(xs("ResizeGripActive Color##1"), (float*)&g_Config.cvars.ResizeGripActive, ImGuiColorEditFlags_AlphaBar);
+				ImGui::ColorEdit4(xs("Separator Color##1"), (float*)&g_Config.cvars.Separator, ImGuiColorEditFlags_AlphaBar);
+				ImGui::ColorEdit4(xs("SeparatorActive Color##1"), (float*)&g_Config.cvars.SeparatorActive, ImGuiColorEditFlags_AlphaBar);
+				ImGui::ColorEdit4(xs("TitleBgActive Color##1"), (float*)&g_Config.cvars.TitleBgActive, ImGuiColorEditFlags_AlphaBar);
+
+				ConvertToU32();
+				RefreshCustomStyle(); // Not very optimal but should be fine
+
+				ImGui::EndCombo();
+			}
+
+			ImGui::PopItemWidth();
+		}
+
+		ImGui::PopItemWidth();
+
+		ImGui::PushItemWidth(150);
+
 		ImGui::Spacing();
 
 		if (ImGui::Combo(xs("Font"), &g_Config.cvars.menu_font, (const char**)font_items, IM_ARRAYSIZE(font_items)))
@@ -3365,7 +3406,7 @@ void CMenuModule::DrawSettingsTabContent()
 
 		ImGuiCustom.Spacing(8);
 
-		if (ImGui::BeginCombo("", xs("Rainbow Colors"), ImGuiComboFlags_HeightLargest))
+		if (ImGui::BeginCombo(" ", xs("Rainbow Colors"), ImGuiComboFlags_HeightLargest))
 		{
 			ImGui::Checkbox(xs("Rainbow Logo"), &g_Config.cvars.menu_rainbow[0]);
 			ImGui::Checkbox(xs("Rainbow Separator"), &g_Config.cvars.menu_rainbow[1]);
