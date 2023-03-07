@@ -760,6 +760,9 @@
     <ClInclude Include="features\chat_colors.h">
       <Filter>Sven Internal\Features</Filter>
     </ClInclude>
+    <ClInclude Include="utils\menu_fonts.hpp">
+      <Filter>Sven Internal\Utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

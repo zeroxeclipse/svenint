@@ -320,6 +320,7 @@
     <ClInclude Include="strafe\strafe_utils.h" />
     <ClInclude Include="SvenMod\public\hl_sdk\cl_dll\interpolation.h" />
     <ClInclude Include="utils\antidebug.h" />
+    <ClInclude Include="utils\menu_fonts.hpp" />
     <ClInclude Include="utils\menu_styles.h" />
     <ClInclude Include="utils\patcher.h" />
     <ClInclude Include="utils\shaders\bloom_raw.h" />
