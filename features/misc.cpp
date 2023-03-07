@@ -73,6 +73,8 @@ static bool s_bFreeze = false;
 static bool s_bFreeze2 = false;
 bool g_bForceFreeze2 = false;
 
+static bool s_bDucktap = false;
+
 static float s_flTopColorDelay = 0.0f;
 static float s_flBottomColorDelay = 0.0f;
 
@@ -221,6 +223,9 @@ CON_COMMAND_NO_WRAPPER(sc_ducktap, "Toggle ducktapping")
 	g_Config.cvars.ducktap = !g_Config.cvars.ducktap;
 
 	Utils()->PrintChatText("<SvenInt> Auto ducktap is %s\n", g_Config.cvars.ducktap ? "ON" : "OFF");
+	
+	if ( g_Config.cvars.ducktap && Client()->IsOnGround() )
+		g_pEngineFuncs->ClientCmd("+duck;wait;-duck");
 }
 
 CON_COMMAND_NO_WRAPPER(sc_jumpbug, "Toggle jumpbug")
@@ -578,11 +583,33 @@ static void freeze2_toggle_key_up()
 	s_bFreeze2 = false;
 }
 
+static void ducktap_toggle_key_down()
+{
+	Msg("Auto ducktap enabled\n");
+	Utils()->PrintChatText("<SvenInt> Auto ducktap is ON\n");
+
+	if ( Client()->IsOnGround() )
+		g_pEngineFuncs->ClientCmd("+duck;wait;-duck");
+
+	s_bDucktap = true;
+}
+
+static void ducktap_toggle_key_up()
+{
+	Msg("Auto ducktap disabled\n");
+	Utils()->PrintChatText("<SvenInt> Auto ducktap is OFF\n");
+
+	s_bDucktap = false;
+}
+
 static ConCommand input_command__sc_freeze_toggle("+sc_freeze_toggle", freeze_toggle_key_down, "Freeze input");
 static ConCommand output_command__sc_freeze_toggle("-sc_freeze_toggle", freeze_toggle_key_up, "Freeze output");
 
 static ConCommand input_command__sc_freeze2_toggle("+sc_freeze2_toggle", freeze2_toggle_key_down, "Freeze #2 input");
 static ConCommand output_command__sc_freeze2_toggle("-sc_freeze2_toggle", freeze2_toggle_key_up, "Freeze #2 output");
+
+static ConCommand input_command__sc_ducktap_toggle("+sc_ducktap", ducktap_toggle_key_down, "Auto ducktap input");
+static ConCommand output_command__sc_ducktap_toggle("-sc_ducktap", ducktap_toggle_key_up, "Auto ducktap output");
 
 ConVar sc_app_speed("sc_app_speed", "1", FCVAR_CLIENTDLL, "Speed of application", true, 0.1f, false, FLT_MAX);
 ConVar sc_speedhack("sc_speedhack", "1", FCVAR_CLIENTDLL, "sc_speedhack <value> - Set speedhack value", true, 0.f, false, FLT_MAX);
@@ -1595,9 +1622,12 @@ void CMisc::Ducktap(struct usercmd_s *cmd)
 
 	static int onground_prev = 0;
 
-	if ( g_Config.cvars.ducktap && g_pPlayerMove->onground != -1 && onground_prev == -1 )
+	if ( s_bDucktap || g_Config.cvars.ducktap )
 	{
-		cmd->buttons |= IN_DUCK;
+		if ( g_pPlayerMove->onground != -1 && onground_prev == -1 )
+		{
+			cmd->buttons |= IN_DUCK;
+		}
 	}
 
 	onground_prev = g_pPlayerMove->onground;
