@@ -587,21 +587,21 @@ void CShaders::DrawGaussianBlur(float radius)
 
 void CShaders::DrawGaussianBlurFast(float radius)
 {
-	constexpr float d = 22.5f * M_PI / 180.f;
+	constexpr float d = 22.5f * M_PI / 180.f; // 22.5 deg
 
 	const Vector2D directions[8] =
 	{
-		{ 1.f, 0.f },
-		{ 0.f, 1.f },
+		{ 1.f, 0.f }, // 180 deg
+		{ 0.f, 1.f }, // 90 deg
 
-		{ cos(M_PI / 4), sin(M_PI / 4) },
-		{ cos(M_PI - (M_PI / 4)), sin(M_PI - (M_PI / 4)) },
+		{ cos(M_PI / 4), sin(M_PI / 4) }, // 45 deg
+		{ cos(M_PI - (M_PI / 4)), sin(M_PI - (M_PI / 4)) }, // 135 deg
 
-		{ cos(d), sin(d) },
-		{ cos((M_PI / 2) + d), sin((M_PI / 2) + d) },
+		{ cos(d), sin(d) }, // 22.5 deg
+		{ cos((M_PI / 2) + d), sin((M_PI / 2) + d) }, // 112.5 deg
 
-		{ cos((M_PI / 2) - d), sin((M_PI / 2) - d) },
-		{ cos(M_PI - d), sin(M_PI - d) },
+		{ cos((M_PI / 2) - d), sin((M_PI / 2) - d) }, // 67.5 deg
+		{ cos(M_PI - d), sin(M_PI - d) }, // 157.5 deg
 	};
 
 	for (int i = 0; i < 8; i++)
