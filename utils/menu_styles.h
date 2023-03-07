@@ -12,6 +12,7 @@ void LoadMenuTheme();
 void SaveCurrentStyle();
 void LoadSavedStyle();
 
+void InitImGuiStyles();
 void ConvertToU32();
 void RefreshCustomStyle();
 

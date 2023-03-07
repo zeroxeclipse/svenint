@@ -3633,6 +3633,7 @@ DECLARE_FUNC(BOOL, APIENTRY, HOOKED_wglSwapBuffers, HDC hdc)
 		ImGui_ImplWin32_Init(hGameWnd);
 		ImGui_ImplOpenGL2_Init();
 
+		InitImGuiStyles();
 		ImGui::StyleColorsDark();
 		SaveCurrentStyle();
 
