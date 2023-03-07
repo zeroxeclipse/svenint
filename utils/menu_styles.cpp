@@ -7,8 +7,7 @@
 #pragma warning(disable : 4244)
 #pragma warning(disable : 4305)
 
-ImGuiStyle* dst = NULL;
-ImGuiStyle* style = dst;
+ImGuiStyle* style = nullptr;
 ImVec4* colors = 0;
 
 //-----------------------------------------------------------------------------
