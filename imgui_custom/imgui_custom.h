@@ -9,6 +9,7 @@ public:
 
 	void Spacing(float value);
 	void ToolTip(const char* desc, bool sameline, float x);
+	void ColorPickerU32(const char* label, ImU32* color, ImGuiColorEditFlags flags);
 private:
 
 };

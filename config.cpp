@@ -929,8 +929,6 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam("SeparatorActive", g_Config.cvars.SeparatorActiveU32);
 			ConfigManager()->ImportParam("TitleBgActive", g_Config.cvars.TitleBgActiveU32);
 			ConfigManager()->ImportParam("Separator", g_Config.cvars.SeparatorU32);
-
-			g_Config.cvars.custom_style = true;
 		}
 
 		//if (ConfigManager()->BeginSectionImport("AUTOVOTE"))

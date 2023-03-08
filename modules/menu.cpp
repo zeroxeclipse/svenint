@@ -3351,52 +3351,51 @@ void CMenuModule::DrawSettingsTabContent()
 			{
 				if ( ImGui::Button(xs("Reset##custom_style")) )
 				{
-					g_Config.cvars.WindowBg = { 0,	0, 0, 230 };
-					g_Config.cvars.Border = { 0, 0, 0, 0 };
-					g_Config.cvars.Button = { 56, 58, 74, 255 };
-					g_Config.cvars.ButtonActive = { 101, 164, 212, 255 };
-					g_Config.cvars.ButtonHovered = { 114, 187, 242, 255 };
-					g_Config.cvars.FrameBg = { 56, 58, 74, 255 };
-					g_Config.cvars.FrameBgActive = { 94, 140, 166, 255 };
-					g_Config.cvars.FrameBgHovered = { 114, 187, 242, 255 };
-					g_Config.cvars.Text = { 255, 255, 255, 255 };
-					g_Config.cvars.ChildBg = { 33, 34, 45, 255 };
-					g_Config.cvars.CheckMark = { 255, 255, 255, 255 };
-					g_Config.cvars.SliderGrab = { 101, 164, 212, 255 };
-					g_Config.cvars.SliderGrabActive = { 101, 164, 212, 255 };
-					g_Config.cvars.Header = { 101, 164, 212, 255 };
-					g_Config.cvars.HeaderHovered = { 114, 187, 242, 255 };
-					g_Config.cvars.HeaderActive = { 101, 164, 212, 255 };
-					g_Config.cvars.ResizeGripActive = { 20, 50, 66, 255 };
-					g_Config.cvars.SeparatorActive = { 20, 50, 66, 255 };
-					g_Config.cvars.TitleBgActive = { 20, 50, 66, 255 };
-					g_Config.cvars.Separator = { 47, 96, 133, 255 };
+					g_Config.cvars.WindowBgU32 = 3858759680;
+					g_Config.cvars.BorderU32 = 0;
+					g_Config.cvars.ButtonU32 = 4283054648;
+					g_Config.cvars.ButtonActiveU32 = 4292125797;
+					g_Config.cvars.ButtonHoveredU32 = 4294097778;
+					g_Config.cvars.FrameBgU32 = 4283054648;
+					g_Config.cvars.FrameBgActiveU32 = 4294097778;
+					g_Config.cvars.FrameBgHoveredU32 = 4289104990;
+					g_Config.cvars.TextU32 = 4294967295;
+					g_Config.cvars.ChildBgU32 = 4281147937;
+					g_Config.cvars.CheckMarkU32 = 4294967295;
+					g_Config.cvars.SliderGrabU32 = 4292125797;
+					g_Config.cvars.SliderGrabActiveU32 = 4292125797;
+					g_Config.cvars.HeaderU32 = 4292125797;
+					g_Config.cvars.HeaderHoveredU32 = 4294097778;
+					g_Config.cvars.HeaderActiveU32 = 4292125797;
+					g_Config.cvars.ResizeGripActiveU32 = 4282528276;
+					g_Config.cvars.SeparatorActiveU32 = 2353148666;
+					g_Config.cvars.TitleBgActiveU32 = 4282528276;
+					g_Config.cvars.SeparatorU32 = 4286930991;
 				}
 
 				ImGuiCustom.Spacing(4);
 
-				ImGui::ColorEdit4(xs("Window Color##1"), (float*)(&g_Config.cvars.WindowBg), ImGuiColorEditFlags_AlphaBar);
-				ImGui::ColorEdit4(xs("Border Color##1"), (float*)&g_Config.cvars.Border, ImGuiColorEditFlags_AlphaBar);
-				ImGui::ColorEdit4(xs("Button Color##1"), (float*)&g_Config.cvars.Button, ImGuiColorEditFlags_AlphaBar);
-				ImGui::ColorEdit4(xs("ButtonActive Color##1"), (float*)&g_Config.cvars.ButtonActive, ImGuiColorEditFlags_AlphaBar);
-				ImGui::ColorEdit4(xs("ButtonHovered Color##1"), (float*)&g_Config.cvars.ButtonHovered, ImGuiColorEditFlags_AlphaBar);
-				ImGui::ColorEdit4(xs("FrameBg Color##1"), (float*)&g_Config.cvars.FrameBg, ImGuiColorEditFlags_AlphaBar);
-				ImGui::ColorEdit4(xs("FrameBgActive Color##1"), (float*)&g_Config.cvars.FrameBgActive, ImGuiColorEditFlags_AlphaBar);
-				ImGui::ColorEdit4(xs("FrameBgHovered Color##1"), (float*)&g_Config.cvars.FrameBgHovered, ImGuiColorEditFlags_AlphaBar);
-				ImGui::ColorEdit4(xs("Text Color##1"), (float*)&g_Config.cvars.Text, ImGuiColorEditFlags_AlphaBar);
-				ImGui::ColorEdit4(xs("ChildBg Color##1"), (float*)&g_Config.cvars.ChildBg, ImGuiColorEditFlags_AlphaBar);
-				ImGui::ColorEdit4(xs("CheckMark Color##1"), (float*)&g_Config.cvars.CheckMark, ImGuiColorEditFlags_AlphaBar);
-				ImGui::ColorEdit4(xs("SliderGrab Color##1"), (float*)&g_Config.cvars.SliderGrab, ImGuiColorEditFlags_AlphaBar);
-				ImGui::ColorEdit4(xs("SliderGrabActive Color##1"), (float*)&g_Config.cvars.SliderGrabActive, ImGuiColorEditFlags_AlphaBar);
-				ImGui::ColorEdit4(xs("Header Color##1"), (float*)&g_Config.cvars, ImGuiColorEditFlags_AlphaBar);
-				ImGui::ColorEdit4(xs("HeaderHovered Color##1"), (float*)&g_Config.cvars.HeaderHovered, ImGuiColorEditFlags_AlphaBar);
-				ImGui::ColorEdit4(xs("HeaderActive Color##1"), (float*)&g_Config.cvars.HeaderActive, ImGuiColorEditFlags_AlphaBar);
-				ImGui::ColorEdit4(xs("ResizeGripActive Color##1"), (float*)&g_Config.cvars.ResizeGripActive, ImGuiColorEditFlags_AlphaBar);
-				ImGui::ColorEdit4(xs("Separator Color##1"), (float*)&g_Config.cvars.Separator, ImGuiColorEditFlags_AlphaBar);
-				ImGui::ColorEdit4(xs("SeparatorActive Color##1"), (float*)&g_Config.cvars.SeparatorActive, ImGuiColorEditFlags_AlphaBar);
-				ImGui::ColorEdit4(xs("TitleBgActive Color##1"), (float*)&g_Config.cvars.TitleBgActive, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("Window Color##1"), &g_Config.cvars.WindowBgU32, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("Border Color##1"), &g_Config.cvars.BorderU32, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("Button Color##1"), &g_Config.cvars.ButtonU32, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("ButtonActive Color##1"), &g_Config.cvars.ButtonActiveU32, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("ButtonHovered Color##1"), &g_Config.cvars.ButtonHoveredU32, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("FrameBg Color##1"), &g_Config.cvars.FrameBgU32, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("FrameBgActive Color##1"), &g_Config.cvars.FrameBgActiveU32, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("FrameBgHovered Color##1"), &g_Config.cvars.FrameBgHoveredU32, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("Text Color##1"), &g_Config.cvars.TextU32, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("ChildBg Color##1"), &g_Config.cvars.ChildBgU32, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("CheckMark Color##1"), &g_Config.cvars.CheckMarkU32, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("SliderGrab Color##1"), &g_Config.cvars.SliderGrabU32, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("SliderGrabActive Color##1"), &g_Config.cvars.SliderGrabActiveU32, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("Header Color##1"), &g_Config.cvars.HeaderU32, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("HeaderHovered Color##1"), &g_Config.cvars.HeaderHoveredU32, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("HeaderActive Color##1"), &g_Config.cvars.HeaderActiveU32, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("ResizeGripActive Color##1"), &g_Config.cvars.ResizeGripActiveU32, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("Separator Color##1"), &g_Config.cvars.SeparatorU32, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("SeparatorActive Color##1"), &g_Config.cvars.SeparatorActiveU32, ImGuiColorEditFlags_AlphaBar);
+				ImGuiCustom.ColorPickerU32(xs("TitleBgActive Color##1"), &g_Config.cvars.TitleBgActiveU32, ImGuiColorEditFlags_AlphaBar);
 
-				ConvertToU32();
 				RefreshCustomStyle(); // Not very optimal but should be fine
 
 				ImGui::EndCombo();

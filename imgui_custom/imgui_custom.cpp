@@ -134,3 +134,14 @@ void CImGuiCustom::ToolTip(const char* desc, bool sameline, float x)
         ImGui::EndTooltip();
     }
 }
+
+void CImGuiCustom::ColorPickerU32(const char* label, ImU32* color, ImGuiColorEditFlags flags)
+{
+    ImColor rgba = ImGui::ColorConvertU32ToFloat4(*color);
+
+    ImGui::ColorEdit4(label, (float*)&rgba, flags);
+
+    ImU32 out = ImGui::ColorConvertFloat4ToU32(rgba);
+
+    *color = out;
+}

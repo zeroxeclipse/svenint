@@ -13,7 +13,6 @@ void SaveCurrentStyle();
 void LoadSavedStyle();
 
 void InitImGuiStyles();
-void ConvertToU32();
 void RefreshCustomStyle();
 
 #endif // MENU_STYLES_H

@@ -682,8 +682,6 @@ public:
 		// Custom Style
 		//-----------------------------------------------------------------------------
 
-		bool custom_style = false;
-
 		ImU32 WindowBgU32 = 3858759680;
 		ImU32 BorderU32 = 0;
 		ImU32 ButtonU32 = 4283054648;
@@ -704,27 +702,6 @@ public:
 		ImU32 SeparatorActiveU32 = 2353148666;
 		ImU32 TitleBgActiveU32 = 4282528276;
 		ImU32 SeparatorU32 = 4286930991;
-
-		ImColor WindowBg = { 0,	0, 0, 230 };
-		ImColor Border = { 0, 0, 0, 0 };
-		ImColor Button = { 56, 58, 74, 255 };
-		ImColor ButtonActive = { 101, 164, 212, 255 };
-		ImColor ButtonHovered = { 114, 187, 242, 255 };
-		ImColor FrameBg = { 56, 58, 74, 255 };
-		ImColor FrameBgActive = { 94, 140, 166, 255 };
-		ImColor FrameBgHovered = { 114, 187, 242, 255 };
-		ImColor Text = { 255, 255, 255, 255 };
-		ImColor ChildBg = { 33, 34, 45, 255 };
-		ImColor CheckMark = { 255, 255, 255, 255 };
-		ImColor SliderGrab = { 101, 164, 212, 255 };
-		ImColor SliderGrabActive = { 101, 164, 212, 255 };
-		ImColor Header = { 101, 164, 212, 255 };
-		ImColor HeaderHovered = { 114, 187, 242, 255 };
-		ImColor HeaderActive = { 101, 164, 212, 255 };
-		ImColor ResizeGripActive = { 20, 50, 66, 255 };
-		ImColor SeparatorActive = { 20, 50, 66, 255 };
-		ImColor TitleBgActive = { 20, 50, 66, 255 };
-		ImColor Separator = { 47, 96, 133, 255 };
 	};
 
 	config_vars cvars;

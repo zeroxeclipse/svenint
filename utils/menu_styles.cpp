@@ -444,9 +444,6 @@ static void StyleColors_SvenCope(ImGuiStyle* dst = NULL)
 
 static void StyleColors_Custom(ImGuiStyle* dst = NULL)
 {
-	ImGuiStyle* style = dst ? dst : &ImGui::GetStyle();
-	ImVec4* colors = style->Colors;
-
 	colors[ImGuiCol_WindowBg] = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.WindowBgU32);
 	colors[ImGuiCol_Border] = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.BorderU32);
 	colors[ImGuiCol_Button] = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.ButtonU32);
@@ -472,7 +469,6 @@ static void StyleColors_Custom(ImGuiStyle* dst = NULL)
 //-----------------------------------------------------------------------------
 // Theme Functions
 //-----------------------------------------------------------------------------
-
 
 void InitImGuiStyles()
 {
@@ -552,56 +548,6 @@ void LoadMenuTheme()
 		StyleColors_Custom();
 		break;
 	}
-}
-
-void ConvertToU32()
-{
-	if (g_Config.cvars.custom_style)
-	{
-		g_Config.cvars.WindowBg = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.WindowBgU32);
-		g_Config.cvars.Border = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.BorderU32);
-		g_Config.cvars.Button = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.ButtonU32);
-		g_Config.cvars.ButtonActive = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.ButtonActiveU32);
-		g_Config.cvars.ButtonHovered = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.ButtonHoveredU32);
-		g_Config.cvars.FrameBg = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.FrameBgU32);
-		g_Config.cvars.FrameBgActive = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.FrameBgActiveU32);
-		g_Config.cvars.FrameBgHovered = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.FrameBgHoveredU32);
-		g_Config.cvars.Text = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.TextU32);
-		g_Config.cvars.ChildBg = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.ChildBgU32);
-		g_Config.cvars.CheckMark = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.CheckMarkU32);
-		g_Config.cvars.SliderGrab = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.SliderGrabU32);
-		g_Config.cvars.SliderGrabActive = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.SliderGrabActiveU32);
-		g_Config.cvars.Header = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.HeaderU32);
-		g_Config.cvars.HeaderHovered = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.HeaderHoveredU32);
-		g_Config.cvars.HeaderActive = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.HeaderActiveU32);
-		g_Config.cvars.ResizeGripActive = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.ResizeGripActiveU32);
-		g_Config.cvars.SeparatorActive = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.SeparatorActiveU32);
-		g_Config.cvars.TitleBgActive = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.TitleBgActiveU32);
-		g_Config.cvars.Separator = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.SeparatorU32);
-
-		g_Config.cvars.custom_style = false;
-	}
-
-	g_Config.cvars.WindowBgU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.WindowBg);
-	g_Config.cvars.BorderU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.Border);
-	g_Config.cvars.ButtonU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.Button);
-	g_Config.cvars.ButtonActiveU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.ButtonActive);
-	g_Config.cvars.ButtonHoveredU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.ButtonHovered);
-	g_Config.cvars.FrameBgU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.FrameBg);
-	g_Config.cvars.FrameBgActiveU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.FrameBgActive);
-	g_Config.cvars.FrameBgHoveredU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.FrameBgHovered);
-	g_Config.cvars.TextU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.Text);
-	g_Config.cvars.ChildBgU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.ChildBg);
-	g_Config.cvars.CheckMarkU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.CheckMark);
-	g_Config.cvars.SliderGrabU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.SliderGrab);
-	g_Config.cvars.SliderGrabActiveU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.SliderGrabActive);
-	g_Config.cvars.HeaderU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.Header);
-	g_Config.cvars.HeaderHoveredU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.HeaderHovered);
-	g_Config.cvars.HeaderActiveU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.HeaderActive);
-	g_Config.cvars.ResizeGripActiveU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.ResizeGripActive);
-	g_Config.cvars.SeparatorActiveU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.SeparatorActive);
-	g_Config.cvars.TitleBgActiveU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.TitleBgActive);
-	g_Config.cvars.SeparatorU32 = ImGui::ColorConvertFloat4ToU32(g_Config.cvars.Separator);
 }
 
 void RefreshCustomStyle()
