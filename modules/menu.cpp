@@ -3396,7 +3396,7 @@ void CMenuModule::DrawSettingsTabContent()
 				ImGuiCustom.ColorPickerU32(xs("SeparatorActive Color##1"), &g_Config.cvars.SeparatorActiveU32, ImGuiColorEditFlags_AlphaBar);
 				ImGuiCustom.ColorPickerU32(xs("TitleBgActive Color##1"), &g_Config.cvars.TitleBgActiveU32, ImGuiColorEditFlags_AlphaBar);
 
-				RefreshCustomStyle(); // Not very optimal but should be fine
+				StyleColors_Custom(); // Not very optimal but should be fine
 
 				ImGui::EndCombo();
 			}

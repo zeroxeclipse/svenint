@@ -418,7 +418,7 @@ static void StyleColors_HalfLife()
 // Sven-Cope
 //-----------------------------------------------------------------------------
 
-static void StyleColors_SvenCope(ImGuiStyle* dst = NULL)
+static void StyleColors_SvenCope()
 {
 	colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
 	colors[ImGuiCol_WindowBg] = ImVec4(0.20f, 0.21f, 0.27f, 1.00f);
@@ -442,7 +442,7 @@ static void StyleColors_SvenCope(ImGuiStyle* dst = NULL)
 	colors[ImGuiCol_SeparatorActive] = ImVec4(0.59f, 0.54f, 0.18f, 1.00f);
 }
 
-static void StyleColors_Custom(ImGuiStyle* dst = NULL)
+void StyleColors_Custom()
 {
 	colors[ImGuiCol_WindowBg] = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.WindowBgU32);
 	colors[ImGuiCol_Border] = ImGui::ColorConvertU32ToFloat4(g_Config.cvars.BorderU32);
@@ -548,11 +548,6 @@ void LoadMenuTheme()
 		StyleColors_Custom();
 		break;
 	}
-}
-
-void RefreshCustomStyle()
-{
-	StyleColors_Custom();
 }
 
 //-----------------------------------------------------------------------------

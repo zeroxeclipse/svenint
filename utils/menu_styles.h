@@ -13,6 +13,6 @@ void SaveCurrentStyle();
 void LoadSavedStyle();
 
 void InitImGuiStyles();
-void RefreshCustomStyle();
+void StyleColors_Custom();
 
 #endif // MENU_STYLES_H
