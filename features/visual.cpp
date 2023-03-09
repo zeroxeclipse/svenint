@@ -331,12 +331,98 @@ void CVisual::OnHUDRedraw(float flTime)
 	ShowGrenadeTimer();
 }
 
+ConVar sc_predict_landing("sc_predict_landing", "0");
+
+void ShowLandPoint()
+{
+	if ( !g_pPlayerMove->movevars )
+		return;
+
+	auto AddCorrectGravity = [](Vector &vecVelocity, float frametime)
+	{
+		float ent_gravity;
+
+		if (g_pPlayerMove->gravity)
+			ent_gravity = g_pPlayerMove->gravity;
+		else
+			ent_gravity = 1.f;
+
+		// Add gravity so they'll be in the correct position during movement
+		// yes, this 0.5 looks wrong, but it's not.  
+		vecVelocity.z -= (ent_gravity * g_pPlayerMove->movevars->gravity * 0.5 * frametime);
+	};
+
+	auto FixupGravityVelocity = [](Vector &vecVelocity, float frametime)
+	{
+		float ent_gravity;
+
+		if ( g_pPlayerMove->gravity )
+			ent_gravity = g_pPlayerMove->gravity;
+		else
+			ent_gravity = 1.f;
+
+		vecVelocity.z -= (ent_gravity * g_pPlayerMove->movevars->gravity * frametime * 0.5f);
+	};
+
+	const float flFrametime = 1.f / fps_max->value;
+
+	if ( !sc_predict_landing.GetBool() )
+		return;
+
+	int it = 0;
+	Vector vecVelocity = g_pPlayerMove->velocity;
+	Vector vecOrigin = g_pPlayerMove->origin;
+
+	vecVelocity.AsVector2D() *= 0.5f; // wtf why, I don't know
+
+	// PM_Jump
+	if ( Client()->IsOnGround() )
+	{
+		vecVelocity.z += sqrtf(2.f * 800.f * 45.f);
+
+		FixupGravityVelocity(vecVelocity, flFrametime);
+	}
+
+	// Loop
+	do
+	{
+		// Apply gravity
+		AddCorrectGravity(vecVelocity, flFrametime);
+
+		Vector vecMove = vecVelocity * flFrametime;
+
+		// Trace forward
+		const int old_hull = g_pPlayerMove->usehull;
+		g_pPlayerMove->usehull = PM_HULL_PLAYER;
+
+		pmtrace_t trace = g_pPlayerMove->PM_PlayerTrace( vecOrigin, vecOrigin + vecMove, PM_NORMAL, -1 );
+
+		g_pPlayerMove->usehull = old_hull;
+
+		// Save trace pos
+		vecOrigin = trace.endpos;
+
+		// Did hit a wall or started in solid
+		if ( ( trace.fraction != 1.f && !trace.allsolid ) || trace.startsolid )
+		{
+			Render()->DrawBox( vecOrigin, Vector(-2, -2, -2), Vector(2, 2, 2), { 255, 255, 255, 150 } );
+			break;
+		}
+
+		FixupGravityVelocity(vecVelocity, flFrametime);
+
+		it++;
+	}
+	while ( it < 3000 );
+}
+
 void CVisual::V_CalcRefdef(struct ref_params_s *pparams)
 {
 	if ( !Client()->IsDead() )
 	{
 		ShowGrenadeTrajectory();
 		ShowARGrenadeTrajectory();
+		ShowLandPoint();
 	}
 }
 
