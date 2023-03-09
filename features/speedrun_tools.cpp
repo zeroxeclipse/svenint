@@ -1497,11 +1497,11 @@ void CSpeedrunTools::ShowPosition(int r, int g, int b)
 
 		y += height;
 
-		g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Z: %.6f", origin.y);
+		g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Y: %.6f", origin.y);
 
 		y += height;
 
-		g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Y: %.6f", origin.z);
+		g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Z: %.6f", origin.z);
 	}
 }
 
@@ -1529,11 +1529,11 @@ void CSpeedrunTools::ShowVelocity(int r, int g, int b)
 
 		y += height;
 
-		g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Z: %.6f", velocity.y);
+		g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Y: %.6f", velocity.y);
 
 		y += height;
 
-		g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Y: %.6f", velocity.z);
+		g_Drawing.DrawStringExF(m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Z: %.6f", velocity.z);
 
 		y += height;
 
