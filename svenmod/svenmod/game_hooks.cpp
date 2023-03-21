@@ -145,6 +145,11 @@ int UserMsgHook_CurWeapon(const char *pszName, int iSize, void *pBuffer)
 	else if ( iId <= WEAPON_NONE )
 		g_iCurrentWeaponID = WEAPON_NONE;
 
+#ifdef SVENMOD_DEBUG
+	Msg("CurWeapon : iState = %d\n", iState);
+	Msg("CurWeapon : iId = %d\n", iId);
+#endif
+
 	return ORIG_UserMsgHook_CurWeapon(pszName, iSize, pBuffer);
 }
 
@@ -197,7 +202,9 @@ static int HUD_Redraw(float time, int intermission)
 
 		if (result == HOOK_STOP)
 		{
+		#ifdef SVENMOD_DEBUG
 			g_Client.ShowDebugInfo();
+		#endif
 			return 1;
 		}
 		else if (result == HOOK_CALL_STOP)
@@ -205,7 +212,9 @@ static int HUD_Redraw(float time, int intermission)
 			int r = s_ClientFuncsOriginal.HUD_Redraw(time, intermission);
 
 			g_PluginsManager.DrawHUD(time, intermission);
+		#ifdef SVENMOD_DEBUG
 			g_Client.ShowDebugInfo();
+		#endif
 
 			return r;
 		}
@@ -221,7 +230,9 @@ static int HUD_Redraw(float time, int intermission)
 	}
 
 	g_PluginsManager.DrawHUD(time, intermission);
+#ifdef SVENMOD_DEBUG
 	g_Client.ShowDebugInfo();
+#endif
 
 	return func_result;
 }
@@ -685,6 +696,8 @@ static void V_CalcRefdef(ref_params_t *pparams)
 
 		HOOK_RESULT result = pClientPostHooks->V_CalcRefdef(pparams);
 	}
+
+	g_Render.SetRenderOrigin( pparams->vieworg );
 }
 
 static int HOOK_RETURN_VALUE HUD_AddEntity(int type, cl_entity_t *ent, const char *modelname)

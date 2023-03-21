@@ -11,6 +11,8 @@
 
 #include <hl_sdk/engine/APIProxy.h>
 
+extern double *g_pRealtime;
+
 //-----------------------------------------------------------------------------
 // Draw point
 //-----------------------------------------------------------------------------
@@ -106,6 +108,15 @@ const Vector &CDrawLine::GetDrawOrigin() const
 
 CDrawBox::CDrawBox(const Vector &vOrigin, const Vector &vMins, const Vector &vMaxs, const Color &color) : m_color(color)
 {
+	if ( vOrigin.x == 0.f && vOrigin.y == 0.f && vOrigin.z == 0.f )
+	{
+		m_vecDrawOrigin = vMins + (vMaxs - vMins) * 0.5f;
+	}
+	else
+	{
+		m_vecDrawOrigin = vOrigin;
+	}
+
 	m_vecOrigin = vOrigin;
 	m_vecMins = vMins;
 	m_vecMaxs = vMaxs;
@@ -203,7 +214,7 @@ bool CDrawBox::ShouldStopDraw()
 
 const Vector &CDrawBox::GetDrawOrigin() const
 {
-	return m_vecOrigin;
+	return m_vecDrawOrigin;
 }
 
 //-----------------------------------------------------------------------------
@@ -212,6 +223,15 @@ const Vector &CDrawBox::GetDrawOrigin() const
 
 CDrawBoxAngles::CDrawBoxAngles(const Vector &vOrigin, const Vector &vMins, const Vector &vMaxs, const Vector &vAngles, const Color &color) : m_color(color)
 {
+	if ( vOrigin.x == 0.f && vOrigin.y == 0.f && vOrigin.z == 0.f )
+	{
+		m_vecDrawOrigin = vMins + (vMaxs - vMins) * 0.5f;
+	}
+	else
+	{
+		m_vecDrawOrigin = vOrigin;
+	}
+
 	m_vecOrigin = vOrigin;
 	m_vecAngles = vAngles;
 	m_vecMins = vMins;
@@ -323,12 +343,17 @@ bool CDrawBoxAngles::ShouldStopDraw()
 
 const Vector &CDrawBoxAngles::GetDrawOrigin() const
 {
-	return m_vecOrigin;
+	return m_vecDrawOrigin;
 }
 
 //-----------------------------------------------------------------------------
 // CRender implementation
 //-----------------------------------------------------------------------------
+
+CRender::CRender()
+{
+	m_vecRenderOrigin.Zero();
+}
 
 CRender::~CRender()
 {
@@ -337,13 +362,16 @@ CRender::~CRender()
 
 void CRender::AddDrawContext(IDrawContext *pContext, float duration)
 {
+	if ( pContext == NULL )
+		return;
+
 	if ( duration < 0.f )
 		duration = 0.f;
 
 	draw_context_t draw_context;
-
+	
 	draw_context.pDrawContext = pContext;
-	draw_context.flDuration = g_pEngineFuncs->GetClientTime() + duration;
+	draw_context.flDuration = static_cast<float>(*g_pRealtime) + duration;
 	draw_context.flDistanceSqr = 0.f;
 
 	m_vDrawContext.push_back( draw_context );
@@ -359,7 +387,7 @@ void CRender::DrawPoint(const Vector &vPoint, const Color &color, float size, fl
 	IDrawContext *pDrawContext = new CDrawPoint(vPoint, color, size);
 
 	draw_context.pDrawContext = pDrawContext;
-	draw_context.flDuration = g_pEngineFuncs->GetClientTime() + duration;
+	draw_context.flDuration = static_cast<float>(*g_pRealtime) + duration;
 	draw_context.flDistanceSqr = 0.f;
 
 	m_vDrawContext.push_back( draw_context );
@@ -375,7 +403,7 @@ void CRender::DrawLine(const Vector &vStart, const Vector &vEnd, const Color &co
 	IDrawContext *pDrawContext = new CDrawLine(vStart, vEnd, color, width);
 
 	draw_context.pDrawContext = pDrawContext;
-	draw_context.flDuration = g_pEngineFuncs->GetClientTime() + duration;
+	draw_context.flDuration = static_cast<float>(*g_pRealtime) + duration;
 	draw_context.flDistanceSqr = 0.f;
 
 	m_vDrawContext.push_back( draw_context );
@@ -391,7 +419,7 @@ void CRender::DrawBox(const Vector &vOrigin, const Vector &vMins, const Vector &
 	IDrawContext *pDrawContext = new CDrawBox(vOrigin, vMins, vMaxs, color);
 
 	draw_context.pDrawContext = pDrawContext;
-	draw_context.flDuration = g_pEngineFuncs->GetClientTime() + duration;
+	draw_context.flDuration = static_cast<float>(*g_pRealtime) + duration;
 	draw_context.flDistanceSqr = 0.f;
 
 	m_vDrawContext.push_back( draw_context );
@@ -407,7 +435,7 @@ void CRender::DrawBoxAngles(const Vector &vOrigin, const Vector &vMins, const Ve
 	IDrawContext *pDrawContext = new CDrawBoxAngles(vOrigin, vMins, vMaxs, vAngles, color);
 
 	draw_context.pDrawContext = pDrawContext;
-	draw_context.flDuration = g_pEngineFuncs->GetClientTime() + duration;
+	draw_context.flDuration = static_cast<float>(*g_pRealtime) + duration;
 	draw_context.flDistanceSqr = 0.f;
 
 	m_vDrawContext.push_back( draw_context );
@@ -428,12 +456,10 @@ void CRender::Draw()
 	if ( m_vDrawContext.empty() )
 		return;
 
-	Vector vecOrigin = g_pPlayerMove->origin;
-
 	// TODO: optimize
 	for (size_t i = 0; i < m_vDrawContext.size(); i++)
 	{
-		m_vDrawContext[i].flDistanceSqr = (m_vDrawContext[i].pDrawContext->GetDrawOrigin() - vecOrigin).LengthSqr();
+		m_vDrawContext[i].flDistanceSqr = (m_vDrawContext[i].pDrawContext->GetDrawOrigin() - m_vecRenderOrigin).LengthSqr();
 	}
 
 	std::sort( m_vDrawContext.begin(), m_vDrawContext.end() );
@@ -442,7 +468,7 @@ void CRender::Draw()
 	{
 		draw_context_t &draw_context = m_vDrawContext[i];
 
-		if ( draw_context.flDuration < g_pEngineFuncs->GetClientTime() || draw_context.pDrawContext->ShouldStopDraw() )
+		if ( draw_context.flDuration < static_cast<float>(*g_pRealtime) || draw_context.pDrawContext->ShouldStopDraw() )
 		{
 			delete draw_context.pDrawContext;
 
@@ -454,6 +480,11 @@ void CRender::Draw()
 
 		draw_context.pDrawContext->Draw();
 	}
+}
+
+void CRender::SetRenderOrigin(const Vector &vOrigin)
+{
+	m_vecRenderOrigin = vOrigin;
 }
 
 //-----------------------------------------------------------------------------

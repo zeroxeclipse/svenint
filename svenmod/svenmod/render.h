@@ -14,7 +14,7 @@
 
 struct draw_context_t
 {
-	bool operator <(const draw_context_t &draw_context) const
+	inline bool operator <(const draw_context_t &draw_context) const
 	{
 		return (flDistanceSqr > draw_context.flDistanceSqr);
 	}
@@ -34,10 +34,10 @@ public:
 	CDrawPoint(const Vector &vPoint, const Color &color, float size);
 	virtual ~CDrawPoint() {}
 
-	virtual void Draw();
-	virtual bool ShouldStopDraw();
+	virtual void Draw() override;
+	virtual bool ShouldStopDraw() override;
 
-	virtual const Vector &GetDrawOrigin() const;
+	virtual const Vector &GetDrawOrigin() const override;
 
 private:
 	Vector m_vecOrigin;
@@ -56,10 +56,10 @@ public:
 	CDrawLine(const Vector &vStart, const Vector &vEnd, const Color &color, float width);
 	virtual ~CDrawLine() {}
 
-	virtual void Draw();
-	virtual bool ShouldStopDraw();
+	virtual void Draw() override;
+	virtual bool ShouldStopDraw() override;
 
-	virtual const Vector &GetDrawOrigin() const;
+	virtual const Vector &GetDrawOrigin() const override;
 
 private:
 	Vector m_vecOrigin;
@@ -81,12 +81,13 @@ public:
 	CDrawBox(const Vector &vOrigin, const Vector &vMins, const Vector &vMaxs, const Color &color);
 	virtual ~CDrawBox() {}
 
-	virtual void Draw();
-	virtual bool ShouldStopDraw();
+	virtual void Draw() override;
+	virtual bool ShouldStopDraw() override;
 
-	virtual const Vector &GetDrawOrigin() const;
+	virtual const Vector &GetDrawOrigin() const override;
 
 private:
+	Vector m_vecDrawOrigin;
 	Vector m_vecOrigin;
 
 	Vector m_vecMins;
@@ -105,12 +106,14 @@ public:
 	CDrawBoxAngles(const Vector &vOrigin, const Vector &vMins, const Vector &vMaxs, const Vector &vAngles, const Color &color);
 	virtual ~CDrawBoxAngles() {}
 
-	virtual void Draw();
-	virtual bool ShouldStopDraw();
+	virtual void Draw() override;
+	virtual bool ShouldStopDraw() override;
 
-	virtual const Vector &GetDrawOrigin() const;
+	virtual const Vector &GetDrawOrigin() const override;
 
 private:
+	Vector m_vecDrawOrigin;
+
 	Vector m_vecOrigin;
 	Vector m_vecAngles;
 
@@ -127,6 +130,7 @@ private:
 class CRender : IRender
 {
 public:
+	CRender();
 	virtual ~CRender();
 
 	virtual void AddDrawContext(IDrawContext *pContext, float duration);
@@ -139,9 +143,11 @@ public:
 
 public:
 	void Draw();
+	void SetRenderOrigin(const Vector &vOrigin);
 
 private:
 	std::vector<draw_context_t> m_vDrawContext;
+	Vector m_vecRenderOrigin;
 };
 
 extern CRender g_Render;

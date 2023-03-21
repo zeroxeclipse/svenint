@@ -16,6 +16,7 @@
 #include "gamedata_finder.h"
 
 #define CONSOLE_PRINT_MESSAGE_LENGTH 8192
+#define CVAR_USE_DYNAMIC_CAST 0
 
 extern client_version_t g_ClientVersion;
 
@@ -120,6 +121,7 @@ void CCvar::Shutdown()
 
 				if ( pCommandBase->IsCommand() )
 				{
+				#if CVAR_USE_DYNAMIC_CAST
 					ConCommand *pCommand = dynamic_cast<ConCommand *>(pCommandBase);
 
 					if ( !pCommand )
@@ -127,6 +129,9 @@ void CCvar::Shutdown()
 						Warning("[SvenMod] Can't cast to ConVar, invalid ConCommandBase\n");
 						continue;
 					}
+				#else
+					ConCommand *pCommand = reinterpret_cast<ConCommand *>(pCommandBase);
+				#endif
 
 					cmd_t *pPrev = NULL;
 					cmd_t *pCmd = *m_ppCmdList;
@@ -164,6 +169,7 @@ void CCvar::Shutdown()
 				}
 				else
 				{
+				#if CVAR_USE_DYNAMIC_CAST
 					ConVar *pConVar = dynamic_cast<ConVar *>(pCommandBase);
 
 					if ( !pConVar )
@@ -171,6 +177,9 @@ void CCvar::Shutdown()
 						Warning("[SvenMod] Can't cast to ConCommand, invalid ConCommandBase\n");
 						continue;
 					}
+				#else
+					ConVar *pConVar = reinterpret_cast<ConVar *>(pCommandBase);
+				#endif
 
 					cvar_t *pPrev = NULL;
 					cvar_t *pCvar = *m_ppCvarList;
@@ -236,7 +245,7 @@ void CCvar::PrintCvars(int mode, const char *pszPrefix) const
 
 	ConsolePrint("----------------------------------\n");
 
-#if 0
+#if CVAR_USE_DYNAMIC_CAST
 	// FIXME: use binary tree to sort the cvars
 
 	for (int i = 0; i < m_CommandHash.Size(); i++)
@@ -361,6 +370,7 @@ void CCvar::RegisterConCommand(ConCommandBase *pCommandBase)
 	{
 		if ( pCommandBase->IsCommand() )
 		{
+		#if CVAR_USE_DYNAMIC_CAST
 			ConCommand *pCommand = dynamic_cast<ConCommand *>(pCommandBase);
 
 			if ( !pCommand )
@@ -369,6 +379,9 @@ void CCvar::RegisterConCommand(ConCommandBase *pCommandBase)
 				m_CommandHash.Remove(pCommandBase);
 				return;
 			}
+		#else
+			ConCommand *pCommand = reinterpret_cast<ConCommand *>(pCommandBase);
+		#endif
 
 			g_pEngineFuncs->AddCommand( pCommand->GetName(), pCommand->m_pfnCallback );
 			pCommand->m_pCommand = FindCmd( pCommand->GetName() );
@@ -380,6 +393,7 @@ void CCvar::RegisterConCommand(ConCommandBase *pCommandBase)
 		}
 		else
 		{
+		#if CVAR_USE_DYNAMIC_CAST
 			ConVar *pConVar = dynamic_cast<ConVar *>(pCommandBase);
 
 			if ( !pConVar )
@@ -388,6 +402,9 @@ void CCvar::RegisterConCommand(ConCommandBase *pCommandBase)
 				m_CommandHash.Remove(pCommandBase);
 				return;
 			}
+		#else
+			ConVar *pConVar = reinterpret_cast<ConVar *>(pCommandBase);
+		#endif
 
 			pConVar->m_pCvar = g_pEngineFuncs->RegisterVariable( pConVar->GetName(), pConVar->GetDefault(), pConVar->GetFlags() );
 		}
@@ -409,6 +426,7 @@ void CCvar::UnregisterConCommand(ConCommandBase *pCommandBase)
 
 	if ( pCommandBase->IsCommand() )
 	{
+	#if CVAR_USE_DYNAMIC_CAST
 		ConCommand *pCommand = dynamic_cast<ConCommand *>(pCommandBase);
 
 		if ( !pCommand )
@@ -416,6 +434,9 @@ void CCvar::UnregisterConCommand(ConCommandBase *pCommandBase)
 			Warning("[SvenMod] Can't cast to ConVar, invalid ConCommandBase\n");
 			return;
 		}
+	#else
+		ConCommand *pCommand = reinterpret_cast<ConCommand *>(pCommandBase);
+	#endif
 
 		cmd_t *pPrev = NULL;
 		cmd_t *pCmd = *m_ppCmdList;
@@ -448,6 +469,7 @@ void CCvar::UnregisterConCommand(ConCommandBase *pCommandBase)
 	}
 	else
 	{
+	#if CVAR_USE_DYNAMIC_CAST
 		ConVar *pConVar = dynamic_cast<ConVar *>(pCommandBase);
 
 		if ( !pConVar )
@@ -455,6 +477,9 @@ void CCvar::UnregisterConCommand(ConCommandBase *pCommandBase)
 			Warning("[SvenMod] Can't cast to ConCommand, invalid ConCommandBase\n");
 			return;
 		}
+	#else
+		ConVar *pConVar = reinterpret_cast<ConVar *>(pCommandBase);
+	#endif
 
 		cvar_t *pPrev = NULL;
 		cvar_t *pCvar = *m_ppCvarList;
@@ -511,6 +536,7 @@ void CCvar::UnregisterConCommands(CVarDLLIdentifier_t id)
 
 					if ( pCommandBase->IsCommand() )
 					{
+					#if CVAR_USE_DYNAMIC_CAST
 						ConCommand *pCommand = dynamic_cast<ConCommand *>(pCommandBase);
 
 						if ( !pCommand )
@@ -518,6 +544,9 @@ void CCvar::UnregisterConCommands(CVarDLLIdentifier_t id)
 							Warning("[SvenMod] Can't cast to ConVar, invalid ConCommandBase\n");
 							continue;
 						}
+					#else
+						ConCommand *pCommand = reinterpret_cast<ConCommand *>(pCommandBase);
+					#endif
 
 						cmd_t *pPrev = NULL;
 						cmd_t *pCmd = *m_ppCmdList;
@@ -555,6 +584,7 @@ void CCvar::UnregisterConCommands(CVarDLLIdentifier_t id)
 					}
 					else
 					{
+					#if CVAR_USE_DYNAMIC_CAST
 						ConVar *pConVar = dynamic_cast<ConVar *>(pCommandBase);
 
 						if ( !pConVar )
@@ -562,6 +592,9 @@ void CCvar::UnregisterConCommands(CVarDLLIdentifier_t id)
 							Warning("[SvenMod] Can't cast to ConCommand, invalid ConCommandBase\n");
 							continue;
 						}
+					#else
+						ConVar *pConVar = reinterpret_cast<ConVar *>(pCommandBase);
+					#endif
 
 						cvar_t *pPrev = NULL;
 						cvar_t *pCvar = *m_ppCvarList;
@@ -690,7 +723,11 @@ ConVar *CCvar::FindVar(const char *pszName)
 	ConCommandBase *pCommandBase = m_CommandHash.Find(pszName);
 
 	if ( !pCommandBase->IsCommand() )
+	#if CVAR_USE_DYNAMIC_CAST
 		return dynamic_cast<ConVar *>(pCommandBase);
+	#else
+		return reinterpret_cast<ConVar *>(pCommandBase);
+	#endif
 
 	return NULL;
 }
@@ -705,7 +742,11 @@ ConCommand *CCvar::FindCommand(const char *pszName)
 	ConCommandBase *pCommandBase = m_CommandHash.Find(pszName);
 
 	if ( pCommandBase->IsCommand() )
+	#if CVAR_USE_DYNAMIC_CAST
 		return dynamic_cast<ConCommand *>(pCommandBase);
+	#else
+		return reinterpret_cast<ConCommand *>(pCommandBase);
+	#endif
 
 	return NULL;
 }
@@ -726,7 +767,11 @@ void CCvar::RevertFlaggedConVars(int nFlag)
 
 		for (size_t j = 0; j < bucket.size(); j++)
 		{
+		#if CVAR_USE_DYNAMIC_CAST
 			ConVar *pConVar = dynamic_cast<ConVar *>(bucket[j]);
+		#else
+			ConVar *pConVar = reinterpret_cast<ConVar *>(bucket[j]);
+		#endif
 
 			if ( pConVar && pConVar->IsFlagSet(nFlag) )
 			{
@@ -786,10 +831,10 @@ void CCvar::ConsoleColorPrintf(const Color &clr, const char *pszFormat, ...) con
 
 		va_list args;
 		va_start(args, pszFormat);
-		vsnprintf(szFormattedMsg, (sizeof(szFormattedMsg) / sizeof(char)), pszFormat, args);
+		vsnprintf(szFormattedMsg, M_ARRAYSIZE(szFormattedMsg), pszFormat, args);
 		va_end(args);
 
-		szFormattedMsg[(sizeof(szFormattedMsg) / sizeof(char)) - 1] = 0;
+		szFormattedMsg[M_ARRAYSIZE(szFormattedMsg) - 1] = 0;
 
 		CGameConsoleDialog *pGameConsoleDialog = m_pGameConsole->GetGameConsoleDialog();
 
@@ -806,10 +851,10 @@ void CCvar::ConsolePrintf(const char *pszFormat, ...) const
 
 		va_list args;
 		va_start(args, pszFormat);
-		vsnprintf(szFormattedMsg, (sizeof(szFormattedMsg) / sizeof(char)), pszFormat, args);
+		vsnprintf(szFormattedMsg, M_ARRAYSIZE(szFormattedMsg), pszFormat, args);
 		va_end(args);
 
-		szFormattedMsg[(sizeof(szFormattedMsg) / sizeof(char)) - 1] = 0;
+		szFormattedMsg[M_ARRAYSIZE(szFormattedMsg) - 1] = 0;
 
 		CGameConsoleDialog *pGameConsoleDialog = m_pGameConsole->GetGameConsoleDialog();
 
@@ -826,10 +871,10 @@ void CCvar::ConsoleDPrintf(const char *pszFormat, ...) const
 
 		va_list args;
 		va_start(args, pszFormat);
-		vsnprintf(szFormattedMsg, (sizeof(szFormattedMsg) / sizeof(char)), pszFormat, args);
+		vsnprintf(szFormattedMsg, M_ARRAYSIZE(szFormattedMsg), pszFormat, args);
 		va_end(args);
 
-		szFormattedMsg[(sizeof(szFormattedMsg) / sizeof(char)) - 1] = 0;
+		szFormattedMsg[M_ARRAYSIZE(szFormattedMsg) - 1] = 0;
 
 		CGameConsoleDialog *pGameConsoleDialog = m_pGameConsole->GetGameConsoleDialog();
 
@@ -878,14 +923,14 @@ void CCvar::SetValue(cvar_t *pCvar, float value)
 
 	if (eps >= 0.000001)
 	{
-		snprintf(buffer, (sizeof(buffer) / sizeof(char)), "%f", eps);
+		snprintf(buffer, M_ARRAYSIZE(buffer), "%f", eps);
 	}
 	else
 	{
-		snprintf(buffer, (sizeof(buffer) / sizeof(char)), "%d", int(value));
+		snprintf(buffer, M_ARRAYSIZE(buffer), "%d", int(value));
 	}
 
-	buffer[(sizeof(buffer) / sizeof(char)) - 1] = 0;
+	buffer[M_ARRAYSIZE(buffer) - 1] = 0;
 
 	Cvar_DirectSet(pCvar, buffer);
 }
@@ -894,8 +939,8 @@ void CCvar::SetValue(cvar_t *pCvar, int value)
 {
 	char buffer[32];
 
-	snprintf(buffer, (sizeof(buffer) / sizeof(char)), "%d", value);
-	buffer[(sizeof(buffer) / sizeof(char)) - 1] = 0;
+	snprintf(buffer, M_ARRAYSIZE(buffer), "%d", value);
+	buffer[M_ARRAYSIZE(buffer) - 1] = 0;
 
 	Cvar_DirectSet(pCvar, buffer);
 }
@@ -904,8 +949,8 @@ void CCvar::SetValue(cvar_t *pCvar, bool value)
 {
 	char buffer[32];
 
-	snprintf(buffer, (sizeof(buffer) / sizeof(char)), "%d", int(value));
-	buffer[(sizeof(buffer) / sizeof(char)) - 1] = 0;
+	snprintf(buffer, M_ARRAYSIZE(buffer), "%d", int(value));
+	buffer[M_ARRAYSIZE(buffer) - 1] = 0;
 
 	Cvar_DirectSet(pCvar, buffer);
 }
@@ -914,8 +959,8 @@ void CCvar::SetValue(cvar_t *pCvar, Color value)
 {
 	char buffer[24];
 
-	snprintf(buffer, (sizeof(buffer) / sizeof(char)), "%hhu %hhu %hhu %hhu", value.r, value.g, value.b, value.a);
-	buffer[(sizeof(buffer) / sizeof(char)) - 1] = 0;
+	snprintf(buffer, M_ARRAYSIZE(buffer), "%hhu %hhu %hhu %hhu", value.r, value.g, value.b, value.a);
+	buffer[M_ARRAYSIZE(buffer) - 1] = 0;
 
 	SetValue(pCvar, buffer);
 }
@@ -944,8 +989,8 @@ void CCvar::SetValue(const char *pszCvar, Color value)
 {
 	char buffer[24];
 
-	snprintf(buffer, (sizeof(buffer) / sizeof(char)), "%hhu %hhu %hhu %hhu", value.r, value.g, value.b, value.a);
-	buffer[(sizeof(buffer) / sizeof(char)) - 1] = 0;
+	snprintf(buffer, M_ARRAYSIZE(buffer), "%hhu %hhu %hhu %hhu", value.r, value.g, value.b, value.a);
+	buffer[M_ARRAYSIZE(buffer) - 1] = 0;
 
 	g_pEngineFuncs->Cvar_Set(pszCvar, buffer);
 }
@@ -1199,10 +1244,10 @@ void Msg(const char *pszMessageFormat, ...)
 
 	va_list args;
 	va_start(args, pszMessageFormat);
-	vsnprintf(szFormattedMsg, (sizeof(szFormattedMsg) / sizeof(char)), pszMessageFormat, args);
+	vsnprintf(szFormattedMsg, M_ARRAYSIZE(szFormattedMsg), pszMessageFormat, args);
 	va_end(args);
 
-	szFormattedMsg[(sizeof(szFormattedMsg) / sizeof(char)) - 1] = 0;
+	szFormattedMsg[M_ARRAYSIZE(szFormattedMsg) - 1] = 0;
 
 	g_pCVar->ConsolePrint(szFormattedMsg);
 }
@@ -1213,10 +1258,10 @@ void Warning(const char *pszMessageFormat, ...)
 
 	va_list args;
 	va_start(args, pszMessageFormat);
-	vsnprintf(szFormattedMsg, (sizeof(szFormattedMsg) / sizeof(char)), pszMessageFormat, args);
+	vsnprintf(szFormattedMsg, M_ARRAYSIZE(szFormattedMsg), pszMessageFormat, args);
 	va_end(args);
 
-	szFormattedMsg[(sizeof(szFormattedMsg) / sizeof(char)) - 1] = 0;
+	szFormattedMsg[M_ARRAYSIZE(szFormattedMsg) - 1] = 0;
 
 	g_pCVar->ConsoleColorPrint(s_WarningPrintColor, szFormattedMsg);
 }
@@ -1229,10 +1274,10 @@ void DevMsg(const char *pszMessageFormat, ...)
 	{
 		va_list args;
 		va_start(args, pszMessageFormat);
-		vsnprintf(szFormattedMsg, (sizeof(szFormattedMsg) / sizeof(char)), pszMessageFormat, args);
+		vsnprintf(szFormattedMsg, M_ARRAYSIZE(szFormattedMsg), pszMessageFormat, args);
 		va_end(args);
 
-		szFormattedMsg[(sizeof(szFormattedMsg) / sizeof(char)) - 1] = 0;
+		szFormattedMsg[M_ARRAYSIZE(szFormattedMsg) - 1] = 0;
 
 		g_pCVar->ConsoleDPrint(szFormattedMsg);
 	}
@@ -1246,10 +1291,10 @@ void DevWarning(const char *pszMessageFormat, ...)
 	{
 		va_list args;
 		va_start(args, pszMessageFormat);
-		vsnprintf(szFormattedMsg, (sizeof(szFormattedMsg) / sizeof(char)), pszMessageFormat, args);
+		vsnprintf(szFormattedMsg, M_ARRAYSIZE(szFormattedMsg), pszMessageFormat, args);
 		va_end(args);
 
-		szFormattedMsg[(sizeof(szFormattedMsg) / sizeof(char)) - 1] = 0;
+		szFormattedMsg[M_ARRAYSIZE(szFormattedMsg) - 1] = 0;
 
 		g_pCVar->ConsoleColorPrint(s_WarningPrintColor, szFormattedMsg);
 	}
@@ -1261,10 +1306,10 @@ void ConColorMsg(const Color &clr, const char *pszMessageFormat, ...)
 
 	va_list args;
 	va_start(args, pszMessageFormat);
-	vsnprintf(szFormattedMsg, (sizeof(szFormattedMsg) / sizeof(char)), pszMessageFormat, args);
+	vsnprintf(szFormattedMsg, M_ARRAYSIZE(szFormattedMsg), pszMessageFormat, args);
 	va_end(args);
 
-	szFormattedMsg[(sizeof(szFormattedMsg) / sizeof(char)) - 1] = 0;
+	szFormattedMsg[M_ARRAYSIZE(szFormattedMsg) - 1] = 0;
 
 	g_pCVar->ConsoleColorPrint(clr, szFormattedMsg);
 }
@@ -1275,10 +1320,10 @@ void ConMsg(const char *pszMessageFormat, ...)
 
 	va_list args;
 	va_start(args, pszMessageFormat);
-	vsnprintf(szFormattedMsg, (sizeof(szFormattedMsg) / sizeof(char)), pszMessageFormat, args);
+	vsnprintf(szFormattedMsg, M_ARRAYSIZE(szFormattedMsg), pszMessageFormat, args);
 	va_end(args);
 
-	szFormattedMsg[(sizeof(szFormattedMsg) / sizeof(char)) - 1] = 0;
+	szFormattedMsg[M_ARRAYSIZE(szFormattedMsg) - 1] = 0;
 
 	g_pCVar->ConsolePrint(szFormattedMsg);
 }
@@ -1291,10 +1336,10 @@ void ConDMsg(const char *pszMessageFormat, ...)
 	{
 		va_list args;
 		va_start(args, pszMessageFormat);
-		vsnprintf(szFormattedMsg, (sizeof(szFormattedMsg) / sizeof(char)), pszMessageFormat, args);
+		vsnprintf(szFormattedMsg, M_ARRAYSIZE(szFormattedMsg), pszMessageFormat, args);
 		va_end(args);
 
-		szFormattedMsg[(sizeof(szFormattedMsg) / sizeof(char)) - 1] = 0;
+		szFormattedMsg[M_ARRAYSIZE(szFormattedMsg) - 1] = 0;
 
 		g_pCVar->ConsolePrint(szFormattedMsg);
 	}

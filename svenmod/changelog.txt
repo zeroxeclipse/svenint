@@ -1,9 +1,36 @@
 Changelog for SvenMod
 
-06/11/2022 - Version 1.2.1 (API v4.0) RC:
+21/03/2023 - Version 1.2.5 (API v4.0):
+- Added asynchronous pattern search
+- Added delayed load of plugins
+
+11/03/2023 - Version 1.2.4 (API v4.0):
+- Updated math functions
+- Added QAngle and Quaternion classes
+- Added macro 'SVENMOD_DEBUG'
+- Added WeaponId 'WEAPON_CROWBAR_ELECTRIC'
+- Removed dynamic_cast on 'ConCommandBase'
+- Fixed 'msurface_s' structure
+- Fixed wrong read & write of coords in 'CMessageBuffer'
+- Fixed wrong definition of macro 'CHAR_TEX_SNOW'
+
+25/01/2023 - Version 1.2.3 (API v4.0):
+- Renamed fieldtypes
+- Removed some methods of the interface 'IEngineClient' for game version 5.22
+- Added macro to define multiple patterns, see 'memutils/patterns.h'
+- Added inline function 'FindPattern' in the interface 'IMemoryUtils' to look over multiple patterns
+- Added a missing pattern for version 5.22
+- Fixed incorrect get of the struct 'r_studio_interface_t'
+
+17/11/2022 - Version 1.2.2 (API v4.0):
+- Used macro M_ARRAYSIZE
+- Used variable 'realtime' instead of function 'g_pEngineFuncs->GetClientTime' in the interface 'IRender'
+- Fixed crash in main menu when called method IUtils::PrintChatText
+
+06/11/2022, 14/11/2022 - Version 1.2.1 (API v4.0):
 - As always some improvements in the code
 - Project configurations for game version 5.22 (<3), 5.25 and Newest
-- New 'IDebug' interface
+- New 'IRender' interface
 - Updated sample plugin
 - Fixed wrong pad in class 'CGameConsoleDialog'
 - Fixed completely wrong struct 'extra_player_info_t'

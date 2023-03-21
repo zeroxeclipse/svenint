@@ -158,7 +158,6 @@ public:
 private:
 	int				m_nArgc;
 	const char		**m_ppArgv;
-	cmd_source_t	m_source;
 };
 
 inline int CCommand::ArgC(void) const

@@ -335,9 +335,21 @@ ConVar sc_predict_landing("sc_predict_landing", "0");
 
 void ShowLandPoint()
 {
-	if ( !g_pPlayerMove->movevars )
+	if ( !sc_predict_landing.GetBool() || !g_pPlayerMove->movevars )
 		return;
 
+	auto ApplyGravity = [](Vector &vecVelocity, float frametime)
+	{
+		float ent_gravity;
+
+		if (g_pPlayerMove->gravity)
+			ent_gravity = g_pPlayerMove->gravity;
+		else
+			ent_gravity = 1.f;
+  
+		vecVelocity.z -= (ent_gravity * g_pPlayerMove->movevars->gravity * frametime);
+	};
+	
 	auto AddCorrectGravity = [](Vector &vecVelocity, float frametime)
 	{
 		float ent_gravity;
@@ -366,14 +378,11 @@ void ShowLandPoint()
 
 	const float flFrametime = 1.f / fps_max->value;
 
-	if ( !sc_predict_landing.GetBool() )
-		return;
-
 	int it = 0;
 	Vector vecVelocity = g_pPlayerMove->velocity;
 	Vector vecOrigin = g_pPlayerMove->origin;
 
-	vecVelocity.AsVector2D() *= 0.5f; // wtf why, I don't know
+	//vecVelocity.AsVector2D() *= 0.5f; // wtf why, I don't know
 
 	// PM_Jump
 	if ( Client()->IsOnGround() )
@@ -387,6 +396,7 @@ void ShowLandPoint()
 	do
 	{
 		// Apply gravity
+		ApplyGravity(vecVelocity, flFrametime);
 		AddCorrectGravity(vecVelocity, flFrametime);
 
 		Vector vecMove = vecVelocity * flFrametime;
