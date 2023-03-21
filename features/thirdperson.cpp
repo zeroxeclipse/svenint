@@ -268,7 +268,7 @@ void CThirdPerson::V_CalcRefdef(struct ref_params_s *pparams)
 
 			va.z = 0.f;
 
-			AngleVectors( g_Config.cvars.thirdperson_angles, &vecForward, NULL, NULL );
+			AngleVectors( *(QAngle *)g_Config.cvars.thirdperson_angles, &vecForward, NULL, NULL );
 			AngleMatrix( va, localToWorld );
 
 			VectorTransform( vecForward, localToWorld, tmp );
