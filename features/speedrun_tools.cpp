@@ -2126,22 +2126,25 @@ CSpeedrunTools::CSpeedrunTools()
 bool CSpeedrunTools::Load()
 {
 	ud_t inst;
+	bool ScanOK = true;
 
-	m_pfnUTIL_GetCircularGaussianSpread = MemoryUtils()->FindPattern( Sys_GetModuleHandle("server.dll"), UTIL_GetCircularGaussianSpread_sig );
+	auto fpfnUTIL_GetCircularGaussianSpread = MemoryUtils()->FindPatternAsync( Sys_GetModuleHandle( "server.dll" ), UTIL_GetCircularGaussianSpread_sig );
+	auto fpfnHost_FilterTime = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Host_FilterTime_sig );
 
-	if ( !m_pfnUTIL_GetCircularGaussianSpread )
+	if ( !( m_pfnUTIL_GetCircularGaussianSpread = fpfnUTIL_GetCircularGaussianSpread.get() ) )
 	{
 		Warning("Couldn't find function \"UTIL_GetCircularGaussianSpread\"\n");
-		return false;
+		ScanOK = false;
 	}
 	
-	m_pfnHost_FilterTime = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Host_FilterTime_sig );
-
-	if ( !m_pfnHost_FilterTime )
+	if ( !( m_pfnHost_FilterTime = fpfnHost_FilterTime.get() ) )
 	{
 		Warning("Couldn't find function \"Host_FilterTime\"\n");
-		return false;
+		ScanOK = false;
 	}
+
+	if ( !ScanOK )
+		return false;
 	
 	m_pJumpOpCode = (unsigned short *)MemoryUtils()->FindPatternWithin( SvenModAPI()->Modules()->Hardware,
 																		 host_framerate_patch_sig,

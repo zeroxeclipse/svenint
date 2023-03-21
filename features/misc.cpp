@@ -2667,6 +2667,8 @@ CMisc::~CMisc()
 
 bool CMisc::Load()
 {
+	bool ScanOK = true;
+
 	ex_interp = CVar()->FindCvar("ex_interp");
 
 	if ( !ex_interp )
@@ -2677,21 +2679,23 @@ bool CMisc::Load()
 
 	m_pfnQueryPerformanceCounter = (void *)QueryPerformanceCounter;
 
-	m_pfnNetchan_Transmit = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::Netchan_Transmit );
+	auto fpfnNetchan_Transmit = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::Netchan_Transmit );
+	auto fpfnCClient_SoundEngine__Play2DSound = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::CClient_SoundEngine__Play2DSound );
 
-	if ( !m_pfnNetchan_Transmit )
+	if ( !( m_pfnNetchan_Transmit = fpfnNetchan_Transmit.get() ) )
 	{
 		Warning("Couldn't find function \"Netchan_Transmit\"\n");
-		return false;
+		ScanOK = false;
 	}
 	
-	m_pfnCClient_SoundEngine__Play2DSound = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Client, Patterns::Client::CClient_SoundEngine__Play2DSound );
-
-	if ( !m_pfnCClient_SoundEngine__Play2DSound )
+	if ( !( m_pfnCClient_SoundEngine__Play2DSound = fpfnCClient_SoundEngine__Play2DSound.get() ) )
 	{
 		Warning("Couldn't find function \"CClient_SoundEngine::Play2DSound\"\n");
-		return false;
+		ScanOK = false;
 	}
+
+	if ( !ScanOK )
+		return false;
 
 	return true;
 }

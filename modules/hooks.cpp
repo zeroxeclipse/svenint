@@ -1423,7 +1423,16 @@ CHooksModule::CHooksModule()
 
 bool CHooksModule::Load()
 {
+	//m_pfnR_RenderScene = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::R_RenderScene_HOOKED );
+
+	//if ( !m_pfnR_RenderScene )
+	//{
+	//	Warning("Couldn't find function \"R_RenderScene\"\n");
+	//	return false;
+	//}
+
 	ud_t inst;
+	bool ScanOK = true;
 
 	default_fov = CVar()->FindCvar("default_fov");
 	hud_draw = CVar()->FindCvar("hud_draw");
@@ -1449,97 +1458,9 @@ bool CHooksModule::Load()
 		return false;
 	}
 
-	m_pfnIN_Move = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Client, Patterns::Client::IN_Move );
-
-	if ( !m_pfnIN_Move )
-	{
-		Warning("Couldn't find function \"IN_Move\"\n");
-		return false;
-	}
-
-	m_pfnCHud__Think = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Client, Patterns::Client::CHud__Think );
-
-	if ( !m_pfnCHud__Think )
-	{
-		Warning("Couldn't find function \"CHud::Think\"\n");
-		return false;
-	}
-
-	g_pfnCHudBaseTextBlock__Print = m_pfnCHudBaseTextBlock__Print = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Client, Patterns::Client::CHudBaseTextBlock__Print );
-
-	if ( !m_pfnCHudBaseTextBlock__Print )
-	{
-		Warning("Couldn't find function \"CHudBaseTextBlock::Print\"\n");
-		return false;
-	}
-	
-	m_pfnNetchan_CanPacket = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::Netchan_CanPacket );
-
-	if ( !m_pfnNetchan_CanPacket )
-	{
-		Warning("Couldn't find function \"Netchan_CanPacket\"\n");
-		return false;
-	}
-	
-	m_pfnSCR_UpdateScreen = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::SCR_UpdateScreen );
-
-	if ( !m_pfnSCR_UpdateScreen)
-	{
-		Warning("Couldn't find function \"SCR_UpdateScreen\"\n");
-		return false;
-	}
-	
-	m_pfnV_RenderView = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::V_RenderView );
-
-	if ( !m_pfnV_RenderView )
-	{
-		Warning("Couldn't find function \"V_RenderView\"\n");
-		return false;
-	}
-	
-	//m_pfnR_RenderScene = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::R_RenderScene_HOOKED );
-
-	//if ( !m_pfnR_RenderScene )
-	//{
-	//	Warning("Couldn't find function \"R_RenderScene\"\n");
-	//	return false;
-	//}
-	
-	m_pfnR_SetupFrame = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::R_SetupFrame );
-
-	if ( !m_pfnR_SetupFrame )
-	{
-		Warning("Couldn't find function \"R_SetupFrame\"\n");
-		return false;
-	}
-	
-	m_pfnCRC_MapFile = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::CRC_MapFile );
-
-	if ( !m_pfnCRC_MapFile )
-	{
-		Warning("Couldn't find function \"CRC_MapFile\"\n");
-		return false;
-	}
-	
-	m_pfnScaleColors = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Client, Patterns::Client::ScaleColors );
-
-	if ( !m_pfnScaleColors )
-	{
-		Warning("Couldn't find function \"ScaleColors\"\n");
-		return false;
-	}
-	
-	m_pfnScaleColors_RGBA = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Client, Patterns::Client::ScaleColors_RGBA );
-
-	if ( !m_pfnScaleColors_RGBA )
-	{
-		Warning("Couldn't find function \"ScaleColors_RGBA\"\n");
-		return false;
-	}
-
 	MemoryUtils()->InitDisasm( &inst, g_pEngineFuncs->SPR_Set, 32, 17 );
 
-	if ( MemoryUtils()->Disassemble(&inst) )
+	if ( MemoryUtils()->Disassemble( &inst ) )
 	{
 		if ( inst.mnemonic == UD_Ijmp )
 		{
@@ -1549,19 +1470,90 @@ bool CHooksModule::Load()
 
 	if ( m_pfnSPR_Set == NULL )
 	{
-		Warning("Couldn't get function \"SPR_Set\"\n");
+		Warning( "Couldn't get function \"SPR_Set\"\n" );
 		return false;
 	}
 
-	void *m_pclc_buffer = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::clc_buffer );
+	auto fpfnIN_Move = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::IN_Move );
+	auto fpfnCHud__Think = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::CHud__Think );
+	auto fpfnCHudBaseTextBlock__Print = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::CHudBaseTextBlock__Print );
+	auto fpfnNetchan_CanPacket = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::Netchan_CanPacket );
+	auto fpfnSCR_UpdateScreen = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::SCR_UpdateScreen );
+	auto fpfnV_RenderView = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::V_RenderView );
+	auto fpfnR_SetupFrame = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::R_SetupFrame );
+	auto fpfnCRC_MapFile = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::CRC_MapFile );
+	auto fpfnScaleColors = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::ScaleColors );
+	auto fpfnScaleColors_RGBA = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::ScaleColors_RGBA );
+	auto fpclc_buffer = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::clc_buffer );
 
-	if ( m_pclc_buffer == NULL )
+	if ( !( m_pfnIN_Move = fpfnIN_Move.get() ) )
 	{
-		Warning("Failed to locate \"clc_buffer\"\n");
+		Warning( "Couldn't find function \"IN_Move\"\n" );
+		ScanOK = false;
+	}
+
+	if ( !( m_pfnCHud__Think = fpfnCHud__Think.get() ) )
+	{
+		Warning( "Couldn't find function \"CHud::Think\"\n" );
+		ScanOK = false;
+	}
+
+	if ( !( g_pfnCHudBaseTextBlock__Print = m_pfnCHudBaseTextBlock__Print = fpfnCHudBaseTextBlock__Print.get() ) )
+	{
+		Warning( "Couldn't find function \"CHudBaseTextBlock::Print\"\n" );
+		ScanOK = false;
+	}
+
+	if ( !( m_pfnNetchan_CanPacket = fpfnNetchan_CanPacket.get() ) )
+	{
+		Warning( "Couldn't find function \"Netchan_CanPacket\"\n" );
+		ScanOK = false;
+	}
+
+	if ( !( m_pfnSCR_UpdateScreen = fpfnSCR_UpdateScreen.get() ) )
+	{
+		Warning( "Couldn't find function \"SCR_UpdateScreen\"\n" );
+		ScanOK = false;
+	}
+
+	if ( !( m_pfnV_RenderView = fpfnV_RenderView.get() ) )
+	{
+		Warning( "Couldn't find function \"V_RenderView\"\n" );
+		ScanOK = false;
+	}
+
+	if ( !( m_pfnR_SetupFrame = fpfnR_SetupFrame.get() ) )
+	{
+		Warning( "Couldn't find function \"R_SetupFrame\"\n" );
+		ScanOK = false;
+	}
+
+	if ( !( m_pfnCRC_MapFile = fpfnCRC_MapFile.get() ) )
+	{
+		Warning( "Couldn't find function \"CRC_MapFile\"\n" );
+		ScanOK = false;
+	}
+
+	if ( !( m_pfnScaleColors = fpfnScaleColors.get() ) )
+	{
+		Warning( "Couldn't find function \"ScaleColors\"\n" );
+		ScanOK = false;
+	}
+
+	if ( !( m_pfnScaleColors_RGBA = fpfnScaleColors_RGBA.get() ) )
+	{
+		Warning( "Couldn't find function \"ScaleColors_RGBA\"\n" );
+		ScanOK = false;
+	}
+
+	void *pclc_buffer;
+	if ( ( pclc_buffer = fpclc_buffer.get() ) == NULL )
+	{
+		Warning( "Failed to locate \"clc_buffer\"\n" );
 		return false;
 	}
 
-	clc_buffer = *reinterpret_cast<sizebuf_t **>((unsigned char *)m_pclc_buffer + 1);
+	clc_buffer = *reinterpret_cast<sizebuf_t **>((unsigned char *)pclc_buffer + 1);
 	
 	//MemoryUtils()->InitDisasm( &inst, g_pEngineFuncs->GetCvarPointer, 32, 17 );
 
