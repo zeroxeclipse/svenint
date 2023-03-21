@@ -1550,8 +1550,11 @@ bool CHooksModule::Load()
 	if ( ( pclc_buffer = fpclc_buffer.get() ) == NULL )
 	{
 		Warning( "Failed to locate \"clc_buffer\"\n" );
-		return false;
+		ScanOK = false;
 	}
+
+	if ( !ScanOK )
+		return false;
 
 	clc_buffer = *reinterpret_cast<sizebuf_t **>((unsigned char *)pclc_buffer + 1);
 	
