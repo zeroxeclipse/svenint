@@ -534,7 +534,7 @@ void CVisual::ShowSpeed()
 
 					m_flFadeTime += flDelta;
 
-					if (m_flFadeTime > flFadeDuration || !IsFloatFinite(m_flFadeTime) )
+					if (m_flFadeTime > flFadeDuration || !Vec_IsFloatFinite(m_flFadeTime) )
 						m_flFadeTime = flFadeDuration;
 
 					float flFadeFrom_R = int(255.f * g_Config.cvars.speed_color[0]) - m_clFadeFrom[0] / flFadeDuration;
