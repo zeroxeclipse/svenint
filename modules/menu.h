@@ -5,6 +5,8 @@
 #pragma once
 #endif
 
+#define IMGUI_USE_GL3 ( 1 )
+
 #include <imgui.h>
 
 #include <base_feature.h>

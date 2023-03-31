@@ -11,7 +11,12 @@
 
 #include "imgui.h"
 #include "imgui_impl_win32.h"
+
+#if IMGUI_USE_GL3
+#include "imgui_impl_opengl3.h"
+#else
 #include "imgui_impl_opengl2.h"
+#endif
 
 #include "../features/models_manager.h"
 #include "../features/thirdperson.h"
@@ -3630,7 +3635,12 @@ DECLARE_FUNC(BOOL, APIENTRY, HOOKED_wglSwapBuffers, HDC hdc)
 
 		ImGui::CreateContext();
 		ImGui_ImplWin32_Init(hGameWnd);
+
+	#if IMGUI_USE_GL3
+		ImGui_ImplOpenGL3_Init();
+	#else
 		ImGui_ImplOpenGL2_Init();
+	#endif
 
 		InitImGuiStyles();
 		ImGui::StyleColorsDark();
@@ -3650,14 +3660,24 @@ DECLARE_FUNC(BOOL, APIENTRY, HOOKED_wglSwapBuffers, HDC hdc)
 
 	bool bMenuEnabled = g_bMenuEnabled;
 
+#if IMGUI_USE_GL3
+	ImGui_ImplOpenGL3_NewFrame();
+#else
 	ImGui_ImplOpenGL2_NewFrame();
+#endif
+
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
 	g_MenuModule.Draw();
 
 	ImGui::Render();
+
+#if IMGUI_USE_GL3
+	ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData() );
+#else
 	ImGui_ImplOpenGL2_RenderDrawData( ImGui::GetDrawData() );
+#endif
 
 	if ( bMenuEnabled && !g_bMenuEnabled )
 	{
