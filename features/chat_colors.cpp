@@ -11,6 +11,8 @@
 
 #include "chat_colors.h"
 
+#include "../SourceChat/public/ISourceChat.h"
+
 #include "../config.h"
 #include "../patterns.h"
 #include "../game/utils.h"
@@ -482,5 +484,22 @@ void CChatColors::Unload()
 	{
 		// Flush the text block otherwise we will get crash because of shared color pointers
 		g_pHudText->FlushText();
+	}
+
+	HMODULE hSourceChatDLL = Sys_GetModuleHandle("sourcechat.dll");
+
+	if ( hSourceChatDLL != NULL )
+	{
+		CreateInterfaceFn pfnCreateInterface = Sys_GetFactory( hSourceChatDLL );
+
+		if ( pfnCreateInterface != NULL )
+		{
+			ISourceChat *pSourceChat = reinterpret_cast<ISourceChat *>( pfnCreateInterface( SOURCE_CHAT_INTERFACE_VERSION, NULL ) );
+
+			if ( pSourceChat != NULL )
+			{
+				pSourceChat->Clear();
+			}
+		}
 	}
 }
