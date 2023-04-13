@@ -7,7 +7,10 @@
 
 #include "lua/lua.hpp"
 
+#include <hl_sdk/engine/edict.h>
 #include <client_state.h>
+
+typedef int scriptref_t;
 
 //-----------------------------------------------------------------------------
 // Scripts Callbacks
@@ -22,6 +25,8 @@ public:
 	void OnEndLoading( void );
 
 	void OnDisconnect( void );
+
+	void OnPlayerSpawn( edict_t *pSpawnSpotEdict, edict_t *pPlayerEdict );
 };
 
 extern CScriptCallbacks g_ScriptCallbacks;
@@ -49,7 +54,8 @@ public:
 	bool		RunScript( const char *pszScript );
 	bool		RunScriptFile( const char *pszFilename );
 
-	bool		LookupFunction( const char *pszFunction );
+	scriptref_t LookupFunction( const char *pszFunction );
+	void		ProtectedCall( lua_State *pLuaState, int args, int results, int errfunc );
 
 private:
 	void		PrintError(void);

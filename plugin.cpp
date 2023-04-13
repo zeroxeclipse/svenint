@@ -262,6 +262,7 @@ void CSvenInternal::PostLoad(bool bGlobalLoad)
 	}
 
 	PostLoadFeatures();
+	PostInitServerDLL();
 
 	g_CamHack.Init();
 
@@ -275,6 +276,7 @@ void CSvenInternal::Unload(void)
 
 	GL_Shutdown();
 
+	ShutdownServerDLL();
 	UnloadFeatures();
 
 	ShutdownServerClientBridge();

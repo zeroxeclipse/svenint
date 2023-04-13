@@ -6,6 +6,7 @@
 #endif
 
 #include "lua/lua.hpp"
+#include "scripts.h"
 
 #include <math/vector.h>
 #include <math/mathlib.h>
@@ -16,8 +17,6 @@
 //-----------------------------------------------------------------------------
 // Timers
 //-----------------------------------------------------------------------------
-
-typedef int scriptref_t;
 
 typedef enum
 {

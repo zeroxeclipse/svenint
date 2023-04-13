@@ -5,6 +5,8 @@
 #include "lua_mod.h"
 #include "lua_logic.h"
 #include "lua_triggers.h"
+#include "lua_entity_dictionary.h"
+#include "lua_entity_vars.h"
 
 #include <string>
 
@@ -102,13 +104,15 @@ void CScriptCallbacks::OnFirstClientdataReceived(float flTime)
 
 	if ( pLuaState != NULL )
 	{
-		if ( g_ScriptVM.LookupFunction("OnFirstClientdataReceived") )
+		scriptref_t hFunction;
+
+		if ( hFunction = g_ScriptVM.LookupFunction("OnFirstClientdataReceived") )
 		{
-			lua_getglobal(pLuaState, "OnFirstClientdataReceived");
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
 
 			lua_pushnumber(pLuaState, (lua_Number)flTime);
 
-			lua_call(pLuaState, 1, 0);
+			g_ScriptVM.ProtectedCall( pLuaState, 1, 0, 0 );
 		}
 	}
 }
@@ -119,13 +123,15 @@ void CScriptCallbacks::OnBeginLoading(void)
 
 	if ( pLuaState != NULL )
 	{
+		scriptref_t hFunction;
+
 		g_TimersHandler.ClearTimers();
 		g_ClientTriggerManager.ClearTriggers();
 
-		if ( g_ScriptVM.LookupFunction("OnBeginLoading") )
+		if ( hFunction = g_ScriptVM.LookupFunction("OnBeginLoading") )
 		{
-			lua_getglobal(pLuaState, "OnBeginLoading");
-			lua_call(pLuaState, 0, 0);
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			g_ScriptVM.ProtectedCall( pLuaState, 0, 0, 0 );
 		}
 	}
 }
@@ -136,13 +142,15 @@ void CScriptCallbacks::OnEndLoading(void)
 
 	if ( pLuaState != NULL )
 	{
+		scriptref_t hFunction;
+
 		g_TimersHandler.ClearTimers();
 		g_ClientTriggerManager.ClearTriggers();
 
-		if ( g_ScriptVM.LookupFunction("OnEndLoading") )
+		if ( hFunction = g_ScriptVM.LookupFunction("OnEndLoading") )
 		{
-			lua_getglobal(pLuaState, "OnEndLoading");
-			lua_call(pLuaState, 0, 0);
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			g_ScriptVM.ProtectedCall( pLuaState, 0, 0, 0 );
 		}
 	}
 }
@@ -153,10 +161,32 @@ void CScriptCallbacks::OnDisconnect(void)
 
 	if ( pLuaState != NULL )
 	{
-		if ( g_ScriptVM.LookupFunction("OnDisconnect") )
+		scriptref_t hFunction;
+
+		if ( hFunction = g_ScriptVM.LookupFunction("OnDisconnect") )
 		{
-			lua_getglobal(pLuaState, "OnDisconnect");
-			lua_call(pLuaState, 0, 0);
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			g_ScriptVM.ProtectedCall( pLuaState, 0, 0, 0 );
+		}
+	}
+}
+
+void CScriptCallbacks::OnPlayerSpawn( edict_t *pSpawnSpotEdict, edict_t *pPlayerEdict )
+{
+	lua_State *pLuaState = g_ScriptVM.GetVM();
+
+	if ( pLuaState != NULL )
+	{
+		scriptref_t hFunction;
+
+		if ( hFunction = g_ScriptVM.LookupFunction("OnPlayerSpawn") )
+		{
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+
+			lua_pushedict( pLuaState, pSpawnSpotEdict );
+			lua_pushedict( pLuaState, pPlayerEdict );
+
+			g_ScriptVM.ProtectedCall( pLuaState, 2, 0, 0 );
 		}
 	}
 }
@@ -183,6 +213,8 @@ bool CScriptVM::Init(void)
 			luaopen_mod(m_pLuaState);
 			luaopen_logic(m_pLuaState);
 			luaopen_triggers(m_pLuaState);
+			luaopen_edict(m_pLuaState);
+			luaopen_entvars(m_pLuaState);
 
 			//SetSearchPath("sven_internal\\scripts");
 
@@ -224,19 +256,16 @@ void CScriptVM::Frame(client_state_t state, double frametime, bool bPostRunCmd)
 
 	if ( bPostRunCmd )
 	{
-		if ( LookupFunction("OnGameFrame") )
+		scriptref_t hFunction;
+
+		if ( hFunction = LookupFunction("OnGameFrame") )
 		{
-			lua_getglobal(m_pLuaState, "OnGameFrame");
+			lua_rawgeti( m_pLuaState, LUA_REGISTRYINDEX, hFunction );
 
-			lua_pushinteger(m_pLuaState, (lua_Integer)state);
-			lua_pushnumber(m_pLuaState, (lua_Number)frametime);
+			lua_pushinteger( m_pLuaState, (lua_Integer)state );
+			lua_pushnumber( m_pLuaState, (lua_Number)frametime );
 
-			int luaResult = lua_pcall(m_pLuaState, 2, 0, 0);
-
-			if ( luaResult != LUA_OK )
-			{
-				g_ScriptVM.PrintError();
-			}
+			ProtectedCall( m_pLuaState, 2, 0, 0 );
 		}
 	}
 	else
@@ -338,22 +367,34 @@ bool CScriptVM::RunScriptFile(const char *pszFilename)
 	return true;
 }
 
-bool CScriptVM::LookupFunction(const char *pszFunction)
+scriptref_t CScriptVM::LookupFunction(const char *pszFunction)
 {
 	if ( m_pLuaState != NULL )
 	{
 		lua_getglobal( m_pLuaState, pszFunction );
 
-		if ( lua_isfunction(m_pLuaState, -1) || lua_iscfunction(m_pLuaState, -1) )
+		if ( !( lua_isfunction( m_pLuaState, -1 ) || lua_iscfunction( m_pLuaState, -1 ) ) )
 		{
 			lua_pop(m_pLuaState, 1);
-			return true;
+			return NULL;
 		}
 
-		lua_pop(m_pLuaState, 1);
+		scriptref_t func = (scriptref_t)luaL_ref( m_pLuaState, LUA_REGISTRYINDEX );
+
+		return func;
 	}
 
-	return false;
+	return NULL;
+}
+
+void CScriptVM::ProtectedCall( lua_State *pLuaState, int args, int results, int errfunc )
+{
+	int luaResult = lua_pcall( pLuaState, args, results, errfunc );
+
+	if ( luaResult != LUA_OK )
+	{
+		g_ScriptVM.PrintError();
+	}
 }
 
 //-----------------------------------------------------------------------------

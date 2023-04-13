@@ -186,6 +186,8 @@
     <ClCompile Include="scripts\lua\lzio.c" />
     <ClCompile Include="scripts\lua_cvar.cpp" />
     <ClCompile Include="scripts\lua_debug.cpp" />
+    <ClCompile Include="scripts\lua_entity_dictionary.cpp" />
+    <ClCompile Include="scripts\lua_entity_vars.cpp" />
     <ClCompile Include="scripts\lua_logic.cpp" />
     <ClCompile Include="scripts\lua_mod.cpp" />
     <ClCompile Include="scripts\lua_triggers.cpp" />
@@ -314,6 +316,8 @@
     <ClInclude Include="scripts\lua\lzio.h" />
     <ClInclude Include="scripts\lua_cvar.h" />
     <ClInclude Include="scripts\lua_debug.h" />
+    <ClInclude Include="scripts\lua_entity_dictionary.h" />
+    <ClInclude Include="scripts\lua_entity_vars.h" />
     <ClInclude Include="scripts\lua_logic.h" />
     <ClInclude Include="scripts\lua_mod.h" />
     <ClInclude Include="scripts\lua_triggers.h" />

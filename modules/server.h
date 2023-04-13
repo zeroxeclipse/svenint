@@ -26,9 +26,19 @@ extern NEW_DLL_FUNCTIONS *g_pNewServerFuncs;
 extern Host_IsServerActiveFn Host_IsServerActive;
 
 //-----------------------------------------------------------------------------
+// Server functions
+//-----------------------------------------------------------------------------
+
+bool IsSurvivalModeEnabled( void );
+bool EnableSurvivalMode( void );
+bool DisableSurvivalMode( void );
+
+//-----------------------------------------------------------------------------
 // Initialize server's library
 //-----------------------------------------------------------------------------
 
 bool InitServerDLL();
+void PostInitServerDLL();
+void ShutdownServerDLL();
 
 #endif // SERVER_DLL_H

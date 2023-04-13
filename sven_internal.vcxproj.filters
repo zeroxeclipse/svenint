@@ -401,6 +401,12 @@
     <ClCompile Include="imgui_impl\imgui_impl_opengl3.cpp">
       <Filter>Sven Internal\Dear ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="scripts\lua_entity_dictionary.cpp">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua_entity_vars.cpp">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">
@@ -771,6 +777,12 @@
     </ClInclude>
     <ClInclude Include="imgui_impl\imgui_impl_opengl3_loader.h">
       <Filter>Sven Internal\Dear ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua_entity_dictionary.h">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua_entity_vars.h">
+      <Filter>Sven Internal\Scripts</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

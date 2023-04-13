@@ -128,19 +128,19 @@ static int Vector_newindex(lua_State *pLuaState)
 		{
 		case 'x':
 		case 'r':
-		case '1':
+		case '0':
 			v->x = flValue;
 			break;
 
 		case 'y':
 		case 'g':
-		case '2':
+		case '1':
 			v->y = flValue;
 			break;
 
 		case 'z':
 		case 'b':
-		case '3':
+		case '2':
 			v->z = flValue;
 			break;
 

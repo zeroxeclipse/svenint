@@ -1,6 +1,5 @@
 #include "lua_logic.h"
 #include "lua_vector.h"
-#include "scripts.h"
 
 #include "../game/utils.h"
 
