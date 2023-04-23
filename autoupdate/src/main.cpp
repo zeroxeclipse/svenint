@@ -190,7 +190,12 @@ void DoAutoUpdate(HWND hWnd)
 
         if ( !updateFile.replaceExisting )
         {
-            std::string sPath = sBasePath + updateFile.path;
+            std::string sPath = sBasePath;
+            
+            if ( sPath.back() != '\\' || sPath.back() != '/' )
+                sPath += "/";
+
+            sPath += updateFile.path;
 
             for (size_t j = 0; j < sPath.length(); j++)
             {
