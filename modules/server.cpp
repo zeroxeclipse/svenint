@@ -4,6 +4,7 @@
 #include "../scripts/scripts.h"
 
 #include <dbg.h>
+#include <convar.h>
 #include <ISvenModAPI.h>
 #include <IDetoursAPI.h>
 
@@ -11,7 +12,8 @@
 // Function pointers
 //-----------------------------------------------------------------------------
 
-DECLARE_HOOK( void, __cdecl, PlayerSpawns, edict_t *pSpawnSpotEdict, edict_t *pPlayerEdict );
+DECLARE_HOOK( void, __cdecl, PlayerSpawns, edict_t *, edict_t * );
+DECLARE_HOOK( void, __cdecl, RunPlayerMove, edict_t *, const float *, float, float, float, unsigned short, byte, byte );
 
 FUNC_SIGNATURE( void *, __cdecl, GetSurvivalModeInstanceFn );
 FUNC_SIGNATURE( void, __thiscall, CSurvivalMode__ToggleFn, void *thisptr );
@@ -51,6 +53,91 @@ DECLARE_FUNC( void, __cdecl, HOOKED_PlayerSpawns, edict_t *pSpawnSpot, edict_t *
 	ORIG_PlayerSpawns( pSpawnSpot, pPlayer );
 
 	g_ScriptCallbacks.OnPlayerSpawn( pSpawnSpot, pPlayer );
+}
+
+//-----------------------------------------------------------------------------
+// ConCommands
+//-----------------------------------------------------------------------------
+
+CON_COMMAND( setpos, "Set local player's position" )
+{
+	if ( args.ArgC() > 1 && Host_IsServerActive() )
+	{
+		edict_t *pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( Client()->GetPlayerIndex() );
+
+		if ( !FNullEnt( pPlayer ) && IsValidEntity( pPlayer ) && pPlayer->pvPrivateData != NULL )
+		{
+			Vector vecOrigin = pPlayer->v.origin;
+
+			vecOrigin.x = atof( args[1] );
+
+			if ( args.ArgC() > 2 )
+			{
+				vecOrigin.y = atof( args[2] );
+			}
+
+			if ( args.ArgC() > 3 )
+			{
+				vecOrigin.z = atof( args[3] );
+			}
+
+			pPlayer->v.origin = vecOrigin;
+		}
+	}
+}
+
+CON_COMMAND( setpos_exact, "Set local player's position" )
+{
+	if ( args.ArgC() > 1 && Host_IsServerActive() )
+	{
+		edict_t *pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( Client()->GetPlayerIndex() );
+
+		if ( !FNullEnt( pPlayer ) && IsValidEntity( pPlayer ) && pPlayer->pvPrivateData != NULL )
+		{
+			Vector vecOrigin = pPlayer->v.origin;
+
+			vecOrigin.x = atof( args[1] );
+
+			if ( args.ArgC() > 2 )
+			{
+				vecOrigin.y = atof( args[2] );
+			}
+
+			if ( args.ArgC() > 3 )
+			{
+				vecOrigin.z = atof( args[3] ) - pPlayer->v.view_ofs.z;
+			}
+
+			pPlayer->v.origin = vecOrigin;
+		}
+	}
+}
+
+CON_COMMAND( setvel, "Set local player's position" )
+{
+	if ( args.ArgC() > 1 && Host_IsServerActive() )
+	{
+		edict_t *pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( Client()->GetPlayerIndex() );
+
+		if ( !FNullEnt( pPlayer ) && IsValidEntity( pPlayer ) && pPlayer->pvPrivateData != NULL )
+		{
+			Vector vecVelocity = pPlayer->v.velocity;
+
+			vecVelocity.x = atof( args[1] );
+
+			if ( args.ArgC() > 2 )
+			{
+				vecVelocity.y = atof( args[2] );
+			}
+
+			if ( args.ArgC() > 3 )
+			{
+				vecVelocity.z = atof( args[3] );
+			}
+
+			pPlayer->v.velocity = vecVelocity;
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------
