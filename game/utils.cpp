@@ -144,12 +144,12 @@ CON_COMMAND(sc_find_model_starts_with, "Find a model that starts with given name
 
 CON_COMMAND(getpos, "Prints current origin")
 {
-	Msg("Origin: %.6f %.6f %.6f\n", VectorExpand(g_pPlayerMove->origin));
+	Warning("setpos %.6f %.6f %.6f\n", VectorExpand(g_pPlayerMove->origin));
 }
 
 CON_COMMAND(getpos_exact, "Prints current origin from view angles")
 {
-	Msg("Origin: %.6f %.6f %.6f\n", VectorExpand(g_pPlayerMove->origin + g_pPlayerMove->view_ofs));
+	Warning("setpos_exact %.6f %.6f %.6f\n", VectorExpand(g_pPlayerMove->origin + g_pPlayerMove->view_ofs));
 }
 
 CON_COMMAND(getang, "Prints current view angles")
@@ -157,7 +157,7 @@ CON_COMMAND(getang, "Prints current view angles")
 	Vector va;
 	g_pEngineFuncs->GetViewAngles(va);
 
-	Msg("View Angles: %.6f %.6f %.6f\n", VectorExpand(va));
+	Warning("setang %.6f %.6f %.6f\n", VectorExpand(va));
 }
 
 CON_COMMAND(setang, "Sets view angles")
@@ -297,6 +297,105 @@ const wchar_t *UTIL_CStringToWideCString(const char *pszString)
 	mbstowcs(wcString, pszString, length);
 
 	return wcString;
+}
+
+//-----------------------------------------------------------------------------
+// Hull intersection
+//-----------------------------------------------------------------------------
+
+void UTIL_FindHullIntersection( const Vector &vecSrc, TraceResult &tr, float *mins, float *maxs, edict_t *pEntity )
+{
+	int			i, j, k;
+	float		distance;
+	float *minmaxs[ 2 ] = { mins, maxs };
+	TraceResult tmpTrace;
+	Vector		vecHullEnd = tr.vecEndPos;
+	Vector		vecEnd;
+
+	distance = 1e6f;
+
+	vecHullEnd = vecSrc + ( ( vecHullEnd - vecSrc ) * 2 );
+	g_pServerEngineFuncs->pfnTraceLine( vecSrc, vecHullEnd, 0, pEntity, &tmpTrace );
+
+	if ( tmpTrace.flFraction < 1.0 )
+	{
+		tr = tmpTrace;
+		return;
+	}
+
+	for ( i = 0; i < 2; i++ )
+	{
+		for ( j = 0; j < 2; j++ )
+		{
+			for ( k = 0; k < 2; k++ )
+			{
+				vecEnd.x = vecHullEnd.x + minmaxs[ i ][ 0 ];
+				vecEnd.y = vecHullEnd.y + minmaxs[ j ][ 1 ];
+				vecEnd.z = vecHullEnd.z + minmaxs[ k ][ 2 ];
+
+				g_pServerEngineFuncs->pfnTraceLine( vecSrc, vecEnd, 0, pEntity, &tmpTrace );
+				if ( tmpTrace.flFraction < 1.0 )
+				{
+					float thisDistance = ( tmpTrace.vecEndPos - vecSrc ).Length();
+					if ( thisDistance < distance )
+					{
+						tr = tmpTrace;
+						distance = thisDistance;
+					}
+				}
+			}
+		}
+	}
+}
+
+void UTIL_FindHullIntersectionClient( const Vector &vecSrc, pmtrace_t &tr, float *mins, float *maxs, int ignore_ent )
+{
+	int			i, j, k;
+	float		distance;
+	float		*minmaxs[ 2 ] = { mins, maxs };
+	pmtrace_t	tmpTrace;
+	Vector		vecHullEnd = tr.endpos;
+	Vector		vecEnd;
+
+	distance = 1e6f;
+
+	vecHullEnd = vecSrc + ( ( vecHullEnd - vecSrc ) * 2 );
+
+	g_pEventAPI->EV_SetTraceHull( PM_HULL_POINT );
+	g_pEventAPI->EV_PlayerTrace( (float *)&vecSrc, vecHullEnd, PM_NORMAL, ignore_ent, &tmpTrace );
+
+	if ( tmpTrace.fraction < 1.0 )
+	{
+		tr = tmpTrace;
+		return;
+	}
+
+	for ( i = 0; i < 2; i++ )
+	{
+		for ( j = 0; j < 2; j++ )
+		{
+			for ( k = 0; k < 2; k++ )
+			{
+				vecEnd.x = vecHullEnd.x + minmaxs[ i ][ 0 ];
+				vecEnd.y = vecHullEnd.y + minmaxs[ j ][ 1 ];
+				vecEnd.z = vecHullEnd.z + minmaxs[ k ][ 2 ];
+
+				g_pEventAPI->EV_SetTraceHull( PM_HULL_POINT );
+				g_pEventAPI->EV_PlayerTrace( (float *)&vecSrc, vecEnd, PM_NORMAL, ignore_ent, &tmpTrace );
+
+				if ( tmpTrace.fraction < 1.0 )
+				{
+					float thisDistance = ( tmpTrace.endpos - vecSrc ).Length();
+
+					if ( thisDistance < distance )
+					{
+						tr = tmpTrace;
+						distance = thisDistance;
+					}
+				}
+			}
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------

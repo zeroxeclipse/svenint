@@ -11,6 +11,10 @@
 #define M_SQR(x) (x * x)
 #endif
 
+#include <hl_sdk/common/pmtrace.h>
+
+#include "../modules/server.h"
+
 struct screen_info_s
 {
 	int width;
@@ -52,6 +56,8 @@ inline float Long32ToFloat(long val)
 int UTIL_SharedRandomLong(unsigned int seed, int low, int high);
 float UTIL_SharedRandomFloat(unsigned int seed, float low, float high);
 const wchar_t *UTIL_CStringToWideCString(const char *pszString);
+void UTIL_FindHullIntersection( const Vector &vecSrc, TraceResult &tr, float *mins, float *maxs, edict_t *pEntity );
+void UTIL_FindHullIntersectionClient( const Vector &vecSrc, pmtrace_t &tr, float *mins, float *maxs, int ignore_ent );
 bool UTIL_WorldToScreen(float *pflOrigin, float *pflVecScreen);
 void UTIL_ScreenToWorld(float *pflNDC, float *pflWorldOrigin);
 void UTIL_SetAnglesSilent(float *angles, struct usercmd_s *cmd);
