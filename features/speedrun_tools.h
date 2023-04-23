@@ -9,6 +9,7 @@
 
 #include <base_feature.h>
 #include <IDetoursAPI.h>
+#include <IRender.h>
 #include <IVGUI.h>
 
 #include <hl_sdk/cl_dll/cl_dll.h>
@@ -50,6 +51,31 @@ struct playerhull_display_info_t
 };
 
 //-----------------------------------------------------------------------------
+// Draw box, no depth buffer
+//-----------------------------------------------------------------------------
+
+class CDrawBoxNoDepthBuffer : public IDrawContext
+{
+public:
+	CDrawBoxNoDepthBuffer( const Vector &vOrigin, const Vector &vMins, const Vector &vMaxs, const Color &color );
+	virtual ~CDrawBoxNoDepthBuffer( void ) {}
+
+	virtual void Draw( void ) override;
+	virtual bool ShouldStopDraw( void ) override { return false; };
+
+	virtual const Vector &GetDrawOrigin( void ) const override { return m_vecDrawOrigin; };
+
+private:
+	Vector m_vecDrawOrigin;
+	Vector m_vecOrigin;
+
+	Vector m_vecMins;
+	Vector m_vecMaxs;
+
+	Color m_color;
+};
+
+//-----------------------------------------------------------------------------
 // CSpeedrunTools
 //-----------------------------------------------------------------------------
 
@@ -79,8 +105,10 @@ public:
 
 	void CheckPlayerHulls_Server();
 	void DrawPlayersHullsNickname_Server();
-	void BroadcastPlayerHull_Server(int client, int dead, const Vector &vecOrigin, const Vector &vecMins, const Vector &vecMaxs);
-	void DrawPlayerHull_Comm(int client, int dead, const Vector &vecOrigin, const Vector &vecMins, const Vector &vecMaxs);
+	void BroadcastPlayerHull_Server(int client, int dead, const Vector &vecOrigin, bool bDuck);
+	void DrawPlayerHull_Comm(int client, int dead, const Vector &vecOrigin, bool bDuck);
+
+	void DrawReviveInfo();
 
 	void BroadcastTimescale();
 	void SendTimescale(edict_t *pPlayer);
@@ -93,6 +121,7 @@ public:
 	void ShowGaussBoostInfo(int r, int g, int b);
 	void ShowSelfgaussInfo(int r, int g, int b);
 	void ShowEntityInfo(int r, int g, int b);
+	void ShowReviveInfo(int r, int g, int b);
 	
 	void OnBeginLoading();
 	void OnFirstClientdataReceived(client_data_t *pcldata, float flTime);
@@ -107,6 +136,12 @@ private:
 
 	float m_flTimerTime;
 	float m_flLastTimerUpdate;
+
+	float m_flDisplayHullsNextSend;
+
+	bool m_bShowReviveInfo;
+	cl_entity_t *m_pReviveTarget;
+	float m_flReviveDistance;
 
 	unsigned short *m_pJumpOpCode;
 	unsigned short m_PatchedJumpOpCode;

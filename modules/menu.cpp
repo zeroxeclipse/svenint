@@ -2872,7 +2872,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::SetCursorPosX(332);
 
-		ImGui::BeginChild(xs("speedrun-tools2"), ImVec2(328.5, 260), true);
+		ImGui::BeginChild(xs("speedrun-tools2"), ImVec2(328.5, 285), true);
 
 		ImGui::Text(xs("HUD Info"));
 
@@ -2951,6 +2951,31 @@ void CMenuModule::DrawUtilityTabContent()
 
 			ImGui::SliderFloat(xs("Width Fraction##st_ent"), &g_Config.cvars.st_show_entity_info_width_frac, 0.0f, 1.0f);
 			ImGui::SliderFloat(xs("Height Fraction##st_ent"), &g_Config.cvars.st_show_entity_info_height_frac, 0.0f, 1.0f);
+			ImGui::EndCombo();
+		}
+		
+		ImGui::Spacing();
+
+		if (ImGui::BeginCombo("      ", xs("Revive"), 0))
+		{
+			ImGui::Checkbox(xs("Show Revive Info##st"), &g_Config.cvars.st_show_revive_info);
+
+			ImGuiCustom.Spacing( 4 );
+
+			ImGui::SliderFloat(xs("Width Fraction##st_revive"), &g_Config.cvars.st_show_revive_info_width_frac, 0.0f, 1.0f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat(xs("Height Fraction##st_revive"), &g_Config.cvars.st_show_revive_info_height_frac, 0.0f, 1.0f);
+
+			ImGuiCustom.Spacing( 4 );
+
+			ImGui::ColorEdit4( xs( "Marker Color##stst_revive" ), g_Config.cvars.st_show_revive_info_color );
+
+			ImGui::Spacing();
+
+			ImGui::ColorEdit4( xs( "No Ammo Marker Color##stst_revive" ), g_Config.cvars.st_show_revive_info_no_ammo_color );
+
 			ImGui::EndCombo();
 		}
 
