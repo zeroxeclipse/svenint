@@ -108,7 +108,7 @@ static int ScriptFunc_GetEntityIndexFromEdict( lua_State *pLuaState )
 {
 	edict_t *pEdict = lua_getedict( pLuaState, 1 );
 
-	g_pServerEngineFuncs->pfnIndexOfEdict( pEdict );
+	lua_pushinteger( pLuaState, (lua_Integer)g_pServerEngineFuncs->pfnIndexOfEdict( pEdict ) );
 
 	return 1;
 }
