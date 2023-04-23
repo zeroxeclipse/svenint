@@ -64,27 +64,24 @@ static int UserMsgHook_SvenInt(const char *pszUserMsg, int iSize, void *pBuffer)
     }
     else if ( type == SVENINT_COMM_DISPLAY_PLAYER_HULL )
     {
-        int client, dead;
-        Vector vecOrigin, vecMins, vecMaxs;
+        struct
+        {
+            unsigned char client : 6;
+            unsigned char dead : 1;
+            unsigned char duck : 1;
+        } displayInfo;
 
-        client = message.ReadByte();
-        dead = message.ReadByte();
+        Vector vecOrigin;
+
+        *(unsigned char *)&displayInfo = message.ReadByte();
 
         vecOrigin.x = Long32ToFloat( message.ReadLong() );
         vecOrigin.y = Long32ToFloat( message.ReadLong() );
         vecOrigin.z = Long32ToFloat( message.ReadLong() );
-        
-        vecMins.x = Long32ToFloat( message.ReadLong() );
-        vecMins.y = Long32ToFloat( message.ReadLong() );
-        vecMins.z = Long32ToFloat( message.ReadLong() );
-        
-        vecMaxs.x = Long32ToFloat( message.ReadLong() );
-        vecMaxs.y = Long32ToFloat( message.ReadLong() );
-        vecMaxs.z = Long32ToFloat( message.ReadLong() );
 
         if ( !g_pDemoAPI->IsPlayingback() )
         {
-            g_SpeedrunTools.DrawPlayerHull_Comm( client, dead, vecOrigin, vecMins, vecMaxs );
+            g_SpeedrunTools.DrawPlayerHull_Comm( displayInfo.client, displayInfo.dead, vecOrigin, !!displayInfo.duck );
         }
     }
 
