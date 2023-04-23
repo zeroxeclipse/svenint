@@ -43,6 +43,9 @@ namespace Patterns
 		EXTERN_PATTERN( ResourceList_Offset );
 		EXTERN_PATTERN( UserInfo_Offset );
 		EXTERN_PATTERN( clc_buffer );
+
+		EXTERN_PATTERN( sv_player );
+		EXTERN_PATTERN( SV_RunCmd );
 	}
 
 	namespace Client

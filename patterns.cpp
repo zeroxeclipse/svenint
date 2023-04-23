@@ -36,6 +36,9 @@ namespace Patterns
 		DEFINE_PATTERN( ResourceList_Offset, "A1 ? ? ? ? 85 C0 74 ? 83 3D ? ? ? ? ? 74 ? 89 86 84 00 00 00" );
 		DEFINE_PATTERN( UserInfo_Offset, "8D B8 ? ? ? ? 75 20 8B 0D" );
 		DEFINE_PATTERN( clc_buffer, "68 ? ? ? ? 85 F6 74 ? 0F AE E8" );
+
+		DEFINE_PATTERN( sv_player, "8B 2D ? ? ? ? 56 8B 74 24 50" );
+		DEFINE_PATTERN( SV_RunCmd, "55 8D 6C 24 90 81 EC ? ? ? ? A1 ? ? ? ? 33 C5 89 45 6C 56" );
 	}
 
 	namespace Client

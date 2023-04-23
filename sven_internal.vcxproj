@@ -119,6 +119,7 @@
     <ClCompile Include="features\message_spammer.cpp" />
     <ClCompile Include="features\misc.cpp" />
     <ClCompile Include="features\models_manager.cpp" />
+    <ClCompile Include="features\movement_recorder.cpp" />
     <ClCompile Include="features\radar.cpp" />
     <ClCompile Include="features\shaders.cpp" />
     <ClCompile Include="features\skybox.cpp" />
@@ -253,6 +254,7 @@
     <ClInclude Include="features\message_spammer.h" />
     <ClInclude Include="features\misc.h" />
     <ClInclude Include="features\models_manager.h" />
+    <ClInclude Include="features\movement_recorder.h" />
     <ClInclude Include="features\radar.h" />
     <ClInclude Include="features\shaders.h" />
     <ClInclude Include="features\skybox.h" />

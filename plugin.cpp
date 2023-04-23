@@ -45,6 +45,7 @@
 #include "features/camhack.h"
 #include "features/keyspam.h"
 #include "features/bsp.h"
+#include "features/movement_recorder.h"
 
 #include "steam/steam_api.h"
 #include "utils/antidebug.h"
@@ -341,6 +342,8 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 
 	if ( bPostRunCmd )
 	{
+		g_MovementReader.OnPostRunCmd();
+
 		if ( flPlatTime - m_flPlatTime >= 0.5f )
 		{
 			g_Config.UpdateConfigs();
