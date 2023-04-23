@@ -5,6 +5,7 @@
 #pragma once
 #endif
 
+#include <hl_sdk/engine/edict.h>
 #include <hl_sdk/engine/progdefs.h>
 #include <hl_sdk/engine/eiface.h>
 #include <sys.h>
@@ -32,6 +33,19 @@ extern Host_IsServerActiveFn Host_IsServerActive;
 bool IsSurvivalModeEnabled( void );
 bool EnableSurvivalMode( void );
 bool DisableSurvivalMode( void );
+
+inline bool FNullEnt( edict_t *pEntity )
+{
+	return pEntity == NULL || g_pServerEngineFuncs->pfnEntOffsetOfPEntity( pEntity ) == 0;
+}
+
+inline bool IsValidEntity( edict_t *pEntity )
+{
+	if ( pEntity == NULL || pEntity->free || pEntity->pvPrivateData == NULL || ( pEntity->v.flags & FL_KILLME ) )
+		return false;
+
+	return true;
+}
 
 //-----------------------------------------------------------------------------
 // Initialize server's library
