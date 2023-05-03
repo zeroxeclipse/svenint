@@ -187,6 +187,22 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 		return false;
 	}
 
+	// Print GL version
+	const GLubyte *renderer = glGetString( GL_RENDERER );
+	const GLubyte *vendor = glGetString( GL_VENDOR );
+	const GLubyte *version = glGetString( GL_VERSION );
+	const GLubyte *glslVersion = glGetString( GL_SHADING_LANGUAGE_VERSION );
+
+	GLint major, minor;
+	glGetIntegerv( GL_MAJOR_VERSION, &major );
+	glGetIntegerv( GL_MINOR_VERSION, &minor );
+
+	DevMsg( "GL Vendor            : %s\n", vendor );
+	DevMsg( "GL Renderer          : %s\n", renderer );
+	DevMsg( "GL Version (string)  : %s\n", version );
+	DevMsg( "GL Version (integer) : %d.%d\n", major, minor );
+	DevMsg( "GLSL Version         : %s\n", glslVersion );
+
 #if ANTIDEBUG
 	CheckDebug();
 #endif
