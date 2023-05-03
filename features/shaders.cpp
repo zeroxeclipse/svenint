@@ -1,5 +1,6 @@
 // Shaders
 
+#define SHADERS_ENABLE ( 1 )
 #define SHADERS_COMPILE_FROM_FILE ( 0 )
 
 #include <dbg.h>
@@ -55,6 +56,7 @@ DECLARE_FUNC(void, __cdecl, HOOKED_ClientDLL_HudRedraw, int intermission)
 
 void CShaders::OnPostRenderView(void)
 {
+#if SHADERS_ENABLE
 	s_iTime += 1.f;
 
 	if ( s_iTime >= 1000.f )
@@ -236,6 +238,7 @@ void CShaders::OnPostRenderView(void)
 	{
 		DrawVignette( g_Config.cvars.shaders_vignette_falloff, g_Config.cvars.shaders_vignette_amount );
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -951,6 +954,7 @@ CShaders::CShaders()
 
 bool CShaders::Load()
 {
+#if SHADERS_ENABLE
 	m_pfnClientDLL_HudRedraw = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::ClientDLL_HudRedraw );
 
 	if ( m_pfnClientDLL_HudRedraw == NULL )
@@ -958,12 +962,14 @@ bool CShaders::Load()
 		Warning("Failed to find function \"ClientDLL_HudRedraw\"\n");
 		return false;
 	}
+#endif
 
 	return true;
 }
 
 void CShaders::PostLoad()
 {
+#if SHADERS_ENABLE
 	m_width = g_ScreenInfo.width;
 	m_height = g_ScreenInfo.height;
 
@@ -987,10 +993,12 @@ void CShaders::PostLoad()
 	POST_PROCESSING_INIT_VARS_COLOR( m_hGaussianBlur, m_width, m_height );
 	POST_PROCESSING_INIT_VARS_COLOR( m_hGaussianBlurFast, m_width, m_height );
 	POST_PROCESSING_INIT_VARS_COLOR( m_hVignette, m_width, m_height );
+#endif
 }
 
 void CShaders::Unload()
 {
+#if SHADERS_ENABLE
 	DetoursAPI()->RemoveDetour( m_hClientDLL_HudRedraw );
 
 	POST_PROCESSING_FREE_VARS( m_hDepthBuffer );
@@ -1004,4 +1012,5 @@ void CShaders::Unload()
 	POST_PROCESSING_FREE_VARS( m_hGaussianBlur );
 	POST_PROCESSING_FREE_VARS( m_hGaussianBlurFast );
 	POST_PROCESSING_FREE_VARS( m_hVignette );
+#endif
 }
