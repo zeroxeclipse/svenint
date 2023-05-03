@@ -1,5 +1,3 @@
-#version 400
-
 uniform sampler2D iChannel0;
 uniform float iTime;
 uniform float ia_target_gamma; // 2.2

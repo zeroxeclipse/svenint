@@ -1,5 +1,3 @@
-#version 400
-
 uniform sampler2D iChannel0;
 uniform int type;
 uniform float shift;

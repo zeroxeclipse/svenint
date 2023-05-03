@@ -1,5 +1,3 @@
-#version 110
-
 varying vec2 vet0;
 
 void main() 

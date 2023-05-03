@@ -1,5 +1,3 @@
-#version 400
-
 uniform sampler2D iChannel0;
 uniform float distance;
 uniform float strength;

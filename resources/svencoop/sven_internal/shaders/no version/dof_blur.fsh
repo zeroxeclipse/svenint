@@ -1,5 +1,3 @@
-#version 400
-
 uniform sampler2D iChannel0; // normal texture
 uniform sampler2D depthmap; // depth buffer
 uniform int interptype;

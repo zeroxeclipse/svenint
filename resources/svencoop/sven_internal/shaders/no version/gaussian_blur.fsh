@@ -1,5 +1,3 @@
-#version 400
-
 uniform sampler2D iChannel0;
 uniform float radius;
 uniform vec2 dir;

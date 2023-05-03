@@ -1,5 +1,3 @@
-#version 400
-
 uniform sampler2D iChannel0;
 uniform sampler2D depthmap;
 uniform float zNear; // 4.0
@@ -38,7 +36,7 @@ vec2 rand(vec2 coord) //generating noise/pattern texture for dithering
 	float noiseX = ((fract(1.0-coord.s*(res.x/2.0))*0.25)+(fract(coord.t*(res.y/2.0))*0.75))*2.0-1.0;
 	float noiseY = ((fract(1.0-coord.s*(res.x/2.0))*0.75)+(fract(coord.t*(res.y/2.0))*0.25))*2.0-1.0;
 
-	if (bool(noise))
+	if (noise)
 	{
 		noiseX = clamp(fract(sin(dot(coord ,vec2(12.9898,78.233))) * 43758.5453),0.0,1.0)*2.0-1.0;
 		noiseY = clamp(fract(sin(dot(coord ,vec2(12.9898,78.233)*2.0)) * 43758.5453),0.0,1.0)*2.0-1.0;
@@ -154,7 +152,7 @@ void main(void)
 	ao *= strength;
 	ao = 1.0-ao;
 
-	if (bool(mist))
+	if (mist)
 	{
 		ao = mix(ao, 1.0, doMist(uv));
 	}
@@ -165,7 +163,7 @@ void main(void)
 	vec3 luminance = vec3(lum, lum, lum);
 	vec3 final = vec3(color*mix(vec3(ao),vec3(1.0),luminance*lumInfluence));//mix(color*ao, white, luminance)
 	
-	if (bool(onlyAO))
+	if (onlyAO)
 	{
 		final = vec3(mix(vec3(ao),vec3(1.0),luminance*lumInfluence)); //ambient occlusion only
 	}
