@@ -2958,7 +2958,8 @@ void CMenuModule::DrawUtilityTabContent()
 
 		if (ImGui::BeginCombo("      ", xs("Revive"), 0))
 		{
-			ImGui::Checkbox(xs("Show Revive Info##st"), &g_Config.cvars.st_show_revive_info);
+			ImGui::Checkbox(xs("Show Revive Info##st"), &g_Config.cvars.st_show_revive_info); ImGui::SameLine();
+			ImGui::Checkbox(xs("Show with Equipped Melee##st_revive"), &g_Config.cvars.st_show_revive_info_with_melee);
 
 			ImGuiCustom.Spacing( 4 );
 

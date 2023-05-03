@@ -772,6 +772,7 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam( "EntityInfoWidthFrac", cvars.st_show_entity_info_width_frac );
 			ConfigManager()->ImportParam( "EntityInfoHeightFrac", cvars.st_show_entity_info_height_frac );
 			ConfigManager()->ImportParam( "ShowReviveInfo", cvars.st_show_revive_info );
+			ConfigManager()->ImportParam( "ShowReviveInfoWithMelee", cvars.st_show_revive_info_with_melee );
 			ConfigManager()->ImportParam( "ReviveInfoWidthFrac", cvars.st_show_revive_info_width_frac );
 			ConfigManager()->ImportParam( "ReviveInfoHeightFrac", cvars.st_show_revive_info_height_frac );
 			ConfigManager()->ImportParam( "ReviveInfoColor_R", cvars.st_show_revive_info_color[ 0 ] );
@@ -1589,6 +1590,7 @@ void CConfig::Save()
 			ConfigManager()->ExportParam( "EntityInfoWidthFrac", cvars.st_show_entity_info_width_frac );
 			ConfigManager()->ExportParam( "EntityInfoHeightFrac", cvars.st_show_entity_info_height_frac );
 			ConfigManager()->ExportParam( "ShowReviveInfo", cvars.st_show_revive_info );
+			ConfigManager()->ExportParam( "ShowReviveInfoWithMelee", cvars.st_show_revive_info_with_melee );
 			ConfigManager()->ExportParam( "ReviveInfoWidthFrac", cvars.st_show_revive_info_width_frac );
 			ConfigManager()->ExportParam( "ReviveInfoHeightFrac", cvars.st_show_revive_info_height_frac );
 			ConfigManager()->ExportParam( "ReviveInfoColor_R", cvars.st_show_revive_info_color[ 0 ] );

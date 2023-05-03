@@ -1476,14 +1476,18 @@ void CSpeedrunTools::DrawPlayerHull_Comm( int client, int dead, const Vector &ve
 
 void CSpeedrunTools::DrawReviveInfo()
 {
-	if ( g_Config.cvars.st_show_revive_info && !Client()->IsDead() && Client()->GetCurrentWeaponID() == WEAPON_MEDKIT )
+	int iWeaponID = Client()->GetCurrentWeaponID();
+
+	if ( g_Config.cvars.st_show_revive_info &&
+		 !Client()->IsDead() &&
+		 ( iWeaponID == WEAPON_MEDKIT || ( g_Config.cvars.st_show_revive_info_with_melee && ( iWeaponID == WEAPON_CROWBAR || iWeaponID == WEAPON_WRENCH ) ) ) )
 	{
 		auto IsSphereIntersectingAABB = []( const Vector &vecCenter, const float flRadiusSqr, const Vector &vecAbsMins, const Vector &vecAbsMaxs, float *pflOutDistance ) -> bool
 		{
 			float flDistanceToEdge = 0.f;
 			float flDistanceSqr = 0.f;
 
-			for ( int i = 0; i < 3 && flDistanceSqr <= flRadiusSqr; i++ )
+			for ( int i = 0; i < 3 /* && flDistanceSqr <= flRadiusSqr */; i++ )
 			{
 				if ( vecCenter[ i ] < vecAbsMins[ i ] )
 				{
@@ -1619,20 +1623,33 @@ void CSpeedrunTools::DrawReviveInfo()
 		{
 			float r, g, b, a;
 
-			// Not enough ammo
-			if ( ClientWeapon()->PrimaryAmmo() < 50 )
+			r = g_Config.cvars.st_show_revive_info_no_ammo_color[ 0 ];
+			g = g_Config.cvars.st_show_revive_info_no_ammo_color[ 1 ];
+			b = g_Config.cvars.st_show_revive_info_no_ammo_color[ 2 ];
+			a = g_Config.cvars.st_show_revive_info_no_ammo_color[ 3 ];
+
+			if ( iWeaponID == WEAPON_MEDKIT )
 			{
-				r = g_Config.cvars.st_show_revive_info_no_ammo_color[ 0 ];
-				g = g_Config.cvars.st_show_revive_info_no_ammo_color[ 1 ];
-				b = g_Config.cvars.st_show_revive_info_no_ammo_color[ 2 ];
-				a = g_Config.cvars.st_show_revive_info_no_ammo_color[ 3 ];
+				// Enough ammo to revive
+				if ( ClientWeapon()->PrimaryAmmo() >= 50 )
+				{
+					r = g_Config.cvars.st_show_revive_info_color[ 0 ];
+					g = g_Config.cvars.st_show_revive_info_color[ 1 ];
+					b = g_Config.cvars.st_show_revive_info_color[ 2 ];
+					a = g_Config.cvars.st_show_revive_info_color[ 3 ];
+				}
 			}
 			else
 			{
-				r = g_Config.cvars.st_show_revive_info_color[ 0 ];
-				g = g_Config.cvars.st_show_revive_info_color[ 1 ];
-				b = g_Config.cvars.st_show_revive_info_color[ 2 ];
-				a = g_Config.cvars.st_show_revive_info_color[ 3 ];
+				WEAPON *pWeapon = Inventory()->GetWeapon( WEAPON_MEDKIT );
+
+				if ( pWeapon != NULL && Inventory()->GetPrimaryAmmoCount( pWeapon ) >= 50 )
+				{
+					r = g_Config.cvars.st_show_revive_info_color[ 0 ];
+					g = g_Config.cvars.st_show_revive_info_color[ 1 ];
+					b = g_Config.cvars.st_show_revive_info_color[ 2 ];
+					a = g_Config.cvars.st_show_revive_info_color[ 3 ];
+				}
 			}
 
 			CDrawBoxNoDepthBuffer *pDrawBoxTarget = new CDrawBoxNoDepthBuffer( vecOrigin,
