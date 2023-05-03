@@ -66,6 +66,7 @@ bool g_bSpamKill = false;
 static bool s_bSpamKillPrev = false;
 
 static bool s_bSelfSink = false;
+static bool s_bSelfSink2 = false;
 //static int s_nSinkState = 0;
 static int s_iWeaponID = -1;
 
@@ -292,6 +293,14 @@ CON_COMMAND_EXTERN_NO_WRAPPER(sc_selfsink, ConCommand_AutoSelfSink, "Perform sel
 		return;
 
 	s_bSelfSink = true;
+}
+
+CON_COMMAND_EXTERN_NO_WRAPPER(sc_selfsink2, ConCommand_AutoSelfSink2, "Perform self sink, method #2")
+{
+	if ( Client()->IsDead() )
+		return;
+
+	s_bSelfSink2 = true;
 }
 
 CON_COMMAND_EXTERN_NO_WRAPPER(sc_reset_colors, ConCommand_ResetColors, "Reset colors in Color Pulsator")
@@ -2460,6 +2469,9 @@ void CMisc::FakeLag(float frametime)
 
 void CMisc::AutoSelfSink(struct usercmd_s *cmd) // improve it tf
 {
+	static int selfsink2_state = 0;
+	static int selfsink2_frames = 0;
+
 	if ( s_bSelfSink )
 	{
 		if ( Client()->IsDead() )
@@ -2480,6 +2492,113 @@ void CMisc::AutoSelfSink(struct usercmd_s *cmd) // improve it tf
 				s_bSelfSink = false;
 			}
 		}
+	}
+	else if ( s_bSelfSink2 )
+	{
+		if ( Client()->IsDead() )
+		{
+			s_bSelfSink2 = false;
+			selfsink2_state = 0;
+			return;
+		}
+
+		switch ( selfsink2_state )
+		{
+		case 0:
+		{
+			if ( g_pPlayerMove->onground != -1 )
+			{
+				cmd->buttons |= IN_DUCK;
+				selfsink2_state = 1;
+			}
+			else
+			{
+				cmd->buttons |= IN_DUCK;
+				selfsink2_state = 3;
+			}
+
+			selfsink2_frames = 0;
+			break;
+		}
+
+		case 1:
+		{
+			cmd->buttons |= IN_DUCK;
+
+			if ( selfsink2_frames++ >= 5 )
+			{
+				selfsink2_state = 2;
+				selfsink2_frames = 0;
+			}
+
+			break;
+		}
+		
+		case 2:
+		{
+			cmd->buttons &= ~IN_DUCK;
+
+			if ( selfsink2_frames++ >= 5 )
+				selfsink2_state = 3;
+			
+			break;
+		}
+
+		case 3:
+		{
+			//float ent_gravity;
+
+			//Vector vecMove;
+			Vector vecOrigin = g_pPlayerMove->origin;
+			//Vector vecVelocity = g_pPlayerMove->velocity;
+
+			//const float frametime = 1.f / CVar()->FindCvar("fps_max")->value;
+
+			//if ( g_pPlayerMove->gravity )
+			//	ent_gravity = g_pPlayerMove->gravity;
+			//else
+			//	ent_gravity = 1.f;
+
+			//vecVelocity.z -= ( ent_gravity * g_pPlayerMove->movevars->gravity * frametime );
+
+			//vecMove = vecVelocity * frametime;
+
+			// Trace forward
+			const int old_hull = g_pPlayerMove->usehull;
+			g_pPlayerMove->usehull = ( g_pPlayerMove->flags & FL_DUCKING ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER );
+
+			pmtrace_t trace = g_pPlayerMove->PM_PlayerTrace( vecOrigin, vecOrigin - Vector( 0, 0, 8192 ), PM_NORMAL, -1);
+			//pmtrace_t trace = g_pPlayerMove->PM_PlayerTrace( vecOrigin, vecOrigin + vecMove, PM_NORMAL, -1 );
+
+			g_pPlayerMove->usehull = old_hull;
+
+			// Save trace pos
+			//vecOrigin = trace.endpos;
+
+			// Did hit a wall or started in solid
+			if ( ( ( /* trace.fraction != 1.f */ fabs( vecOrigin.z - trace.endpos.z ) <= 7.f && !trace.allsolid ) || trace.startsolid ) )
+			{
+				g_pEngineFuncs->ClientCmd( "kill" );
+
+				selfsink2_state = 0;
+				s_bSelfSink2 = false;
+			}
+
+			if ( g_pPlayerMove->onground != -1 )
+			{
+				selfsink2_state = 0;
+				s_bSelfSink2 = false;
+				break;
+			}
+
+			cmd->buttons |= IN_DUCK;
+			break;
+		}
+		}
+	}
+	else
+	{
+		selfsink2_state = 0;
 	}
 }
 
