@@ -38,6 +38,7 @@ public:
 
 private:
 	void AutoJump(struct usercmd_s *cmd);
+	void AutoJumpLegacy(struct usercmd_s *cmd);
 	void JumpBug(float frametime, struct usercmd_s *cmd);
 	void EdgeJump(float frametime, struct usercmd_s *cmd);
 	void Ducktap(struct usercmd_s *cmd);

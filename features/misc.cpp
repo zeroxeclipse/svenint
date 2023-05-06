@@ -212,10 +212,26 @@ CON_COMMAND(sc_test, "Retrieve an entity's info")
 
 CON_COMMAND_NO_WRAPPER(sc_autojump, "Toggle autojump")
 {
+	extern bool g_bJumpDown;
+
 	Msg(g_Config.cvars.autojump ? "Auto Jump disabled\n" : "Auto Jump enabled\n");
 	g_Config.cvars.autojump = !g_Config.cvars.autojump;
 
 	Utils()->PrintChatText("<SvenInt> Autojump is %s\n", g_Config.cvars.autojump ? "ON" : "OFF");
+
+	g_bJumpDown = false;
+}
+
+CON_COMMAND_NO_WRAPPER(sc_autojump_legacy, "Toggle autojump")
+{
+	extern bool g_bJumpDown;
+
+	Msg(g_Config.cvars.autojump_legacy ? "Auto Jump Legacy disabled\n" : "Auto Jump Legacy enabled\n");
+	g_Config.cvars.autojump_legacy = !g_Config.cvars.autojump_legacy;
+
+	Utils()->PrintChatText("<SvenInt> Autojump Legacy is %s\n", g_Config.cvars.autojump_legacy ? "ON" : "OFF");
+
+	g_bJumpDown = false;
 }
 
 CON_COMMAND_NO_WRAPPER(sc_ducktap, "Toggle ducktapping")
@@ -630,6 +646,34 @@ ConVar sc_stick_auto("sc_stick_auto", "0", FCVAR_CLIENTDLL, "Automatically stick
 ConVar sc_stick_steal_model("sc_stick_steal_model", "0", FCVAR_CLIENTDLL, "Steal model of player to stick");
 
 //-----------------------------------------------------------------------------
+// IN_JUMP hook
+//-----------------------------------------------------------------------------
+
+bool g_bJumpDown = false;
+
+CommandCallbackFn ORIG_JumpDown = NULL;
+CommandCallbackFn ORIG_JumpUp = NULL;
+
+static DetourHandle_t hJumpDown = DETOUR_INVALID_HANDLE;
+static DetourHandle_t hJumpUp = DETOUR_INVALID_HANDLE;
+
+static void HOOKED_JumpDown()
+{
+	g_bJumpDown = true;
+
+	if ( !g_Config.cvars.autojump )
+		ORIG_JumpDown();
+}
+
+static void HOOKED_JumpUp()
+{
+	g_bJumpDown = false;
+
+	if ( !g_Config.cvars.autojump )
+		ORIG_JumpUp();
+}
+
+//-----------------------------------------------------------------------------
 // idk
 //-----------------------------------------------------------------------------
 
@@ -810,6 +854,7 @@ void CMisc::CreateMove(float frametime, struct usercmd_s *cmd, int active)
 		AutoSelfSink(cmd);
 		AutoCeilClipping(cmd);
 		AutoJump(cmd);
+		AutoJumpLegacy(cmd);
 		JumpBug(frametime, cmd);
 		EdgeJump(frametime, cmd);
 		Ducktap(cmd);
@@ -1484,11 +1529,23 @@ void CMisc::DupeWeapon(struct usercmd_s *cmd)
 
 void CMisc::AutoJump(struct usercmd_s *cmd)
 {
+	if ( g_Config.cvars.autojump && g_bJumpDown )
+	{
+		// Do jump if we're in OBSERVER state, in DEAD state, standing on ground, swimming
+		if ( Client()->IsSpectating() || Client()->IsDying() || g_pPlayerMove->onground != -1 || g_pPlayerMove->waterlevel >= WL_WAIST )
+		{
+			cmd->buttons |= IN_JUMP;
+		}
+	}
+}
+
+void CMisc::AutoJumpLegacy(struct usercmd_s *cmd)
+{
 	static bool bAllowJump = false;
 
-	if (g_Config.cvars.autojump && cmd->buttons & IN_JUMP)
+	if ( g_Config.cvars.autojump_legacy && cmd->buttons & IN_JUMP )
 	{
-		if (bAllowJump && GetAsyncKeyState(VK_SPACE))
+		if ( bAllowJump && GetAsyncKeyState( VK_SPACE ) )
 		{
 			cmd->buttons &= ~IN_JUMP;
 			bAllowJump = false;
@@ -2824,6 +2881,9 @@ void CMisc::PostLoad()
 	m_hQueryPerformanceCounter = DetoursAPI()->DetourFunction( m_pfnQueryPerformanceCounter, HOOKED_fQueryPerformanceCounter, GET_FUNC_PTR(ORIG_fQueryPerformanceCounter) );
 	m_hNetchan_Transmit = DetoursAPI()->DetourFunction( m_pfnNetchan_Transmit, HOOKED_fNetchan_Transmit, GET_FUNC_PTR(ORIG_fNetchan_Transmit) );
 	m_hCClient_SoundEngine__Play2DSound = DetoursAPI()->DetourFunction( m_pfnCClient_SoundEngine__Play2DSound, HOOKED_CClient_SoundEngine__Play2DSound, GET_FUNC_PTR(ORIG_CClient_SoundEngine__Play2DSound) );
+
+	hJumpDown = Hooks()->HookConsoleCommand( "+jump", HOOKED_JumpDown, &ORIG_JumpDown );
+	hJumpUp = Hooks()->HookConsoleCommand( "-jump", HOOKED_JumpUp, &ORIG_JumpUp );
 }
 
 void CMisc::Unload()
@@ -2831,4 +2891,7 @@ void CMisc::Unload()
 	DetoursAPI()->RemoveDetour( m_hQueryPerformanceCounter );
 	DetoursAPI()->RemoveDetour( m_hNetchan_Transmit );
 	DetoursAPI()->RemoveDetour( m_hCClient_SoundEngine__Play2DSound );
+
+	Hooks()->UnhookConsoleCommand( hJumpDown );
+	Hooks()->UnhookConsoleCommand( hJumpUp );
 }

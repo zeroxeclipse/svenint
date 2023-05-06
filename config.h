@@ -475,6 +475,7 @@ public:
 		//-----------------------------------------------------------------------------
 
 		bool autojump = true;
+		bool autojump_legacy = false;
 		bool jumpbug = false;
 		bool edgejump = false;
 		bool ducktap = false;
