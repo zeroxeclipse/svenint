@@ -18,6 +18,7 @@
 #include <netchan.h>
 
 #include "misc.h"
+#include "speedrun_tools.h"
 
 #include <algorithm>
 #include <cmath>
@@ -1543,6 +1544,9 @@ void CMisc::DupeWeapon(struct usercmd_s *cmd)
 
 void CMisc::AutoJump(struct usercmd_s *cmd)
 {
+	if ( IM_IsPlayingBack() )
+		return;
+
 #if USE_GAY_PERFECT_AUTOJUMP
 	if ( g_Config.cvars.autojump && g_bJumpDown && !Client()->IsDead() )
 	{
