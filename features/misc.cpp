@@ -29,6 +29,8 @@
 #include "../config.h"
 #include "../patterns.h"
 
+#define USE_GAY_PERFECT_AUTOJUMP ( 0 )
+
 //-----------------------------------------------------------------------------
 // Imports
 //-----------------------------------------------------------------------------
@@ -212,14 +214,18 @@ CON_COMMAND(sc_test, "Retrieve an entity's info")
 
 CON_COMMAND_NO_WRAPPER(sc_autojump, "Toggle autojump")
 {
+#if USE_GAY_PERFECT_AUTOJUMP
 	extern bool g_bJumpDown;
+#endif
 
 	Msg(g_Config.cvars.autojump ? "Auto Jump disabled\n" : "Auto Jump enabled\n");
 	g_Config.cvars.autojump = !g_Config.cvars.autojump;
 
 	Utils()->PrintChatText("<SvenInt> Autojump is %s\n", g_Config.cvars.autojump ? "ON" : "OFF");
 
+#if USE_GAY_PERFECT_AUTOJUMP
 	g_bJumpDown = false;
+#endif
 }
 
 CON_COMMAND_NO_WRAPPER(sc_autojump_legacy, "Toggle autojump")
@@ -231,7 +237,9 @@ CON_COMMAND_NO_WRAPPER(sc_autojump_legacy, "Toggle autojump")
 
 	Utils()->PrintChatText("<SvenInt> Autojump Legacy is %s\n", g_Config.cvars.autojump_legacy ? "ON" : "OFF");
 
+#if USE_GAY_PERFECT_AUTOJUMP
 	g_bJumpDown = false;
+#endif
 }
 
 CON_COMMAND_NO_WRAPPER(sc_ducktap, "Toggle ducktapping")
@@ -611,7 +619,7 @@ static void freeze2_toggle_key_up()
 static void ducktap_toggle_key_down()
 {
 	Msg("Auto ducktap enabled\n");
-	Utils()->PrintChatText("<SvenInt> Auto ducktap is ON\n");
+	//Utils()->PrintChatText("<SvenInt> Auto ducktap is ON\n");
 
 	if ( Client()->IsOnGround() )
 		g_pEngineFuncs->ClientCmd("+duck;wait;-duck");
@@ -622,7 +630,7 @@ static void ducktap_toggle_key_down()
 static void ducktap_toggle_key_up()
 {
 	Msg("Auto ducktap disabled\n");
-	Utils()->PrintChatText("<SvenInt> Auto ducktap is OFF\n");
+	//Utils()->PrintChatText("<SvenInt> Auto ducktap is OFF\n");
 
 	s_bDucktap = false;
 }
@@ -649,6 +657,7 @@ ConVar sc_stick_steal_model("sc_stick_steal_model", "0", FCVAR_CLIENTDLL, "Steal
 // IN_JUMP hook
 //-----------------------------------------------------------------------------
 
+#if USE_GAY_PERFECT_AUTOJUMP
 bool g_bJumpDown = false;
 
 CommandCallbackFn ORIG_JumpDown = NULL;
@@ -659,19 +668,24 @@ static DetourHandle_t hJumpUp = DETOUR_INVALID_HANDLE;
 
 static void HOOKED_JumpDown()
 {
+	//Utils()->PrintChatText( "+jump\n" );
+
 	g_bJumpDown = true;
 
-	if ( !g_Config.cvars.autojump )
+	if ( !g_Config.cvars.autojump || Client()->IsDead() )
 		ORIG_JumpDown();
 }
 
 static void HOOKED_JumpUp()
 {
+	//Utils()->PrintChatText( "-jump\n" );
+
 	g_bJumpDown = false;
 
-	if ( !g_Config.cvars.autojump )
+	if ( !g_Config.cvars.autojump || Client()->IsDead() )
 		ORIG_JumpUp();
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // idk
@@ -1529,14 +1543,54 @@ void CMisc::DupeWeapon(struct usercmd_s *cmd)
 
 void CMisc::AutoJump(struct usercmd_s *cmd)
 {
-	if ( g_Config.cvars.autojump && g_bJumpDown )
+#if USE_GAY_PERFECT_AUTOJUMP
+	if ( g_Config.cvars.autojump && g_bJumpDown && !Client()->IsDead() )
 	{
-		// Do jump if we're in OBSERVER state, in DEAD state, standing on ground, swimming
-		if ( Client()->IsSpectating() || Client()->IsDying() || g_pPlayerMove->onground != -1 || g_pPlayerMove->waterlevel >= WL_WAIST )
+		// Do jump if we're not dead, standing on ground or swimming
+		if ( g_pPlayerMove->movetype != MOVETYPE_WALK || g_pPlayerMove->onground != -1 || g_pPlayerMove->waterlevel >= WL_WAIST )
 		{
 			cmd->buttons |= IN_JUMP;
 		}
+		else if ( g_pPlayerMove->onground == -1 && g_pPlayerMove->movetype == MOVETYPE_WALK )
+		{
+			pmtrace_t *pTrace = g_pEngineFuncs->PM_TraceLine( g_pPlayerMove->origin,
+															  g_pPlayerMove->origin - Vector( 0.f, 0.f, 8192.f ),
+															  PM_NORMAL,
+															  ( Client()->GetFlags() & FL_DUCKING ) ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER /* g_pPlayerMove->usehull */,
+															  -1 );
+
+			if ( pTrace->fraction == 0.f )
+			{
+				cmd->buttons |= IN_JUMP;
+			}
+		}
 	}
+#else
+	if ( g_Config.cvars.autojump && ( cmd->buttons & IN_JUMP ) && g_pPlayerMove->movetype == MOVETYPE_WALK && !Client()->IsDead() )
+	{
+		if ( g_pPlayerMove->onground == -1 )
+		{
+		#if 1
+			pmtrace_t *pTrace = g_pEngineFuncs->PM_TraceLine( g_pPlayerMove->origin,
+															  g_pPlayerMove->origin - Vector( 0.f, 0.f, 8192.f ),
+															  PM_NORMAL,
+															  ( Client()->GetFlags() & FL_DUCKING ) ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER /* g_pPlayerMove->usehull */,
+															  -1 );
+
+			if ( pTrace->fraction != 0.f )
+		#else
+			if ( g_pPlayerMove->flFallVelocity != 0.f ) // ground friction still applies when standing on an entity
+		#endif
+			{
+				cmd->buttons &= ~IN_JUMP;
+			}
+		}
+		else if ( g_pPlayerMove->oldbuttons & IN_JUMP )
+		{
+			cmd->buttons &= ~IN_JUMP;
+		}
+	}
+#endif
 }
 
 void CMisc::AutoJumpLegacy(struct usercmd_s *cmd)
@@ -1690,7 +1744,7 @@ void CMisc::Ducktap(struct usercmd_s *cmd)
 
 	if ( s_bDucktap || g_Config.cvars.ducktap )
 	{
-		if ( g_pPlayerMove->onground != -1 && onground_prev == -1 )
+		if ( g_pPlayerMove->onground != -1 && onground_prev == -1 && !g_pPlayerMove->bInDuck )
 		{
 			cmd->buttons |= IN_DUCK;
 		}
@@ -2633,7 +2687,7 @@ void CMisc::AutoSelfSink(struct usercmd_s *cmd) // improve it tf
 			//vecOrigin = trace.endpos;
 
 			// Did hit a wall or started in solid
-			if ( ( ( /* trace.fraction != 1.f */ fabs( vecOrigin.z - trace.endpos.z ) <= 7.f && !trace.allsolid ) || trace.startsolid ) )
+			if ( ( ( /* trace.fraction != 1.f */ fabs( vecOrigin.z - trace.endpos.z ) <= 5.f && !trace.allsolid ) || trace.startsolid ) )
 			{
 				g_pEngineFuncs->ClientCmd( "kill" );
 
@@ -2882,8 +2936,10 @@ void CMisc::PostLoad()
 	m_hNetchan_Transmit = DetoursAPI()->DetourFunction( m_pfnNetchan_Transmit, HOOKED_fNetchan_Transmit, GET_FUNC_PTR(ORIG_fNetchan_Transmit) );
 	m_hCClient_SoundEngine__Play2DSound = DetoursAPI()->DetourFunction( m_pfnCClient_SoundEngine__Play2DSound, HOOKED_CClient_SoundEngine__Play2DSound, GET_FUNC_PTR(ORIG_CClient_SoundEngine__Play2DSound) );
 
+#if USE_GAY_PERFECT_AUTOJUMP
 	hJumpDown = Hooks()->HookConsoleCommand( "+jump", HOOKED_JumpDown, &ORIG_JumpDown );
 	hJumpUp = Hooks()->HookConsoleCommand( "-jump", HOOKED_JumpUp, &ORIG_JumpUp );
+#endif
 }
 
 void CMisc::Unload()
@@ -2892,6 +2948,8 @@ void CMisc::Unload()
 	DetoursAPI()->RemoveDetour( m_hNetchan_Transmit );
 	DetoursAPI()->RemoveDetour( m_hCClient_SoundEngine__Play2DSound );
 
+#if USE_GAY_PERFECT_AUTOJUMP
 	Hooks()->UnhookConsoleCommand( hJumpDown );
 	Hooks()->UnhookConsoleCommand( hJumpUp );
+#endif
 }
