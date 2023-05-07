@@ -76,6 +76,34 @@ private:
 };
 
 //-----------------------------------------------------------------------------
+// Draw wireframe box
+//-----------------------------------------------------------------------------
+
+class CWireframeBox : public IDrawContext
+{
+public:
+	CWireframeBox( const Vector &vOrigin, const Vector &vMins, const Vector &vMaxs, const Color &color, float width, bool bIgnoreDepthBuffer );
+	virtual ~CWireframeBox( void ) {}
+
+	virtual void Draw( void ) override;
+	virtual bool ShouldStopDraw( void ) override { return false; };
+
+	virtual const Vector &GetDrawOrigin( void ) const override { return m_vecDrawOrigin; };
+
+private:
+	Vector m_vecDrawOrigin;
+	Vector m_vecOrigin;
+
+	Vector m_vecMins;
+	Vector m_vecMaxs;
+
+	Color m_color;
+
+	float m_flWidth;
+	bool m_bIgnoreDepthBuffer;
+};
+
+//-----------------------------------------------------------------------------
 // CSpeedrunTools
 //-----------------------------------------------------------------------------
 
@@ -107,6 +135,7 @@ public:
 	void DrawPlayersHullsNickname_Server();
 	void BroadcastPlayerHull_Server(int client, int dead, const Vector &vecOrigin, bool bDuck);
 	void DrawPlayerHull_Comm(int client, int dead, const Vector &vecOrigin, bool bDuck);
+	void DrawBox(const Vector &vecOrigin, const Vector &vecMins, const Vector &vecMaxs, float r, float g, float b, float alpha, float width, bool wireframe);
 
 	void DrawReviveInfo();
 

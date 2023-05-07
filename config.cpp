@@ -740,6 +740,9 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam( "TimerColor_B", cvars.st_timer_color[ 2 ] );
 			ConfigManager()->ImportParam( "ShowPlayerHulls", cvars.st_player_hulls );
 			ConfigManager()->ImportParam( "ShowServerPlayerHulls", cvars.st_server_player_hulls );
+			ConfigManager()->ImportParam( "PlayerHullsShowLocalPlayer", cvars.st_player_hulls_show_local_player );
+			ConfigManager()->ImportParam( "PlayerHullsWireframe", cvars.st_player_hulls_show_wireframe );
+			ConfigManager()->ImportParam( "PlayerHullsWireframeWidth", cvars.st_player_hulls_wireframe_width );
 			ConfigManager()->ImportParam( "PlayerHulls_R", cvars.st_player_hulls_color[ 0 ] );
 			ConfigManager()->ImportParam( "PlayerHulls_G", cvars.st_player_hulls_color[ 1 ] );
 			ConfigManager()->ImportParam( "PlayerHulls_B", cvars.st_player_hulls_color[ 2 ] );
@@ -1558,6 +1561,9 @@ void CConfig::Save()
 			ConfigManager()->ExportParam( "TimerColor_B", cvars.st_timer_color[ 2 ] );
 			ConfigManager()->ExportParam( "ShowPlayerHulls", cvars.st_player_hulls );
 			ConfigManager()->ExportParam( "ShowServerPlayerHulls", cvars.st_server_player_hulls );
+			ConfigManager()->ExportParam( "PlayerHullsShowLocalPlayer", cvars.st_player_hulls_show_local_player );
+			ConfigManager()->ExportParam( "PlayerHullsWireframe", cvars.st_player_hulls_show_wireframe );
+			ConfigManager()->ExportParam( "PlayerHullsWireframeWidth", cvars.st_player_hulls_wireframe_width );
 			ConfigManager()->ExportParam( "PlayerHulls_R", cvars.st_player_hulls_color[ 0 ] );
 			ConfigManager()->ExportParam( "PlayerHulls_G", cvars.st_player_hulls_color[ 1 ] );
 			ConfigManager()->ExportParam( "PlayerHulls_B", cvars.st_player_hulls_color[ 2 ] );

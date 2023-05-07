@@ -463,7 +463,9 @@ DECLARE_FUNC( int, __cdecl, HOOKED_Cbuf_AddText, const char *pszCommand )
 	{
 		if ( *pszCommand != '\n' )
 		{
-			if ( !strncmp( "weapon_", pszCommand, strlen( "weapon_" ) ) || g_WhitelistCommands.Find( pszCommand ) != NULL )
+			if ( !strncmp( "weapon_", pszCommand, strlen( "weapon_" ) ) ||
+				 !strncmp( "impulse ", pszCommand, strlen( "impulse " ) ) ||
+				 g_WhitelistCommands.Find( pszCommand ) != NULL )
 			{
 				im_commands += pszCommand;
 				im_commands += '\n';
@@ -597,6 +599,160 @@ void CDrawBoxNoDepthBuffer::Draw()
 	glDisable( GL_BLEND );
 	glDisable( GL_ALPHA_TEST );
 	glEnable( GL_DEPTH_TEST );
+}
+
+//-----------------------------------------------------------------------------
+// Draw box, no depth buffer
+//-----------------------------------------------------------------------------
+
+CWireframeBox::CWireframeBox( const Vector &vOrigin, const Vector &vMins, const Vector &vMaxs, const Color &color, float width, bool bIgnoreDepthBuffer ) : m_color( color )
+{
+	if ( vOrigin.x == 0.f && vOrigin.y == 0.f && vOrigin.z == 0.f )
+	{
+		m_vecDrawOrigin = vMins + ( vMaxs - vMins ) * 0.5f;
+	}
+	else
+	{
+		m_vecDrawOrigin = vOrigin;
+	}
+
+	m_vecOrigin = vOrigin;
+	m_vecMins = vMins;
+	m_vecMaxs = vMaxs;
+
+	m_flWidth = width;
+	m_bIgnoreDepthBuffer = bIgnoreDepthBuffer;
+}
+
+void CWireframeBox::Draw()
+{
+	glEnable( GL_BLEND );
+
+	if ( m_bIgnoreDepthBuffer )
+		glDisable( GL_DEPTH_TEST );
+
+	glDisable( GL_ALPHA_TEST );
+	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+	glDisable( GL_TEXTURE_2D );
+
+	Vector vecPoints[ 8 ];
+
+	Vector vecMins = m_vecMins;
+	Vector vecMaxs = m_vecMaxs;
+
+	VectorAdd( vecMins, m_vecOrigin, vecMins );
+	VectorAdd( vecMaxs, m_vecOrigin, vecMaxs );
+
+	// Build points of box
+	vecPoints[ 0 ].x = vecMins.x;
+	vecPoints[ 0 ].y = vecMins.y;
+	vecPoints[ 0 ].z = vecMins.z;
+
+	vecPoints[ 1 ].x = vecMins.x;
+	vecPoints[ 1 ].y = vecMaxs.y;
+	vecPoints[ 1 ].z = vecMins.z;
+
+	vecPoints[ 2 ].x = vecMaxs.x;
+	vecPoints[ 2 ].y = vecMaxs.y;
+	vecPoints[ 2 ].z = vecMins.z;
+
+	vecPoints[ 3 ].x = vecMaxs.x;
+	vecPoints[ 3 ].y = vecMins.y;
+	vecPoints[ 3 ].z = vecMins.z;
+
+	vecPoints[ 4 ].x = vecMins.x;
+	vecPoints[ 4 ].y = vecMins.y;
+	vecPoints[ 4 ].z = vecMaxs.z;
+
+	vecPoints[ 5 ].x = vecMins.x;
+	vecPoints[ 5 ].y = vecMaxs.y;
+	vecPoints[ 5 ].z = vecMaxs.z;
+
+	vecPoints[ 6 ].x = vecMaxs.x;
+	vecPoints[ 6 ].y = vecMaxs.y;
+	vecPoints[ 6 ].z = vecMaxs.z;
+
+	vecPoints[ 7 ].x = vecMaxs.x;
+	vecPoints[ 7 ].y = vecMins.y;
+	vecPoints[ 7 ].z = vecMaxs.z;
+
+	glColor4ub( m_color.r, m_color.g, m_color.b, m_color.a );
+	glLineWidth( m_flWidth );
+
+	for ( int i = 0; i < 4; i++ )
+	{
+		int j = ( i + 1 ) % 4;
+
+		glBegin( GL_LINES );
+			glVertex3f( VectorExpand( vecPoints[ i ] ) );
+			glVertex3f( VectorExpand( vecPoints[ i + 4 ] ) );
+
+			glVertex3f( VectorExpand( vecPoints[ i + 4 ] ) );
+			glVertex3f( VectorExpand( vecPoints[ j + 4 ] ) );
+
+			glVertex3f( VectorExpand( vecPoints[ j + 4 ] ) );
+			glVertex3f( VectorExpand( vecPoints[ i ] ) );
+
+			glVertex3f( VectorExpand( vecPoints[ i ] ) );
+			glVertex3f( VectorExpand( vecPoints[ j ] ) );
+		glEnd();
+	}
+	
+	// Bottom & Top
+	glBegin( GL_LINES );
+		glVertex3f( VectorExpand( vecPoints[ 0 ] ) );
+		glVertex3f( VectorExpand( vecPoints[ 2 ] ) );
+
+		glVertex3f( VectorExpand( vecPoints[ 4 ] ) );
+		glVertex3f( VectorExpand( vecPoints[ 6 ] ) );
+	glEnd();
+
+	/*
+	// Turn on wireframe mode
+	glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+
+	for ( int i = 0; i < 4; i++ )
+	{
+		int j = ( i + 1 ) % 4;
+
+		glBegin( GL_TRIANGLE_STRIP );
+			glVertex3f( VectorExpand( vecPoints[ i ] ) );
+			glVertex3f( VectorExpand( vecPoints[ j ] ) );
+			glVertex3f( VectorExpand( vecPoints[ i + 4 ] ) );
+			glVertex3f( VectorExpand( vecPoints[ j + 4 ] ) );
+		glEnd();
+	}
+
+	// Bottom
+	glBegin( GL_TRIANGLE_STRIP );
+		glVertex3f( VectorExpand( vecPoints[ 2 ] ) );
+		glVertex3f( VectorExpand( vecPoints[ 1 ] ) );
+		glVertex3f( VectorExpand( vecPoints[ 3 ] ) );
+		glVertex3f( VectorExpand( vecPoints[ 0 ] ) );
+	glEnd();
+
+	// Top
+	glBegin( GL_TRIANGLE_STRIP );
+		glVertex3f( VectorExpand( vecPoints[ 4 ] ) );
+		glVertex3f( VectorExpand( vecPoints[ 5 ] ) );
+		glVertex3f( VectorExpand( vecPoints[ 7 ] ) );
+		glVertex3f( VectorExpand( vecPoints[ 6 ] ) );
+	glEnd();
+
+	// Turn off wireframe mode
+	glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+	*/
+
+	glLineWidth( 1.f );
+
+	glEnable( GL_TEXTURE_2D );
+
+	glDisable( GL_BLEND );
+	glDisable( GL_ALPHA_TEST );
+
+	if ( m_bIgnoreDepthBuffer )
+		glEnable( GL_DEPTH_TEST );
 }
 
 //-----------------------------------------------------------------------------
@@ -1017,7 +1173,7 @@ void CSpeedrunTools::V_CalcRefDef()
 			if ( pEntity == NULL || pEntity->curstate.renderfx != (int)kRenderFxDeadPlayer && !pEntity->player )
 				continue;
 
-			if ( pEntity->curstate.messagenum < pLocal->curstate.messagenum || pEntity == pLocal )
+			if ( pEntity->curstate.messagenum < pLocal->curstate.messagenum || ( !g_Config.cvars.st_player_hulls_show_local_player && pEntity == pLocal ) )
 				continue;
 
 			if ( pEntity->curstate.renderfx == (int)kRenderFxDeadPlayer )
@@ -1025,26 +1181,30 @@ void CSpeedrunTools::V_CalcRefDef()
 				if ( g_Config.cvars.st_player_hulls_dead_color[ 3 ] == 0.f )
 					continue;
 
-				Render()->DrawBox( pEntity->origin,
-								   pEntity->curstate.mins,
-								   pEntity->curstate.maxs,
-								   g_Config.cvars.st_player_hulls_dead_color[ 0 ],
-								   g_Config.cvars.st_player_hulls_dead_color[ 1 ],
-								   g_Config.cvars.st_player_hulls_dead_color[ 2 ],
-								   g_Config.cvars.st_player_hulls_dead_color[ 3 ] );
+				DrawBox( pEntity->origin,
+						 pEntity->curstate.mins,
+						 pEntity->curstate.maxs,
+						 g_Config.cvars.st_player_hulls_dead_color[ 0 ],
+						 g_Config.cvars.st_player_hulls_dead_color[ 1 ],
+						 g_Config.cvars.st_player_hulls_dead_color[ 2 ],
+						 g_Config.cvars.st_player_hulls_dead_color[ 3 ],
+						 g_Config.cvars.st_player_hulls_wireframe_width,
+						 g_Config.cvars.st_player_hulls_show_wireframe );
 			}
 			else
 			{
 				if ( g_Config.cvars.st_player_hulls_color[ 3 ] == 0.f )
 					continue;
 
-				Render()->DrawBox( pEntity->origin,
-								   pEntity->curstate.mins,
-								   pEntity->curstate.maxs,
-								   g_Config.cvars.st_player_hulls_color[ 0 ],
-								   g_Config.cvars.st_player_hulls_color[ 1 ],
-								   g_Config.cvars.st_player_hulls_color[ 2 ],
-								   g_Config.cvars.st_player_hulls_color[ 3 ] );
+				DrawBox( pEntity->origin,
+						 pEntity->curstate.mins,
+						 pEntity->curstate.maxs,
+						 g_Config.cvars.st_player_hulls_color[ 0 ],
+						 g_Config.cvars.st_player_hulls_color[ 1 ],
+						 g_Config.cvars.st_player_hulls_color[ 2 ],
+						 g_Config.cvars.st_player_hulls_color[ 3 ],
+						 g_Config.cvars.st_player_hulls_wireframe_width,
+						 g_Config.cvars.st_player_hulls_show_wireframe );
 			}
 
 			//if ( !strstr(pModel->name, "models/player/") )
@@ -1061,37 +1221,46 @@ void CSpeedrunTools::V_CalcRefDef()
 	}
 	else if ( g_Config.cvars.st_server_player_hulls )
 	{
+		int iLocalPlayer = g_pPlayerMove->player_index + 1;
+
 		for ( int i = 1; i <= g_pEngineFuncs->GetMaxClients(); i++ )
 		{
 			playerhull_display_info_t &display_info = m_vPlayersHulls[ i ];
 
 			if ( display_info.time >= *dbRealtime )
 			{
+				if ( !g_Config.cvars.st_player_hulls_show_local_player && iLocalPlayer == i )
+					continue;
+
 				if ( display_info.dead )
 				{
 					if ( g_Config.cvars.st_player_hulls_dead_color[ 3 ] == 0.f )
 						continue;
 
-					Render()->DrawBox( display_info.origin,
-									   display_info.mins,
-									   display_info.maxs,
-									   g_Config.cvars.st_player_hulls_dead_color[ 0 ],
-									   g_Config.cvars.st_player_hulls_dead_color[ 1 ],
-									   g_Config.cvars.st_player_hulls_dead_color[ 2 ],
-									   g_Config.cvars.st_player_hulls_dead_color[ 3 ] );
+					DrawBox( display_info.origin,
+							 display_info.mins,
+							 display_info.maxs,
+							 g_Config.cvars.st_player_hulls_dead_color[ 0 ],
+							 g_Config.cvars.st_player_hulls_dead_color[ 1 ],
+							 g_Config.cvars.st_player_hulls_dead_color[ 2 ],
+							 g_Config.cvars.st_player_hulls_dead_color[ 3 ],
+							 g_Config.cvars.st_player_hulls_wireframe_width,
+							 g_Config.cvars.st_player_hulls_show_wireframe );
 				}
 				else
 				{
 					if ( g_Config.cvars.st_player_hulls_color[ 3 ] == 0.f )
 						continue;
 
-					Render()->DrawBox( display_info.origin,
-									   display_info.mins,
-									   display_info.maxs,
-									   g_Config.cvars.st_player_hulls_color[ 0 ],
-									   g_Config.cvars.st_player_hulls_color[ 1 ],
-									   g_Config.cvars.st_player_hulls_color[ 2 ],
-									   g_Config.cvars.st_player_hulls_color[ 3 ] );
+					DrawBox( display_info.origin,
+							 display_info.mins,
+							 display_info.maxs,
+							 g_Config.cvars.st_player_hulls_color[ 0 ],
+							 g_Config.cvars.st_player_hulls_color[ 1 ],
+							 g_Config.cvars.st_player_hulls_color[ 2 ],
+							 g_Config.cvars.st_player_hulls_color[ 3 ],
+							 g_Config.cvars.st_player_hulls_wireframe_width,
+							 g_Config.cvars.st_player_hulls_show_wireframe );
 				}
 			}
 		}
@@ -1468,6 +1637,30 @@ void CSpeedrunTools::DrawPlayerHull_Comm( int client, int dead, const Vector &ve
 	display_info.dead = dead;
 	display_info.origin = vecOrigin;
 	display_info.time = *dbRealtime + 1.f;
+}
+
+//-----------------------------------------------------------------------------
+// Draw box
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::DrawBox(const Vector &vecOrigin, const Vector &vecMins, const Vector &vecMaxs, float r, float g, float b, float alpha, float width, bool wireframe)
+{
+	if ( wireframe )
+	{
+		CWireframeBox *pWireframeBox = new CWireframeBox( vecOrigin, vecMins, vecMaxs, Color( r, g, b, alpha ), width, false );
+
+		Render()->AddDrawContext( pWireframeBox );
+	}
+	else
+	{
+		Render()->DrawBox( vecOrigin,
+						   vecMins,
+						   vecMaxs,
+						   r,
+						   g,
+						   b,
+						   alpha );
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -1887,6 +2080,16 @@ void CSpeedrunTools::ShowPosition( int r, int g, int b )
 		y += height;
 
 		g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Z: %.6f", origin.z );
+
+		//y += height;
+
+		//pmtrace_t *pTrace = g_pEngineFuncs->PM_TraceLine( g_pPlayerMove->origin,
+		//												  g_pPlayerMove->origin - Vector( 0.f, 0.f, 8192.f ),
+		//												  PM_NORMAL,
+		//												  ( Client()->GetFlags() & FL_DUCKING ) ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER /* g_pPlayerMove->usehull */,
+		//												  -1 );
+
+		//g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Distance to Ground: %.3f", pTrace->fraction * 8192.f );
 	}
 }
 

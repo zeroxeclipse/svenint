@@ -2827,7 +2827,7 @@ void CMenuModule::DrawUtilityTabContent()
 	}
 	case 5: // Speedrun Tools
 	{
-		ImGui::BeginChild(xs("speedrun-tools"), ImVec2(328, 325), true);
+		ImGui::BeginChild(xs("speedrun-tools"), ImVec2(328, 420), true);
 
 		ImGui::Text(xs("Timer"));
 
@@ -2855,6 +2855,10 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::Checkbox(xs("Show Hulls of Players##st"), &g_Config.cvars.st_player_hulls); 
 		ImGui::Checkbox(xs("Show Server's Hulls of Players##st"), &g_Config.cvars.st_server_player_hulls);
+		
+		ImGui::Spacing();
+
+		ImGui::Checkbox(xs("Show on Local Player##st_hulls"), &g_Config.cvars.st_player_hulls_show_local_player); 
 
 		ImGuiCustom.Spacing(4);
 
@@ -2864,6 +2868,13 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::ColorEdit4(xs("Hull Dead Color##st"), g_Config.cvars.st_player_hulls_dead_color);
 
+		ImGuiCustom.Spacing( 4 );
+
+		ImGui::Checkbox( xs( "Wireframe Mode##st_hulls" ), &g_Config.cvars.st_player_hulls_show_wireframe );
+
+		ImGuiCustom.Spacing( 2 );
+
+		ImGui::SliderFloat( xs( "Wireframe Width##st_hulls" ), &g_Config.cvars.st_player_hulls_wireframe_width, 0.f, 15.f );
 
 		ImGui::EndChild();
 

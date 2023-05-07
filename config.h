@@ -532,6 +532,9 @@ public:
 
 		bool st_player_hulls = false;
 		bool st_server_player_hulls = false;
+		bool st_player_hulls_show_local_player = false;
+		bool st_player_hulls_show_wireframe = false;
+		float st_player_hulls_wireframe_width = 2.f;
 		float st_player_hulls_color[4] = { 232.f / 255.f, 0.f / 255.f, 232.f / 255.f, 96.f / 255.f };
 		float st_player_hulls_dead_color[4] = { 189.f / 255.f, 134.f / 255.f, 240.f / 255.f, 96.f / 255.f };
 
