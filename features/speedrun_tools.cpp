@@ -407,6 +407,16 @@ void IM_Stop()
 	im_record = false;
 }
 
+bool IM_IsPlayingBack()
+{
+	return im_file != NULL && !im_record;
+}
+
+bool IM_IsRecording()
+{
+	return im_file != NULL && im_record;
+}
+
 //-----------------------------------------------------------------------------
 // Hooks
 //-----------------------------------------------------------------------------
@@ -2918,6 +2928,8 @@ void CSpeedrunTools::PostLoad()
 	g_WhitelistCommands.Insert( "healme" );
 	g_WhitelistCommands.Insert( "grenade" );
 	g_WhitelistCommands.Insert( "takecover" );
+	g_WhitelistCommands.Insert( "sc_freeze" );
+	g_WhitelistCommands.Insert( "sc_freeze2" );
 
 	Hooks()->HookCvarChange( fps_max, CvarChangeHook_fps_max );
 

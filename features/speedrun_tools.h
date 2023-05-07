@@ -190,4 +190,7 @@ private:
 
 extern CSpeedrunTools g_SpeedrunTools;
 
+extern bool IM_IsPlayingBack();
+extern bool IM_IsRecording();
+
 #endif // SPEEDRUN_TOOLS_H
