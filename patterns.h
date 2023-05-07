@@ -28,6 +28,7 @@ namespace Patterns
 		EXTERN_PATTERN( R_RenderScene );
 		EXTERN_PATTERN( R_RenderScene_HOOKED );
 		EXTERN_PATTERN( R_SetupFrame );
+		EXTERN_PATTERN( R_ForceCVars );
 		EXTERN_PATTERN( R_LoadSkyboxInt );
 
 		EXTERN_PATTERN( CL_ClearState );
@@ -44,6 +45,7 @@ namespace Patterns
 		EXTERN_PATTERN( UserInfo_Offset );
 		EXTERN_PATTERN( clc_buffer );
 
+		EXTERN_PATTERN( cheats_level );
 		EXTERN_PATTERN( sv_player );
 		EXTERN_PATTERN( SV_RunCmd );
 	}

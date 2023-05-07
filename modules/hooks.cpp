@@ -75,6 +75,7 @@ DECLARE_HOOK(void, __cdecl, SCR_UpdateScreen);
 DECLARE_HOOK(void, __cdecl, V_RenderView);
 DECLARE_HOOK(void, __cdecl, R_RenderScene);
 DECLARE_HOOK(void, __cdecl, R_SetupFrame);
+DECLARE_HOOK(void, __cdecl, R_ForceCVars, int);
 
 DECLARE_HOOK(int, __cdecl, CRC_MapFile, uint32 *ulCRC, char *pszMapName);
 
@@ -116,6 +117,7 @@ extern float g_flOverrideColor_B;
 //-----------------------------------------------------------------------------
 
 sizebuf_t *clc_buffer = NULL;
+int *cheats_level = NULL;
 
 bool g_bScreenshot = false;
 
@@ -173,6 +175,7 @@ private:
 	void *m_pfnV_RenderView;
 	void *m_pfnR_RenderScene;
 	void *m_pfnR_SetupFrame;
+	void *m_pfnR_ForceCVars;
 	void *m_pfnCRC_MapFile;
 
 	DetourHandle_t m_hIN_Move;
@@ -189,6 +192,7 @@ private:
 	DetourHandle_t m_hV_RenderView;
 	DetourHandle_t m_hR_RenderScene;
 	DetourHandle_t m_hR_SetupFrame;
+	DetourHandle_t m_hR_ForceCVars;
 	DetourHandle_t m_hCRC_MapFile;
 
 	DetourHandle_t m_hStudioRenderModel;
@@ -849,6 +853,16 @@ DECLARE_FUNC(void, __cdecl, HOOKED_R_SetupFrame)
 	}
 }
 
+DECLARE_FUNC(void, __cdecl, HOOKED_R_ForceCVars, int a1)
+{
+	extern cvar_t *r_drawentities;
+
+	//ORIG_R_ForceCVars(a1);
+
+	if ( r_drawentities != NULL )
+		r_drawentities->value = 1.f;
+}
+
 DECLARE_FUNC(void, __cdecl, HOOKED_V_RenderView)
 {
 	GLfloat glColor[] =
@@ -1135,6 +1149,8 @@ HOOK_RESULT HOOK_RETURN_VALUE CClientHooks::HUD_GetHullBounds(int *hullnumber_ex
 
 HOOK_RESULT CClientHooks::HUD_Frame(double time)
 {
+	*cheats_level = 255;
+
 	return HOOK_CONTINUE;
 }
 
@@ -1411,6 +1427,7 @@ CHooksModule::CHooksModule()
 	m_pfnV_RenderView = NULL;
 	m_pfnR_RenderScene = NULL;
 	m_pfnR_SetupFrame = NULL;
+	m_pfnR_ForceCVars = NULL;
 	m_pfnCRC_MapFile = NULL;
 
 	m_hNetchan_CanPacket = 0;
@@ -1419,6 +1436,7 @@ CHooksModule::CHooksModule()
 	m_hV_RenderView = 0;
 	m_hR_RenderScene = 0;
 	m_hR_SetupFrame = 0;
+	m_hR_ForceCVars = 0;
 }
 
 bool CHooksModule::Load()
@@ -1481,10 +1499,12 @@ bool CHooksModule::Load()
 	auto fpfnSCR_UpdateScreen = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::SCR_UpdateScreen );
 	auto fpfnV_RenderView = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::V_RenderView );
 	auto fpfnR_SetupFrame = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::R_SetupFrame );
+	auto fpfnR_ForceCVars = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::R_ForceCVars );
 	auto fpfnCRC_MapFile = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::CRC_MapFile );
 	auto fpfnScaleColors = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::ScaleColors );
 	auto fpfnScaleColors_RGBA = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::ScaleColors_RGBA );
 	auto fpclc_buffer = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::clc_buffer );
+	auto fcheats_level = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::cheats_level );
 
 	if ( !( m_pfnIN_Move = fpfnIN_Move.get() ) )
 	{
@@ -1528,6 +1548,12 @@ bool CHooksModule::Load()
 		ScanOK = false;
 	}
 
+	if ( !( m_pfnR_ForceCVars = fpfnR_ForceCVars.get() ) )
+	{
+		Warning( "Couldn't find function \"R_ForceCVars\"\n" );
+		ScanOK = false;
+	}
+
 	if ( !( m_pfnCRC_MapFile = fpfnCRC_MapFile.get() ) )
 	{
 		Warning( "Couldn't find function \"CRC_MapFile\"\n" );
@@ -1552,11 +1578,19 @@ bool CHooksModule::Load()
 		Warning( "Failed to locate \"clc_buffer\"\n" );
 		ScanOK = false;
 	}
+	
+	void *pcheats_level;
+	if ( ( pcheats_level = fcheats_level.get() ) == NULL )
+	{
+		Warning( "Failed to locate \"cheats_level\"\n" );
+		ScanOK = false;
+	}
 
 	if ( !ScanOK )
 		return false;
 
 	clc_buffer = *reinterpret_cast<sizebuf_t **>((unsigned char *)pclc_buffer + 1);
+	cheats_level = *reinterpret_cast<int **>((unsigned char *)pcheats_level + 2);
 	
 	//MemoryUtils()->InitDisasm( &inst, g_pEngineFuncs->GetCvarPointer, 32, 17 );
 
@@ -1647,6 +1681,7 @@ void CHooksModule::PostLoad()
 	m_hV_RenderView = DetoursAPI()->DetourFunction( m_pfnV_RenderView, HOOKED_V_RenderView, GET_FUNC_PTR(ORIG_V_RenderView) );
 	//m_hR_RenderScene = DetoursAPI()->DetourFunction( m_pfnR_RenderScene, HOOKED_R_RenderScene, GET_FUNC_PTR(ORIG_R_RenderScene) );
 	m_hR_SetupFrame = DetoursAPI()->DetourFunction( m_pfnR_SetupFrame, HOOKED_R_SetupFrame, GET_FUNC_PTR(ORIG_R_SetupFrame) );
+	m_hR_ForceCVars = DetoursAPI()->DetourFunction( m_pfnR_ForceCVars, HOOKED_R_ForceCVars, GET_FUNC_PTR(ORIG_R_ForceCVars ) );
 	m_hCRC_MapFile = DetoursAPI()->DetourFunction( m_pfnCRC_MapFile, HOOKED_CRC_MapFile, GET_FUNC_PTR(ORIG_CRC_MapFile) );
 
 	m_hStudioRenderModel = DetoursAPI()->DetourVirtualFunction( g_pStudioRenderer, 20, HOOKED_StudioRenderModel, GET_FUNC_PTR(ORIG_StudioRenderModel) );
@@ -1682,6 +1717,7 @@ void CHooksModule::Unload()
 	DetoursAPI()->RemoveDetour( m_hV_RenderView );
 	//DetoursAPI()->RemoveDetour( m_hR_RenderScene );
 	DetoursAPI()->RemoveDetour( m_hR_SetupFrame );
+	DetoursAPI()->RemoveDetour( m_hR_ForceCVars );
 	DetoursAPI()->RemoveDetour( m_hCRC_MapFile );
 
 	DetoursAPI()->RemoveDetour( m_hStudioRenderModel );

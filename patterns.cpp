@@ -21,6 +21,7 @@ namespace Patterns
 		DEFINE_PATTERN( R_RenderScene, "83 EC ? E8 ? ? ? ? 85 C0 74" );
 		DEFINE_PATTERN( R_RenderScene_HOOKED, "E9 ? ? ? ? ? ? ? 85 C0 74" );
 		DEFINE_PATTERN( R_SetupFrame, "83 EC 24 A1 ? ? ? ? 33 C4 89 44 24 20 33 C0 83 3D ? ? ? ? 01 0F 9F C0 50 E8 ? ? ? ? E8" );
+		DEFINE_PATTERN( R_ForceCVars, "83 7C 24 04 ? 0F 84 ? ? ? ? 81 3D ? ? ? ? FF" );
 		DEFINE_PATTERN( R_LoadSkyboxInt, "81 EC ? ? 00 00 A1 ? ? ? ? 33 C4 89 84 24 ? ? 00 00 53 8B 9C 24 ? ? 00 00 55 56 57 89 5C 24 24" );
 
 		DEFINE_PATTERN( CL_ClearState, "E8 ? ? ? ? 85 C0 75 ? FF 74 24 04" );
@@ -36,6 +37,8 @@ namespace Patterns
 		DEFINE_PATTERN( ResourceList_Offset, "A1 ? ? ? ? 85 C0 74 ? 83 3D ? ? ? ? ? 74 ? 89 86 84 00 00 00" );
 		DEFINE_PATTERN( UserInfo_Offset, "8D B8 ? ? ? ? 75 20 8B 0D" );
 		DEFINE_PATTERN( clc_buffer, "68 ? ? ? ? 85 F6 74 ? 0F AE E8" );
+
+		DEFINE_PATTERN( cheats_level, "83 3D ? ? ? ? ? 75 ? FF 36 68" );
 
 		DEFINE_PATTERN( sv_player, "8B 2D ? ? ? ? 56 8B 74 24 50" );
 		DEFINE_PATTERN( SV_RunCmd, "55 8D 6C 24 90 81 EC ? ? ? ? A1 ? ? ? ? 33 C5 89 45 6C 56" );
