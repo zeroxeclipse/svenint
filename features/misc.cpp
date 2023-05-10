@@ -1572,6 +1572,9 @@ void CMisc::AutoJump(struct usercmd_s *cmd)
 #else
 	if ( g_Config.cvars.autojump && ( cmd->buttons & IN_JUMP ) && g_pPlayerMove->movetype == MOVETYPE_WALK && !Client()->IsDead() )
 	{
+		if ( g_pPlayerMove->waterlevel >= WL_WAIST )
+			return;
+
 		if ( g_pPlayerMove->onground == -1 )
 		{
 		#if 1
