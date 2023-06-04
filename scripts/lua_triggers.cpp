@@ -122,17 +122,14 @@ void CClientTriggerManager::Frame(lua_State *pLuaState)
 
 		if ( IsAABBIntersectingAABB(vecMins, vecMaxs, vecTriggerMins, vecTriggerMaxs) )
 		{
-			if ( g_ScriptVM.LookupFunction("OnTouchTrigger") )
+			scriptref_t hFunction;
+
+			if ( hFunction = g_ScriptVM.LookupFunction("OnTouchTrigger") )
 			{
-				lua_getglobal(pLuaState, "OnTouchTrigger");
-				lua_pushstring(pLuaState, trigger.name.c_str());
+				lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+				lua_pushstring( pLuaState, trigger.name.c_str() );
 
-				int luaResult = lua_pcall(pLuaState, 1, 0, 0);
-
-				if (luaResult != LUA_OK)
-				{
-					g_ScriptVM.PrintError();
-				}
+				g_ScriptVM.ProtectedCall( pLuaState, 1, 0, 0 );
 			}
 
 			trigger.name.erase();
