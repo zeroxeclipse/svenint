@@ -12,6 +12,7 @@
 
 #include <data_struct/hash.h>
 #include <generichash.h>
+#include <messagebuffer.h>
 
 #include "speedrun_tools.h"
 
@@ -22,10 +23,13 @@
 #include "../game/drawing.h"
 #include "../game/utils.h"
 #include "../game/entitylist.h"
+#include "../utils/demo_message.h"
 #include "../strafe/strafe_utils.h"
 
 #include "../patterns.h"
 #include "../config.h"
+
+extern bool g_bPlayingbackDemo;
 
 //-----------------------------------------------------------------------------
 // Declare Hooks... and function pointer
@@ -1172,6 +1176,7 @@ void CSpeedrunTools::V_CalcRefDef()
 	if ( g_Config.cvars.st_player_hulls )
 	{
 		cl_entity_t *pLocal = g_pEngineFuncs->GetLocalPlayer();
+		int iLocalPlayer = g_pPlayerMove->player_index + 1;
 
 		for ( int i = 0; i < MAXENTS; i++ )
 		{
@@ -1183,7 +1188,7 @@ void CSpeedrunTools::V_CalcRefDef()
 			if ( pEntity == NULL || pEntity->curstate.renderfx != (int)kRenderFxDeadPlayer && !pEntity->player )
 				continue;
 
-			if ( pEntity->curstate.messagenum < pLocal->curstate.messagenum || ( !g_Config.cvars.st_player_hulls_show_local_player && pEntity == pLocal ) )
+			if ( pEntity->curstate.messagenum < pLocal->curstate.messagenum || ( !g_Config.cvars.st_player_hulls_show_local_player && iLocalPlayer == i ) )
 				continue;
 
 			if ( pEntity->curstate.renderfx == (int)kRenderFxDeadPlayer )
@@ -1206,7 +1211,7 @@ void CSpeedrunTools::V_CalcRefDef()
 				if ( g_Config.cvars.st_player_hulls_color[ 3 ] == 0.f )
 					continue;
 
-				DrawBox( pEntity->origin,
+				DrawBox( iLocalPlayer == i ? g_pPlayerMove->origin : pEntity->origin,
 						 pEntity->curstate.mins,
 						 pEntity->curstate.maxs,
 						 g_Config.cvars.st_player_hulls_color[ 0 ],
@@ -1413,7 +1418,7 @@ void CSpeedrunTools::ShowTimer( float flTime, bool bServer )
 
 void CSpeedrunTools::StartTimer()
 {
-	if ( Host_IsServerActive() || g_pDemoAPI->IsPlayingback() )
+	if ( Host_IsServerActive() && !g_bPlayingbackDemo )
 	{
 		m_bSegmentStarted = true;
 		m_flSegmentStart = gpGlobals->time;
@@ -1438,13 +1443,14 @@ void CSpeedrunTools::StartTimer()
 
 void CSpeedrunTools::StopTimer()
 {
-	if ( g_Config.cvars.st_timer && ( Host_IsServerActive() || g_pDemoAPI->IsPlayingback() ) )
+	if ( g_Config.cvars.st_timer && Host_IsServerActive() && !g_bPlayingbackDemo )
 	{
 		if ( m_bSegmentStarted )
 		{
 			char timer_buffer[ 128 ];
 
 			float flSegmentTime = m_flSegmentTime = gpGlobals->time - m_flSegmentStart;
+			const char *pszMapname = gpGlobals->pStringBase + gpGlobals->mapname;
 
 			int minutes = static_cast<int>( flSegmentTime ) / 60;
 			int seconds = static_cast<int>( flSegmentTime ) % 60;
@@ -1455,12 +1461,14 @@ void CSpeedrunTools::StopTimer()
 					  seconds / 10, seconds % 10,
 					  ms / 100, ( ms / 10 ) % 10, ms % 10 );
 
-			Utils()->PrintChatText( "Finished segment in %s (%.3f) (map: %s)\n", timer_buffer, flSegmentTime, gpGlobals->pStringBase + gpGlobals->mapname );
+			Utils()->PrintChatText( "Finished segment in %s (%.6f) (map: %s)\n", timer_buffer, flSegmentTime, pszMapname );
 
 			ConColorMsg( { 255, 165, 0, 255 }, "> Finished segment in " );
 			ConColorMsg( { 179, 255, 32, 255 }, timer_buffer );
-			ConColorMsg( { 122, 200, 0, 255 }, " (%.3f) ", flSegmentTime );
-			ConColorMsg( { 255, 165, 0, 255 }, "(map: %s)\n", gpGlobals->pStringBase + gpGlobals->mapname );
+			ConColorMsg( { 122, 200, 0, 255 }, " (%.6f) ", flSegmentTime );
+			ConColorMsg( { 255, 165, 0, 255 }, "(map: %s)\n", pszMapname );
+
+			g_DemoMessage.WriteSegmentInfo( flSegmentTime, timer_buffer, pszMapname );
 		}
 	}
 
@@ -2091,15 +2099,15 @@ void CSpeedrunTools::ShowPosition( int r, int g, int b )
 
 		g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Z: %.6f", origin.z );
 
-		//y += height;
+		y += height;
 
-		//pmtrace_t *pTrace = g_pEngineFuncs->PM_TraceLine( g_pPlayerMove->origin,
-		//												  g_pPlayerMove->origin - Vector( 0.f, 0.f, 8192.f ),
-		//												  PM_NORMAL,
-		//												  ( Client()->GetFlags() & FL_DUCKING ) ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER /* g_pPlayerMove->usehull */,
-		//												  -1 );
+		pmtrace_t *pTrace = g_pEngineFuncs->PM_TraceLine( g_pPlayerMove->origin,
+														  g_pPlayerMove->origin - Vector( 0.f, 0.f, 8192.f ),
+														  PM_NORMAL,
+														  ( Client()->GetFlags() & FL_DUCKING ) ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER /* g_pPlayerMove->usehull */,
+														  -1 );
 
-		//g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Distance to Ground: %.3f", pTrace->fraction * 8192.f );
+		g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Distance to Ground: %.3f", pTrace->fraction * 8192.f );
 	}
 }
 
