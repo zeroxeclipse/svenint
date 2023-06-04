@@ -11,6 +11,8 @@
 #include "../features/speedrun_tools.h"
 #include "../game/utils.h"
 
+extern bool g_bPlayingbackDemo;
+
 //-----------------------------------------------------------------------------
 // Vars
 //-----------------------------------------------------------------------------
@@ -24,7 +26,7 @@ DetourHandle_t hClientPutInServer = DETOUR_INVALID_HANDLE;
 
 static int UserMsgHook_SvenInt(const char *pszUserMsg, int iSize, void *pBuffer)
 {
-    CMessageBuffer message(pBuffer, iSize, true);
+    CMessageBuffer message( pBuffer, iSize, true );
 
     int type = message.ReadByte();
 
@@ -33,7 +35,7 @@ static int UserMsgHook_SvenInt(const char *pszUserMsg, int iSize, void *pBuffer)
         cvar_t *pCvar;
         const char *pszCvar = message.ReadString();
 
-        if ( (pCvar = CVar()->FindCvar(pszCvar)) != NULL )
+        if ( ( pCvar = CVar()->FindCvar( pszCvar ) ) != NULL )
         {
             const char *pszValue = message.ReadString();
             CVar()->SetValue( pCvar, pszValue );
@@ -57,7 +59,7 @@ static int UserMsgHook_SvenInt(const char *pszUserMsg, int iSize, void *pBuffer)
         float fpsmax = Long32ToFloat( message.ReadLong() );
         float min_frametime = Long32ToFloat( message.ReadLong() );
 
-        if ( !g_pDemoAPI->IsPlayingback() && !Host_IsServerActive() )
+        if ( !g_bPlayingbackDemo && !Host_IsServerActive() )
         {
             g_SpeedrunTools.SetTimescale_Comm( notify, framerate, fpsmax, min_frametime );
         }
@@ -79,13 +81,13 @@ static int UserMsgHook_SvenInt(const char *pszUserMsg, int iSize, void *pBuffer)
         vecOrigin.y = Long32ToFloat( message.ReadLong() );
         vecOrigin.z = Long32ToFloat( message.ReadLong() );
 
-        if ( !g_pDemoAPI->IsPlayingback() )
+        if ( !g_bPlayingbackDemo )
         {
             g_SpeedrunTools.DrawPlayerHull_Comm( displayInfo.client, displayInfo.dead, vecOrigin, !!displayInfo.duck );
         }
     }
 
-	return 1;
+    return 1;
 }
 
 //-----------------------------------------------------------------------------
@@ -94,18 +96,18 @@ static int UserMsgHook_SvenInt(const char *pszUserMsg, int iSize, void *pBuffer)
 
 DECLARE_FUNC(void, __cdecl, HOOKED_ClientPutInServer, edict_t *pEntity)
 {
-    ORIG_ClientPutInServer(pEntity);
+    ORIG_ClientPutInServer( pEntity );
 
-    g_pServerEngineFuncs->pfnMessageBegin(MSG_ONE, SVC_NEWUSERMSG, NULL, pEntity);
-        g_pServerEngineFuncs->pfnWriteByte(SVC_SVENINT);
-        g_pServerEngineFuncs->pfnWriteByte(255);
-        g_pServerEngineFuncs->pfnWriteLong(0x6E657653); // nevS
-        g_pServerEngineFuncs->pfnWriteLong(0x00746E49); // tnI
-        g_pServerEngineFuncs->pfnWriteLong(0x0);
-        g_pServerEngineFuncs->pfnWriteLong(0x0);
+    g_pServerEngineFuncs->pfnMessageBegin( MSG_ONE, SVC_NEWUSERMSG, NULL, pEntity );
+        g_pServerEngineFuncs->pfnWriteByte( SVC_SVENINT );
+        g_pServerEngineFuncs->pfnWriteByte( 255 );
+        g_pServerEngineFuncs->pfnWriteLong( 0x6E657653 ); // nevS
+        g_pServerEngineFuncs->pfnWriteLong( 0x00746E49 ); // tnI
+        g_pServerEngineFuncs->pfnWriteLong( 0x0 );
+        g_pServerEngineFuncs->pfnWriteLong( 0x0 );
     g_pServerEngineFuncs->pfnMessageEnd();
 
-    g_SpeedrunTools.SendTimescale(pEntity);
+    g_SpeedrunTools.SendTimescale( pEntity );
 }
 
 //-----------------------------------------------------------------------------
