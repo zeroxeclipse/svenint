@@ -29,12 +29,14 @@
 #include "../game/drawing.h"
 #include "../game/entitylist.h"
 #include "../game/class_table.h"
+#include "../utils/demo_message.h"
 
 #include "../config.h"
 #include "../patterns.h"
 
 //#define PROCESS_PLAYER_BONES_ONLY
 
+extern bool g_bPlayingbackDemo;
 extern bool g_bScreenshot;
 extern bool g_bOverrideHUD;
 
@@ -455,6 +457,7 @@ void CVisual::ResetJumpSpeed()
 	m_flPrevTime = m_flTime;
 	m_flFadeTime = g_Config.cvars.jumpspeed_fade_duration;
 	m_flJumpSpeed = 0.f;
+	m_flDemoMsgSpeed = 0.f;
 
 	m_clFadeFrom[0] = int(255.f * g_Config.cvars.speed_color[0]);
 	m_clFadeFrom[1] = int(255.f * g_Config.cvars.speed_color[1]);
@@ -473,10 +476,19 @@ void CVisual::ShowSpeed()
 		{
 			g_bOverrideHUD = false;
 
-			if ( g_Config.cvars.show_vertical_speed )
-				flSpeed = g_pPlayerMove->velocity.Length();
+			if ( g_bPlayingbackDemo )
+			{
+				flSpeed = m_flDemoMsgSpeed;
+			}
 			else
-				flSpeed = g_pPlayerMove->velocity.Length2D();
+			{
+				if ( g_Config.cvars.show_vertical_speed )
+					flSpeed = g_pPlayerMove->velocity.Length();
+				else
+					flSpeed = g_pPlayerMove->velocity.Length2D();
+
+				g_DemoMessage.WriteVelometerSpeed( flSpeed );
+			}
 
 			g_Drawing.DrawNumber(flSpeed > 0.f ? int(floor(flSpeed)) : int(ceil(flSpeed)),
 								 int(m_iScreenWidth * g_Config.cvars.speed_width_fraction),
@@ -2101,6 +2113,7 @@ CVisual::CVisual()
 	m_flPrevTime = 0.f;
 	m_flFadeTime = g_Config.cvars.jumpspeed_fade_duration;
 	m_flJumpSpeed = 0.f;
+	m_flDemoMsgSpeed = 0.f;
 
 	m_clFadeFrom[0] = int(255.f * g_Config.cvars.speed_color[0]);
 	m_clFadeFrom[1] = int(255.f * g_Config.cvars.speed_color[1]);

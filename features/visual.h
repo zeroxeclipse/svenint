@@ -56,6 +56,7 @@ public:
 	void V_CalcRefdef(struct ref_params_s *pparams);
 
 	void ResetJumpSpeed();
+	inline void SetDemoMessageSpeed( float flSpeed ) { m_flDemoMsgSpeed = flSpeed; }
 	void AddSound(const Vector &vecOrigin);
 	void AddHitmarker(const Vector &vecOrigin, float flStayTime);
 
@@ -91,6 +92,7 @@ private:
 	float m_flPrevTime;
 	float m_flFadeTime;
 	float m_flJumpSpeed;
+	float m_flDemoMsgSpeed;
 
 	int m_clFadeFrom[3];
 
