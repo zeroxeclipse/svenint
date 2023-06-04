@@ -13,6 +13,7 @@
 //-----------------------------------------------------------------------------
 
 DECLARE_HOOK( void, __cdecl, PlayerSpawns, edict_t *, edict_t * );
+DECLARE_HOOK( void, __cdecl, ClientKill, edict_t * );
 DECLARE_HOOK( void, __cdecl, RunPlayerMove, edict_t *, const float *, float, float, float, unsigned short, byte, byte );
 
 FUNC_SIGNATURE( void *, __cdecl, GetSurvivalModeInstanceFn );
@@ -37,6 +38,7 @@ NEW_DLL_FUNCTIONS *g_pNewServerFuncs = NULL;
 Host_IsServerActiveFn Host_IsServerActive = NULL;
 
 static DetourHandle_t hPlayerSpawns = DETOUR_INVALID_HANDLE;
+static DetourHandle_t hClientKill = DETOUR_INVALID_HANDLE;
 static void *s_pfnPlayerSpawns = NULL;
 
 // stores dll funcs
@@ -53,6 +55,13 @@ DECLARE_FUNC( void, __cdecl, HOOKED_PlayerSpawns, edict_t *pSpawnSpot, edict_t *
 	ORIG_PlayerSpawns( pSpawnSpot, pPlayer );
 
 	g_ScriptCallbacks.OnPlayerSpawn( pSpawnSpot, pPlayer );
+}
+
+DECLARE_FUNC( void, __cdecl, HOOKED_ClientKill, edict_t *pPlayer )
+{
+	ORIG_ClientKill( pPlayer );
+
+	g_ScriptCallbacks.OnClientKill( pPlayer );
 }
 
 //-----------------------------------------------------------------------------
@@ -409,6 +418,7 @@ bool InitServerDLL()
 
 void PostInitServerDLL()
 {
+	hClientKill = DetoursAPI()->DetourFunction( g_pServerFuncs->pfnClientKill, HOOKED_ClientKill, GET_FUNC_PTR( ORIG_ClientKill ) );
 	hPlayerSpawns = DetoursAPI()->DetourFunction( s_pfnPlayerSpawns, HOOKED_PlayerSpawns, GET_FUNC_PTR( ORIG_PlayerSpawns ) );
 }
 
@@ -418,5 +428,6 @@ void PostInitServerDLL()
 
 void ShutdownServerDLL()
 {
+	DetoursAPI()->RemoveDetour( hClientKill );
 	DetoursAPI()->RemoveDetour( hPlayerSpawns );
 }
