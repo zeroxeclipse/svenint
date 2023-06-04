@@ -119,7 +119,6 @@
     <ClCompile Include="features\message_spammer.cpp" />
     <ClCompile Include="features\misc.cpp" />
     <ClCompile Include="features\models_manager.cpp" />
-    <ClCompile Include="features\movement_recorder.cpp" />
     <ClCompile Include="features\radar.cpp" />
     <ClCompile Include="features\shaders.cpp" />
     <ClCompile Include="features\skybox.cpp" />
@@ -205,6 +204,7 @@
     <ClCompile Include="svenmod\shared\messagebuffer.cpp" />
     <ClCompile Include="svenmod\shared\sys.cpp" />
     <ClCompile Include="utils\antidebug.cpp" />
+    <ClCompile Include="utils\demo_message.cpp" />
     <ClCompile Include="utils\menu_styles.cpp" />
     <ClCompile Include="utils\patcher.cpp" />
     <ClCompile Include="utils\shaders\bloom_raw.c" />
@@ -254,7 +254,6 @@
     <ClInclude Include="features\message_spammer.h" />
     <ClInclude Include="features\misc.h" />
     <ClInclude Include="features\models_manager.h" />
-    <ClInclude Include="features\movement_recorder.h" />
     <ClInclude Include="features\radar.h" />
     <ClInclude Include="features\shaders.h" />
     <ClInclude Include="features\skybox.h" />
@@ -329,6 +328,7 @@
     <ClInclude Include="strafe\strafe_utils.h" />
     <ClInclude Include="SvenMod\public\hl_sdk\cl_dll\interpolation.h" />
     <ClInclude Include="utils\antidebug.h" />
+    <ClInclude Include="utils\demo_message.h" />
     <ClInclude Include="utils\menu_fonts.hpp" />
     <ClInclude Include="utils\menu_styles.h" />
     <ClInclude Include="utils\patcher.h" />

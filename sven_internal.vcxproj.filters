@@ -407,8 +407,8 @@
     <ClCompile Include="scripts\lua_entity_vars.cpp">
       <Filter>Sven Internal\Scripts</Filter>
     </ClCompile>
-    <ClCompile Include="features\movement_recorder.cpp">
-      <Filter>Sven Internal\Features</Filter>
+    <ClCompile Include="utils\demo_message.cpp">
+      <Filter>Sven Internal\Utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -787,8 +787,8 @@
     <ClInclude Include="scripts\lua_entity_vars.h">
       <Filter>Sven Internal\Scripts</Filter>
     </ClInclude>
-    <ClInclude Include="features\movement_recorder.h">
-      <Filter>Sven Internal\Features</Filter>
+    <ClInclude Include="utils\demo_message.h">
+      <Filter>Sven Internal\Utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
