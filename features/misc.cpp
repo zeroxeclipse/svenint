@@ -2585,6 +2585,8 @@ void CMisc::FakeLag(float frametime)
 // Auto Selfsink
 //-----------------------------------------------------------------------------
 
+ConVar sc_selfsink2_min_height("sc_selfsink2_min_height", "5", FCVAR_CLIENTDLL);
+
 void CMisc::AutoSelfSink(struct usercmd_s *cmd) // improve it tf
 {
 	static int selfsink2_state = 0;
@@ -2694,7 +2696,7 @@ void CMisc::AutoSelfSink(struct usercmd_s *cmd) // improve it tf
 			//vecOrigin = trace.endpos;
 
 			// Did hit a wall or started in solid
-			if ( ( ( /* trace.fraction != 1.f */ fabs( vecOrigin.z - trace.endpos.z ) <= 5.f && !trace.allsolid ) || trace.startsolid ) )
+			if ( ( ( /* trace.fraction != 1.f */ fabs( vecOrigin.z - trace.endpos.z ) <= sc_selfsink2_min_height.GetFloat() && !trace.allsolid ) || trace.startsolid ) )
 			{
 				g_pEngineFuncs->ClientCmd( "kill" );
 
