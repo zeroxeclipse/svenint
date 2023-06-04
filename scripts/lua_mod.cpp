@@ -12,7 +12,53 @@
 #include <ISvenModAPI.h>
 #include <hl_sdk/engine/APIProxy.h>
 
-static char mapname_buffer[ MAX_PATH ];
+//-----------------------------------------------------------------------------
+// Get mapname helper
+//-----------------------------------------------------------------------------
+
+static const char *GetMapName()
+{
+	static char mapname_buffer[ MAX_PATH ];
+
+	char *pszMapName = mapname_buffer;
+	char *pszExt = NULL;
+
+	strncpy( mapname_buffer, g_pEngineFuncs->GetLevelName(), MAX_PATH );
+
+	// maps/<mapname>.bsp to <mapname>
+	while ( *pszMapName )
+	{
+		if ( *pszMapName == '/' )
+		{
+			pszMapName++;
+			break;
+		}
+
+		pszMapName++;
+	}
+
+	pszExt = pszMapName;
+
+	while ( *pszExt )
+	{
+		if ( *pszExt == '.' )
+		{
+			*pszExt = 0;
+			break;
+		}
+
+		pszExt++;
+	}
+
+	char *tmp = pszMapName;
+	while ( *tmp )
+	{
+		*tmp = tolower( *tmp );
+		tmp++;
+	}
+
+	return pszMapName;
+}
 
 //-----------------------------------------------------------------------------
 // C to Lua
@@ -47,37 +93,7 @@ static int ScriptFunc_IncludeScript( lua_State *pLuaState )
 
 static int ScriptFunc_GetMapName( lua_State *pLuaState )
 {
-	char *pszMapName = mapname_buffer;
-	char *pszExt = NULL;
-
-	strncpy( mapname_buffer, g_pEngineFuncs->GetLevelName(), MAX_PATH );
-
-	// maps/<mapname>.bsp to <mapname>
-	while ( *pszMapName )
-	{
-		if ( *pszMapName == '/' )
-		{
-			pszMapName++;
-			break;
-		}
-
-		pszMapName++;
-	}
-
-	pszExt = pszMapName;
-
-	while ( *pszExt )
-	{
-		if ( *pszExt == '.' )
-		{
-			*pszExt = 0;
-			break;
-		}
-
-		pszExt++;
-	}
-
-	lua_pushstring( pLuaState, pszMapName );
+	lua_pushstring( pLuaState, GetMapName() );
 
 	return 1;
 }
@@ -171,6 +187,10 @@ static int ScriptFunc_LookAt( lua_State *pLuaState )
 
 LUALIB_API int luaopen_mod( lua_State *pLuaState )
 {
+	// Current map name
+	lua_pushstring( pLuaState, GetMapName() );
+	lua_setglobal( pLuaState, "MapName" );
+
 	// Client state
 	lua_pushinteger( pLuaState, client_state_t::CLS_NONE );
 	lua_setglobal( pLuaState, "CLS_NONE" );
