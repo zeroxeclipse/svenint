@@ -25,8 +25,10 @@ public:
 	void OnEndLoading( void );
 
 	void OnDisconnect( void );
+	void OnRestart( void );
 
 	void OnPlayerSpawn( edict_t *pSpawnSpotEdict, edict_t *pPlayerEdict );
+	void OnClientKill( edict_t *pPlayerEdict );
 };
 
 extern CScriptCallbacks g_ScriptCallbacks;

@@ -171,6 +171,22 @@ void CScriptCallbacks::OnDisconnect(void)
 	}
 }
 
+void CScriptCallbacks::OnRestart(void)
+{
+	lua_State *pLuaState = g_ScriptVM.GetVM();
+
+	if ( pLuaState != NULL )
+	{
+		scriptref_t hFunction;
+
+		if ( hFunction = g_ScriptVM.LookupFunction("OnRestart") )
+		{
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			g_ScriptVM.ProtectedCall( pLuaState, 0, 0, 0 );
+		}
+	}
+}
+
 void CScriptCallbacks::OnPlayerSpawn( edict_t *pSpawnSpotEdict, edict_t *pPlayerEdict )
 {
 	lua_State *pLuaState = g_ScriptVM.GetVM();
@@ -191,6 +207,25 @@ void CScriptCallbacks::OnPlayerSpawn( edict_t *pSpawnSpotEdict, edict_t *pPlayer
 	}
 }
 
+void CScriptCallbacks::OnClientKill( edict_t *pPlayerEdict )
+{
+	lua_State *pLuaState = g_ScriptVM.GetVM();
+
+	if ( pLuaState != NULL )
+	{
+		scriptref_t hFunction;
+
+		if ( hFunction = g_ScriptVM.LookupFunction("OnClientKill") )
+		{
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+
+			lua_pushedict( pLuaState, pPlayerEdict );
+
+			g_ScriptVM.ProtectedCall( pLuaState, 1, 0, 0 );
+		}
+	}
+}
+
 CScriptCallbacks g_ScriptCallbacks;
 
 //-----------------------------------------------------------------------------
@@ -205,23 +240,23 @@ bool CScriptVM::Init(void)
 
 		if ( m_pLuaState != NULL )
 		{
-			luaL_openlibs(m_pLuaState);
+			luaL_openlibs( m_pLuaState );
 
-			luaopen_print(m_pLuaState);
-			luaopen_vector(m_pLuaState);
-			luaopen_cvar(m_pLuaState);
-			luaopen_mod(m_pLuaState);
-			luaopen_logic(m_pLuaState);
-			luaopen_triggers(m_pLuaState);
-			luaopen_edict(m_pLuaState);
-			luaopen_entvars(m_pLuaState);
+			luaopen_print( m_pLuaState );
+			luaopen_vector( m_pLuaState );
+			luaopen_cvar( m_pLuaState );
+			luaopen_mod( m_pLuaState );
+			luaopen_logic( m_pLuaState );
+			luaopen_triggers( m_pLuaState );
+			luaopen_edict( m_pLuaState );
+			luaopen_entvars( m_pLuaState );
 
 			//SetSearchPath("sven_internal\\scripts");
 
-			ConColorMsg(clr_print, "Started scripts virtual machine using scripting language \"" LUA_VERSION "\"\n");
+			ConColorMsg( clr_print, "Started scripts virtual machine using scripting language \"" LUA_VERSION "\"\n" );
 
-			ConColorMsg(clr_print, "Running a script file \"main.lua\"...\n");
-			RunScriptFile("sven_internal/scripts/main.lua");
+			ConColorMsg( clr_print, "Running a script file \"main.lua\"...\n" );
+			RunScriptFile( "sven_internal/scripts/main.lua" );
 
 			return true;
 		}
@@ -270,6 +305,9 @@ void CScriptVM::Frame(client_state_t state, double frametime, bool bPostRunCmd)
 	}
 	else
 	{
+		// Collect garbage
+		lua_gc( m_pLuaState, LUA_GCCOLLECT );
+
 		g_TimersHandler.Frame( m_pLuaState );
 		g_ClientTriggerManager.Frame( m_pLuaState );
 	}
