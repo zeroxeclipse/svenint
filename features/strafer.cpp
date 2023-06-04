@@ -162,10 +162,21 @@ static void CvarChangeHook_sc_strafe_type(cvar_t *pCvar, const char *pszOldValue
 	Utils()->PrintChatText("<SvenInt> Strafe type is %s\n", pszType);
 }
 
-CON_COMMAND_NO_WRAPPER(sc_strafe, "Toggle Vectorial Strafing")
+CON_COMMAND(sc_strafe, "Toggle Vectorial Strafing")
 {
+	bool bValue;
+
+	if ( args.ArgC() > 1 )
+	{
+		bValue = !!atoi( args[ 1 ] );
+	}
+	else
+	{
+		bValue = !g_Config.cvars.strafe;
+	}
+
 	Msg(g_Config.cvars.strafe ? "Vectorial Strafer disabled\n" : "Vectorial Strafer enabled\n");
-	g_Config.cvars.strafe = !g_Config.cvars.strafe;
+	g_Config.cvars.strafe = bValue;
 
 	Utils()->PrintChatText("<SvenInt> Strafer is %s\n", g_Config.cvars.strafe ? "ON" : "OFF");
 }
