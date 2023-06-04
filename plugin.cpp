@@ -358,8 +358,6 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 
 	if ( bPostRunCmd )
 	{
-		g_MovementReader.OnPostRunCmd();
-
 		if ( flPlatTime - m_flPlatTime >= 0.5f )
 		{
 			g_Config.UpdateConfigs();
@@ -379,6 +377,10 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 	}
 	else
 	{
+		extern bool g_bPlayingbackDemo;
+
+		g_bPlayingbackDemo = g_pDemoAPI->IsPlayingback();
+
 		// Stupid anti screen decision
 		if ( s_bRemoveAntiScreen )
 		{
