@@ -24,6 +24,8 @@ namespace Patterns
 		EXTERN_PATTERN( SCR_BeginLoadingPlaque );
 		EXTERN_PATTERN( SCR_EndLoadingPlaque );
 
+		EXTERN_PATTERN( Mod_LeafPVS );
+
 		EXTERN_PATTERN( V_RenderView );
 		EXTERN_PATTERN( R_RenderScene );
 		EXTERN_PATTERN( R_RenderScene_HOOKED );

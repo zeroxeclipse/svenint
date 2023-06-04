@@ -22,6 +22,7 @@
 #include "../config.h"
 #include "../scripts/scripts.h"
 #include "../utils/xorstr.h"
+#include "../utils/demo_message.h"
 
 #include "../game/utils.h"
 #include "../game/drawing.h"
@@ -79,6 +80,8 @@ DECLARE_HOOK(void, __cdecl, R_ForceCVars, int);
 
 DECLARE_HOOK(int, __cdecl, CRC_MapFile, uint32 *ulCRC, char *pszMapName);
 
+DECLARE_HOOK(void *, __cdecl, Mod_LeafPVS, mleaf_t *leaf, model_t *model);
+
 DECLARE_CLASS_HOOK(void, StudioRenderModel, CStudioModelRenderer *);
 
 NetMsgHookFn ORIG_NetMsgHook_ServerInfo = NULL;
@@ -87,6 +90,7 @@ NetMsgHookFn ORIG_NetMsgHook_SendCvarValue = NULL;
 NetMsgHookFn ORIG_NetMsgHook_SendCvarValue2 = NULL;
 NetMsgHookFn ORIG_NetMsgHook_TempEntity = NULL;
 
+CommandCallbackFn ORIG_restart = NULL;
 CommandCallbackFn ORIG_snapshot = NULL;
 CommandCallbackFn ORIG_screenshot = NULL;
 
@@ -123,6 +127,7 @@ bool g_bScreenshot = false;
 
 bool bSendPacket = true;
 bool g_bLoading = false;
+bool g_bPlayingbackDemo = false;
 bool g_bOverrideHUD = true;
 bool g_bOverrideVirtualVA = false;
 float g_flClientDataLastUpdate = -1.f;
@@ -177,6 +182,7 @@ private:
 	void *m_pfnR_SetupFrame;
 	void *m_pfnR_ForceCVars;
 	void *m_pfnCRC_MapFile;
+	void *m_pfnMod_LeafPVS;
 
 	DetourHandle_t m_hIN_Move;
 	DetourHandle_t m_hCHud__Think;
@@ -194,6 +200,7 @@ private:
 	DetourHandle_t m_hR_SetupFrame;
 	DetourHandle_t m_hR_ForceCVars;
 	DetourHandle_t m_hCRC_MapFile;
+	DetourHandle_t m_hMod_LeafPVS;
 
 	DetourHandle_t m_hStudioRenderModel;
 
@@ -203,6 +210,7 @@ private:
 	DetourHandle_t m_hNetMsgHook_SendCvarValue2;
 	DetourHandle_t m_hNetMsgHook_TempEntity;
 
+	DetourHandle_t m_hRestartCmd;
 	DetourHandle_t m_hSnapshotCmd;
 	DetourHandle_t m_hScreenshotCmd;
 };
@@ -410,6 +418,7 @@ void HOOKED_NetMsgHook_ServerInfo(void)
 	ORIG_NetMsgHook_ServerInfo();
 
 	g_Bsp.OnParseServerInfo();
+	g_ScriptVM.Init();
 }
 
 void HOOKED_NetMsgHook_ResourceLocation(void)
@@ -808,6 +817,13 @@ DECLARE_FUNC(int, __cdecl, HOOKED_CRC_MapFile, uint32 *ulCRC, char *pszMapName)
 	return result;
 }
 
+ConVar sc_novis( "sc_novis", "0", FCVAR_CLIENTDLL, "Better r_novis" );
+
+DECLARE_FUNC(void *, __cdecl, HOOKED_Mod_LeafPVS, mleaf_t *leaf, model_t *model)
+{
+	return ORIG_Mod_LeafPVS( sc_novis.GetBool() ? model->leafs : leaf, model );
+}
+
 //-----------------------------------------------------------------------------
 // Renderer hooks
 //-----------------------------------------------------------------------------
@@ -952,6 +968,13 @@ DECLARE_CLASS_FUNC(void, HOOKED_StudioRenderModel, CStudioModelRenderer *thisptr
 // Console commands hooks
 //-----------------------------------------------------------------------------
 
+DECLARE_FUNC(void, __cdecl, HOOKED_restart)
+{
+	g_ScriptCallbacks.OnRestart();
+
+	ORIG_restart();
+}
+
 DECLARE_FUNC(void, __cdecl, HOOKED_snapshot)
 {
 	g_bScreenshot = true;
@@ -974,7 +997,7 @@ HOOK_RESULT CClientHooks::HUD_VidInit(void)
 {
 	//g_Drawing.SetupFonts();
 
-	g_ScriptVM.Init();
+	//g_ScriptVM.Init();
 
 	g_Visual.OnVideoInit();
 	g_Drawing.OnVideoInit();
@@ -1134,6 +1157,9 @@ HOOK_RESULT CClientHooks::HUD_TxferPredictionData(entity_state_t *ps, const enti
 
 HOOK_RESULT CClientHooks::Demo_ReadBuffer(int size, unsigned const char *buffer)
 {
+	if ( g_DemoMessage.ReadClientDLLMessage( size, const_cast<unsigned char *>( buffer ) ) )
+		return HOOK_STOP;
+
 	return HOOK_CONTINUE;
 }
 
@@ -1429,6 +1455,7 @@ CHooksModule::CHooksModule()
 	m_pfnR_SetupFrame = NULL;
 	m_pfnR_ForceCVars = NULL;
 	m_pfnCRC_MapFile = NULL;
+	m_pfnMod_LeafPVS = NULL;
 
 	m_hNetchan_CanPacket = 0;
 	m_hglBegin = 0;
@@ -1501,6 +1528,7 @@ bool CHooksModule::Load()
 	auto fpfnR_SetupFrame = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::R_SetupFrame );
 	auto fpfnR_ForceCVars = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::R_ForceCVars );
 	auto fpfnCRC_MapFile = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::CRC_MapFile );
+	auto fpfnMod_LeafPVS = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::Mod_LeafPVS );
 	auto fpfnScaleColors = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::ScaleColors );
 	auto fpfnScaleColors_RGBA = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::ScaleColors_RGBA );
 	auto fpclc_buffer = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::clc_buffer );
@@ -1557,6 +1585,12 @@ bool CHooksModule::Load()
 	if ( !( m_pfnCRC_MapFile = fpfnCRC_MapFile.get() ) )
 	{
 		Warning( "Couldn't find function \"CRC_MapFile\"\n" );
+		ScanOK = false;
+	}
+	
+	if ( !( m_pfnMod_LeafPVS = fpfnMod_LeafPVS.get() ) )
+	{
+		Warning( "Couldn't find function \"Mod_LeafPVS\"\n" );
 		ScanOK = false;
 	}
 
@@ -1683,6 +1717,7 @@ void CHooksModule::PostLoad()
 	m_hR_SetupFrame = DetoursAPI()->DetourFunction( m_pfnR_SetupFrame, HOOKED_R_SetupFrame, GET_FUNC_PTR(ORIG_R_SetupFrame) );
 	m_hR_ForceCVars = DetoursAPI()->DetourFunction( m_pfnR_ForceCVars, HOOKED_R_ForceCVars, GET_FUNC_PTR(ORIG_R_ForceCVars ) );
 	m_hCRC_MapFile = DetoursAPI()->DetourFunction( m_pfnCRC_MapFile, HOOKED_CRC_MapFile, GET_FUNC_PTR(ORIG_CRC_MapFile) );
+	m_hMod_LeafPVS = DetoursAPI()->DetourFunction( m_pfnMod_LeafPVS, HOOKED_Mod_LeafPVS, GET_FUNC_PTR(ORIG_Mod_LeafPVS ) );
 
 	m_hStudioRenderModel = DetoursAPI()->DetourVirtualFunction( g_pStudioRenderer, 20, HOOKED_StudioRenderModel, GET_FUNC_PTR(ORIG_StudioRenderModel) );
 
@@ -1692,6 +1727,7 @@ void CHooksModule::PostLoad()
 	m_hNetMsgHook_SendCvarValue2 = Hooks()->HookNetworkMessage( SVC_SENDCVARVALUE2, HOOKED_NetMsgHook_SendCvarValue2, &ORIG_NetMsgHook_SendCvarValue2 );
 	m_hNetMsgHook_TempEntity = Hooks()->HookNetworkMessage( SVC_TEMPENTITY, HOOKED_NetMsgHook_TempEntity, &ORIG_NetMsgHook_TempEntity );
 
+	m_hRestartCmd = Hooks()->HookConsoleCommand( "restart", HOOKED_restart, &ORIG_restart );
 	m_hSnapshotCmd = Hooks()->HookConsoleCommand( "snapshot", HOOKED_snapshot, &ORIG_snapshot );
 	m_hScreenshotCmd = Hooks()->HookConsoleCommand( "screenshot", HOOKED_screenshot, &ORIG_screenshot );
 
@@ -1719,6 +1755,7 @@ void CHooksModule::Unload()
 	DetoursAPI()->RemoveDetour( m_hR_SetupFrame );
 	DetoursAPI()->RemoveDetour( m_hR_ForceCVars );
 	DetoursAPI()->RemoveDetour( m_hCRC_MapFile );
+	DetoursAPI()->RemoveDetour( m_hMod_LeafPVS );
 
 	DetoursAPI()->RemoveDetour( m_hStudioRenderModel );
 
@@ -1728,6 +1765,7 @@ void CHooksModule::Unload()
 	Hooks()->UnhookNetworkMessage( m_hNetMsgHook_SendCvarValue2 );
 	Hooks()->UnhookNetworkMessage( m_hNetMsgHook_TempEntity );
 
+	Hooks()->UnhookNetworkMessage( m_hRestartCmd );
 	Hooks()->UnhookNetworkMessage( m_hSnapshotCmd );
 	Hooks()->UnhookNetworkMessage( m_hScreenshotCmd );
 

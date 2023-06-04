@@ -17,6 +17,8 @@ namespace Patterns
 		DEFINE_PATTERN( SCR_BeginLoadingPlaque, "6A ? E8 ? ? ? ? A1 ? ? ? ? 83 C4 ? 83 F8" );
 		DEFINE_PATTERN( SCR_EndLoadingPlaque, "C7 05 ? ? ? ? ? ? ? ? E8 ? ? ? ? 68 ? ? ? ? 68 ? ? ? ? E8 ? ? ? ? 83 C4 ? C7 05" );
 
+		DEFINE_PATTERN( Mod_LeafPVS, "8B 44 24 08 8B 4C 24 04 8B 90 8C 00 00 00" );
+
 		DEFINE_PATTERN( V_RenderView, "81 EC ? ? 00 00 A1 ? ? ? ? 33 C4 89 84 24 ? ? 00 00 D9 EE D9 15" );
 		DEFINE_PATTERN( R_RenderScene, "83 EC ? E8 ? ? ? ? 85 C0 74" );
 		DEFINE_PATTERN( R_RenderScene_HOOKED, "E9 ? ? ? ? ? ? ? 85 C0 74" );
