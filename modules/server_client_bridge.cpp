@@ -9,6 +9,7 @@
 #include <dbg.h>
 
 #include "../features/speedrun_tools.h"
+#include "../scripts/scripts.h"
 #include "../game/utils.h"
 
 extern bool g_bPlayingbackDemo;
@@ -17,8 +18,7 @@ extern bool g_bPlayingbackDemo;
 // Vars
 //-----------------------------------------------------------------------------
 
-DECLARE_HOOK(void, __cdecl, ClientPutInServer, edict_t *);
-DetourHandle_t hClientPutInServer = DETOUR_INVALID_HANDLE;
+CServerClientBridge g_ServerClientBridge;
 
 //-----------------------------------------------------------------------------
 // User message hook
@@ -86,6 +86,18 @@ static int UserMsgHook_SvenInt(const char *pszUserMsg, int iSize, void *pBuffer)
             g_SpeedrunTools.DrawPlayerHull_Comm( displayInfo.client, displayInfo.dead, vecOrigin, !!displayInfo.duck );
         }
     }
+    else if ( type == SVENINT_COMM_SCRIPTS )
+    {
+        int scriptMsgType = message.ReadByte();
+
+        if ( !g_bPlayingbackDemo )
+        {
+            if ( scriptMsgType == 0 ) // signal from the server
+            {
+                g_ScriptCallbacks.OnServerSignal( (int)message.ReadLong() );
+            }
+        }
+    }
 
     return 1;
 }
@@ -94,11 +106,9 @@ static int UserMsgHook_SvenInt(const char *pszUserMsg, int iSize, void *pBuffer)
 // ClientPutInServer hook
 //-----------------------------------------------------------------------------
 
-DECLARE_FUNC(void, __cdecl, HOOKED_ClientPutInServer, edict_t *pEntity)
+void CServerClientBridge::OnClientPutInServer( edict_t *pPlayer )
 {
-    ORIG_ClientPutInServer( pEntity );
-
-    g_pServerEngineFuncs->pfnMessageBegin( MSG_ONE, SVC_NEWUSERMSG, NULL, pEntity );
+    g_pServerEngineFuncs->pfnMessageBegin( MSG_ONE, SVC_NEWUSERMSG, NULL, pPlayer );
         g_pServerEngineFuncs->pfnWriteByte( SVC_SVENINT );
         g_pServerEngineFuncs->pfnWriteByte( 255 );
         g_pServerEngineFuncs->pfnWriteLong( 0x6E657653 ); // nevS
@@ -107,14 +117,14 @@ DECLARE_FUNC(void, __cdecl, HOOKED_ClientPutInServer, edict_t *pEntity)
         g_pServerEngineFuncs->pfnWriteLong( 0x0 );
     g_pServerEngineFuncs->pfnMessageEnd();
 
-    g_SpeedrunTools.SendTimescale( pEntity );
+    g_SpeedrunTools.SendTimescale( pPlayer );
 }
 
 //-----------------------------------------------------------------------------
 // Initialize server-client bridge
 //-----------------------------------------------------------------------------
 
-void InitServerClientBridge()
+void CServerClientBridge::Init( void )
 {
 	if ( g_pEngineFuncs->HookUserMsg("SvenInt", UserMsgHook_SvenInt) != 0 )
     {
@@ -125,15 +135,13 @@ void InitServerClientBridge()
             pUserMsg->function = UserMsgHook_SvenInt;
         }
     }
-
-    hClientPutInServer = DetoursAPI()->DetourFunction( g_pServerFuncs->pfnClientPutInServer, HOOKED_ClientPutInServer, GET_FUNC_PTR(ORIG_ClientPutInServer) );
 }
 
 //-----------------------------------------------------------------------------
 // Shutdown server-client bridge
 //-----------------------------------------------------------------------------
 
-void ShutdownServerClientBridge()
+void CServerClientBridge::Shutdown( void )
 {
     //usermsg_t *pUserMsg = const_cast<usermsg_t *>( Utils()->FindUserMessage("ScreenFade") );
 
@@ -168,6 +176,4 @@ void ShutdownServerClientBridge()
     {
         pUserMsg->function = NULL;
     }
-
-    DetoursAPI()->RemoveDetour( hClientPutInServer );
 }
