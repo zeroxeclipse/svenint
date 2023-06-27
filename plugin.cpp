@@ -45,7 +45,7 @@
 #include "features/camhack.h"
 #include "features/keyspam.h"
 #include "features/bsp.h"
-#include "features/movement_recorder.h"
+#include "features/input_manager.h"
 
 #include "steam/steam_api.h"
 #include "utils/antidebug.h"
@@ -225,7 +225,7 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 	BindApiToGlobals(pSvenModAPI);
 	InitFolders(pSvenModAPI);
 
-	if ( !InitServerDLL() )
+	if ( !g_ServerModule.Init() )
 	{
 		Warning(xs("[Sven Internal] Failed to initialize server's module\n"));
 		return false;
@@ -237,7 +237,7 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 		return false;
 	}
 
-	InitServerClientBridge();
+	g_ServerClientBridge.Init();
 
 	ConVar_Register();
 
@@ -279,7 +279,8 @@ void CSvenInternal::PostLoad(bool bGlobalLoad)
 	}
 
 	PostLoadFeatures();
-	PostInitServerDLL();
+
+	g_ServerModule.PostInit();
 
 	g_CamHack.Init();
 
@@ -293,10 +294,11 @@ void CSvenInternal::Unload(void)
 
 	GL_Shutdown();
 
-	ShutdownServerDLL();
+	g_ServerModule.Shutdown();
+
 	UnloadFeatures();
 
-	ShutdownServerClientBridge();
+	g_ServerClientBridge.Shutdown();
 
 	ConVar_Unregister();
 
@@ -319,6 +321,7 @@ void CSvenInternal::OnFirstClientdataReceived(client_data_t *pcldata, float flTi
 
 	g_ScriptCallbacks.OnFirstClientdataReceived(flTime);
 	g_SpeedrunTools.OnFirstClientdataReceived(pcldata, flTime);
+	g_InputManager.OnFirstClientdataReceived();
 	g_AntiAFK.OnEnterToServer();
 }
 
@@ -326,6 +329,7 @@ void CSvenInternal::OnBeginLoading(void)
 {
 	g_ScriptCallbacks.OnBeginLoading();
 	g_SpeedrunTools.OnBeginLoading();
+	g_InputManager.OnBeginLoading();
 }
 
 void CSvenInternal::OnEndLoading(void)
@@ -463,6 +467,11 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 			g_bForceFreeze2 = false;
 		}
 	}
+
+	if ( state == CLS_ACTIVE )
+	{
+		g_InputManager.GameFrame( bPostRunCmd );
+	}
 }
 
 void CSvenInternal::Draw(void)
@@ -492,7 +501,7 @@ FORCEINLINE void copy_obfuscated_str(const char *from, char *to, int size)
 }
 
 static char svenint_name[ sizeof("SvenInt") ];
-static char svenint_author[ sizeof("Sw1ft / yessu / kolokola777") ];
+static char svenint_author[ sizeof("Sw1ft / void") ];
 static char svenint_version[ sizeof(SVENINT_MAJOR_VERSION_STRING "." SVENINT_MINOR_VERSION_STRING "." SVENINT_PATCH_VERSION_STRING) ];
 static char svenint_desc[ sizeof("Provides various cheats and gameplay enhances") ];
 static char svenint_url[ sizeof("https://steamcommunity.com/profiles/76561198397776991") ];
@@ -508,7 +517,7 @@ const char *CSvenInternal::GetName(void)
 
 const char *CSvenInternal::GetAuthor(void)
 {
-	copy_obfuscated_str(xs("Sw1ft / yessu / kolokola777"), svenint_author, sizeof(svenint_author));
+	copy_obfuscated_str(xs("Sw1ft / void"), svenint_author, sizeof(svenint_author));
 
 	return svenint_author;
 }
