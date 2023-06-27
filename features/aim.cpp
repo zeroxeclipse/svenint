@@ -40,6 +40,7 @@
 #define VECTOR_CONE_20DEGREES	Vector( 0.17365, 0.17365, 0.17365 )
 
 extern bool g_bOverrideVirtualVA;
+extern bool g_bYawChanged;
 extern event_t *g_pEventHooks;
 extern Vector g_vecLastVirtualVA;
 
@@ -73,33 +74,61 @@ EventHookFn ORIG_EventHook_DisplacerSpin = NULL;
 // ConCommands/CVars
 //-----------------------------------------------------------------------------
 
-CON_COMMAND(sc_aimbot, "Toggle aimbot")
+CON_COMMAND( sc_aimbot, "Toggle aimbot" )
 {
-	Msg(g_Config.cvars.aimbot ? "Aimbot disabled\n" : "Aimbot enabled\n");
-	g_Config.cvars.aimbot = !g_Config.cvars.aimbot;
+	bool bValue;
+
+	if ( args.ArgC() > 1 )
+	{
+		bValue = !!atoi( args[ 1 ] );
+	}
+	else
+	{
+		bValue = !g_Config.cvars.aimbot;
+	}
+
+	Msg( bValue ? "Aimbot enabled\n" : "Aimbot disabled\n" );
+	g_Config.cvars.aimbot = bValue;
 }
 
-CON_COMMAND(sc_silent_aimbot, "Toggle silent aimbot")
+CON_COMMAND( sc_aimbot_change_angles_back, "After firing with aimbot, change your viewangles back to previous one" )
 {
-	Msg(g_Config.cvars.silent_aimbot ? "Silent Aimbot disabled\n" : "Silent Aimbot enabled\n");
+	bool bValue;
+
+	if ( args.ArgC() > 1 )
+	{
+		bValue = !!atoi( args[ 1 ] );
+	}
+	else
+	{
+		bValue = !g_Config.cvars.aimbot_change_angles_back;
+	}
+
+	Msg( bValue ? "Aimbot change angles back enabled\n" : "Aimbot change angles back disabled\n" );
+	g_Config.cvars.aimbot_change_angles_back = bValue;
+}
+
+CON_COMMAND( sc_silent_aimbot, "Toggle silent aimbot" )
+{
+	Msg( g_Config.cvars.silent_aimbot ? "Silent Aimbot disabled\n" : "Silent Aimbot enabled\n" );
 	g_Config.cvars.silent_aimbot = !g_Config.cvars.silent_aimbot;
 }
 
-CON_COMMAND(sc_ragebot, "Toggle ragebot")
+CON_COMMAND( sc_ragebot, "Toggle ragebot" )
 {
-	Msg(g_Config.cvars.ragebot ? "Ragebot disabled\n" : "Ragebot enabled\n");
+	Msg( g_Config.cvars.ragebot ? "Ragebot disabled\n" : "Ragebot enabled\n" );
 	g_Config.cvars.ragebot = !g_Config.cvars.ragebot;
 }
 
-CON_COMMAND(sc_no_recoil, "Compensates recoil")
+CON_COMMAND( sc_no_recoil, "Compensates recoil" )
 {
-	Msg(g_Config.cvars.no_recoil ? "No Recoil disabled\n" : "No Recoil enabled\n");
+	Msg( g_Config.cvars.no_recoil ? "No Recoil disabled\n" : "No Recoil enabled\n" );
 	g_Config.cvars.no_recoil = !g_Config.cvars.no_recoil;
 }
 
-CON_COMMAND(sc_no_recoil_visual, "Removes visual effect of recoil")
+CON_COMMAND( sc_no_recoil_visual, "Removes visual effect of recoil" )
 {
-	Msg(g_Config.cvars.no_recoil_visual ? "No Recoil Visual disabled\n" : "No Recoil Visual enabled\n");
+	Msg( g_Config.cvars.no_recoil_visual ? "No Recoil Visual disabled\n" : "No Recoil Visual enabled\n" );
 	g_Config.cvars.no_recoil_visual = !g_Config.cvars.no_recoil_visual;
 }
 
@@ -107,25 +136,26 @@ CON_COMMAND(sc_no_recoil_visual, "Removes visual effect of recoil")
 // CAim implementations
 //-----------------------------------------------------------------------------
 
-static Vector FireBullet(Vector vecSrc, Vector vecDirShooting, Vector vecSpread, int shared_rand)
+static Vector FireBullet( Vector vecSrc, Vector vecDirShooting, Vector vecSpread, int shared_rand )
 {
 	float x, y;
 	const int iShot = 1;
 
-	x = UTIL_SharedRandomFloat(shared_rand + iShot, -0.5, 0.5) + UTIL_SharedRandomFloat(shared_rand + (1 + iShot), -0.5, 0.5);
-	y = UTIL_SharedRandomFloat(shared_rand + (2 + iShot), -0.5, 0.5) + UTIL_SharedRandomFloat(shared_rand + (3 + iShot), -0.5, 0.5);
+	x = UTIL_SharedRandomFloat( shared_rand + iShot, -0.5, 0.5 ) + UTIL_SharedRandomFloat( shared_rand + ( 1 + iShot ), -0.5, 0.5 );
+	y = UTIL_SharedRandomFloat( shared_rand + ( 2 + iShot ), -0.5, 0.5 ) + UTIL_SharedRandomFloat( shared_rand + ( 3 + iShot ), -0.5, 0.5 );
 
-	return Vector(x * vecSpread.x, y * vecSpread.y, 0.f);
+	return Vector( x * vecSpread.x, y * vecSpread.y, 0.f );
 }
 
 CAim::CAim()
 {
 	m_pfnV_PunchAxis = NULL;
+	m_bChangeAnglesBack = false;
 }
 
 #include "../game/aim_prediction.h"
 
-void CAim::CreateMove(float frametime, usercmd_t *cmd, int active)
+void CAim::CreateMove( float frametime, usercmd_t *cmd, int active )
 {
 	bool bAnglesChanged = false;
 
@@ -145,16 +175,25 @@ void CAim::CreateMove(float frametime, usercmd_t *cmd, int active)
 	//	}
 	//}
 
-	Aimbot(cmd, bAnglesChanged);
-	NoRecoil(cmd);
+	if ( m_bChangeAnglesBack )
+	{
+		cmd->viewangles = m_vecChangeAnglesTarget;
+		g_pEngineFuncs->SetViewAngles( m_vecChangeAnglesTarget );
+
+		m_bChangeAnglesBack = false;
+	}
+
+	bool bAimedToTarget = Aimbot( cmd, g_Config.cvars.aimbot, g_Config.cvars.silent_aimbot, g_Config.cvars.ragebot, g_Config.cvars.aimbot_change_angles_back, bAnglesChanged );
+	
+	NoRecoil( cmd );
 
 	if ( !bAnglesChanged && g_Misc.m_bSpinnerDelayed )
 	{
-		g_Misc.Spinner(cmd);
+		g_Misc.Spinner( cmd );
 	}
 }
 
-bool CAim::Aimbot(usercmd_t *cmd, bool &bAnglesChanged)
+bool CAim::Aimbot( usercmd_t *cmd, bool bAimbot, bool bSilentAimbot, bool bRagebot, bool bChangeAnglesBack, bool &bAnglesChanged )
 {
 	WEAPON *pWeapon;
 	int iWeaponID, iClip;
@@ -162,7 +201,7 @@ bool CAim::Aimbot(usercmd_t *cmd, bool &bAnglesChanged)
 
 	bAnglesChanged = false;
 
-	if ( !g_Config.cvars.aimbot && !g_Config.cvars.silent_aimbot && !g_Config.cvars.ragebot )
+	if ( !bAimbot && !bSilentAimbot && !bRagebot )
 		return false;
 
 	// We're dead
@@ -180,25 +219,25 @@ bool CAim::Aimbot(usercmd_t *cmd, bool &bAnglesChanged)
 			return false;
 
 		// Don't use crowbar, medkit etc..
-		if ( !IsHoldingAppropriateWeapon(iWeaponID) )
+		if ( !IsHoldingAppropriateWeapon( iWeaponID ) )
 			return false;
 
 		// Whoops.. what happened with the weapon?
-		if ( ( pWeapon = Inventory()->GetWeapon(iWeaponID) ) == NULL )
+		if ( ( pWeapon = Inventory()->GetWeapon( iWeaponID ) ) == NULL )
 			return false;
 
 		// We're empty
-		if ( !Inventory()->HasAmmo(pWeapon) )
+		if ( !Inventory()->HasAmmo( pWeapon ) )
 			return false;
-	
+
 		iClip = ClientWeapon()->Clip();
 
 		// Going to reload
-		if ( CheckReload(iWeaponID, iClip, cmd) )
+		if ( CheckReload( iWeaponID, iClip, cmd ) )
 			return false;
 	}
 
-	if ( g_Config.cvars.ragebot )
+	if ( bRagebot )
 	{
 		if ( bUsingMountedGun )
 		{
@@ -207,12 +246,15 @@ bool CAim::Aimbot(usercmd_t *cmd, bool &bAnglesChanged)
 			if ( pTarget != NULL )
 			{
 				Vector vecTargetPoint = m_vecTargetPoint + pTarget->m_vecVelocity;
-				Vector vecDir = vecTargetPoint - (Client()->GetOrigin() + Client()->GetViewOffset());
+				Vector vecDir = vecTargetPoint - ( Client()->GetOrigin() + Client()->GetViewOffset() );
 
 				Vector vAngles;
-				DirectionToAngles(vecDir, vAngles);
+				DirectionToAngles( vecDir, vAngles );
 
-				UTIL_SetAnglesSilent(vAngles, cmd);
+				if ( bChangeAnglesBack )
+					SetChangeAnglesBack();
+
+				UTIL_SetAnglesSilent( vAngles, cmd );
 				cmd->buttons |= IN_ATTACK;
 
 				bAnglesChanged = true;
@@ -221,7 +263,7 @@ bool CAim::Aimbot(usercmd_t *cmd, bool &bAnglesChanged)
 		}
 		else
 		{
-			bool bStillFiring = IsStillFiring(iWeaponID, cmd);
+			bool bStillFiring = IsStillFiring( iWeaponID, cmd );
 			bool bCanPrimaryAttack = ClientWeapon()->CanPrimaryAttack();
 			bool bCanSecondaryAttack = ClientWeapon()->CanSecondaryAttack();
 
@@ -235,30 +277,38 @@ bool CAim::Aimbot(usercmd_t *cmd, bool &bAnglesChanged)
 					Vector vecTargetPoint = m_vecTargetPoint + pTarget->m_vecVelocity;
 					Vector vecDir = vecTargetPoint - ( Client()->GetOrigin() + Client()->GetViewOffset() );
 
-					if (bStillFiring)
+					if ( bStillFiring )
 					{
 						Vector vAngles;
-						DirectionToAngles(vecDir, vAngles);
+						DirectionToAngles( vecDir, vAngles );
 
-						UTIL_SetAnglesSilent(vAngles, cmd);
+						if ( bChangeAnglesBack )
+							SetChangeAnglesBack();
+
+						UTIL_SetAnglesSilent( vAngles, cmd );
 
 						g_bOverrideVirtualVA = true;
 						bAnglesChanged = true;
+
+						return true;
 					}
 					else
 					{
 						float flDistance = vecDir.Length();
 
-						if ( IsDistanceAllowsUseWeapon(iWeaponID, flDistance) )
+						if ( IsDistanceAllowsUseWeapon( iWeaponID, flDistance ) )
 						{
 							int fAttackButton = ConcludeAttackButton( iWeaponID, iClip, flDistance );
 
 							if ( ( fAttackButton == IN_ATTACK && bCanPrimaryAttack ) || ( fAttackButton == IN_ATTACK2 && bCanSecondaryAttack ) )
 							{
 								Vector vAngles;
-								DirectionToAngles(vecDir, vAngles);
+								DirectionToAngles( vecDir, vAngles );
 
-								UTIL_SetAnglesSilent(vAngles, cmd);
+								if ( bChangeAnglesBack )
+									SetChangeAnglesBack();
+
+								UTIL_SetAnglesSilent( vAngles, cmd );
 								cmd->buttons |= fAttackButton;
 
 								g_bOverrideVirtualVA = true;
@@ -272,35 +322,40 @@ bool CAim::Aimbot(usercmd_t *cmd, bool &bAnglesChanged)
 			}
 		}
 	}
-	else if ( g_Config.cvars.aimbot || g_Config.cvars.silent_aimbot )
+	else if ( bAimbot || bSilentAimbot )
 	{
 		if ( bUsingMountedGun && cmd->buttons & IN_ATTACK )
 		{
 			CEntity *pTarget = FindBestTarget();
 
-			if (pTarget != NULL)
+			if ( pTarget != NULL )
 			{
 				Vector vecTargetPoint = m_vecTargetPoint + pTarget->m_vecVelocity;
-				Vector vecDir = vecTargetPoint - (Client()->GetOrigin() + Client()->GetViewOffset());
+				Vector vecDir = vecTargetPoint - ( Client()->GetOrigin() + Client()->GetViewOffset() );
 
 				Vector vAngles;
-				DirectionToAngles(vecDir, vAngles);
+				DirectionToAngles( vecDir, vAngles );
 
-				if (g_Config.cvars.silent_aimbot)
+				if ( bSilentAimbot )
 				{
-					UTIL_SetAnglesSilent(vAngles, cmd);
+					UTIL_SetAnglesSilent( vAngles, cmd );
 					bAnglesChanged = true;
 				}
 				else
 				{
+					if ( bChangeAnglesBack )
+						SetChangeAnglesBack();
+
+					g_bYawChanged = true;
+
 					cmd->viewangles = vAngles;
-					g_pEngineFuncs->SetViewAngles(vAngles);
+					g_pEngineFuncs->SetViewAngles( vAngles );
 				}
 
 				return true;
 			}
 		}
-		else if ( IsStillFiring(iWeaponID, cmd) || IsFiring(iWeaponID, cmd) )
+		else if ( IsStillFiring( iWeaponID, cmd ) || IsFiring( iWeaponID, cmd ) )
 		{
 			CEntity *pTarget = FindBestTarget();
 
@@ -312,22 +367,27 @@ bool CAim::Aimbot(usercmd_t *cmd, bool &bAnglesChanged)
 
 				float flDistance = vecDir.Length();
 
-				if ( IsDistanceAllowsUseWeapon(iWeaponID, flDistance) )
+				if ( IsDistanceAllowsUseWeapon( iWeaponID, flDistance ) )
 				{
 					Vector vAngles;
-					DirectionToAngles(vecDir, vAngles);
+					DirectionToAngles( vecDir, vAngles );
 
-					if (g_Config.cvars.silent_aimbot)
+					if ( bSilentAimbot )
 					{
-						UTIL_SetAnglesSilent(vAngles, cmd);
+						UTIL_SetAnglesSilent( vAngles, cmd );
 
 						bAnglesChanged = true;
 						g_bOverrideVirtualVA = true;
 					}
 					else
 					{
+						if ( bChangeAnglesBack )
+							SetChangeAnglesBack();
+
+						g_bYawChanged = true;
+
 						cmd->viewangles = vAngles;
-						g_pEngineFuncs->SetViewAngles(vAngles);
+						g_pEngineFuncs->SetViewAngles( vAngles );
 					}
 
 					return true;
@@ -339,15 +399,21 @@ bool CAim::Aimbot(usercmd_t *cmd, bool &bAnglesChanged)
 	return false;
 }
 
+void CAim::SetChangeAnglesBack()
+{
+	g_pEngineFuncs->GetViewAngles( m_vecChangeAnglesTarget );
+	m_bChangeAnglesBack = true;
+}
+
 bool CAim::IsUsingMountedGun()
 {
 	extern CHud *g_pHUD;
 
 	// offset: usermsg HideHUD
-	return g_pHUD && ( *((int *)g_pHUD + 21) & HIDEHUD_WEAPONS );
+	return g_pHUD && ( *( (int *)g_pHUD + 21 ) & HIDEHUD_WEAPONS );
 }
 
-bool CAim::CheckReload(int iWeaponID, int iClip, usercmd_t *cmd)
+bool CAim::CheckReload( int iWeaponID, int iClip, usercmd_t *cmd )
 {
 	if ( ClientWeapon()->IsReloading() )
 		return true;
@@ -370,9 +436,9 @@ bool CAim::CheckReload(int iWeaponID, int iClip, usercmd_t *cmd)
 	return false;
 }
 
-bool CAim::IsHoldingAppropriateWeapon(int iWeaponID)
+bool CAim::IsHoldingAppropriateWeapon( int iWeaponID )
 {
-	switch (iWeaponID)
+	switch ( iWeaponID )
 	{
 	case WEAPON_CROWBAR:
 	case WEAPON_WRENCH:
@@ -387,9 +453,9 @@ bool CAim::IsHoldingAppropriateWeapon(int iWeaponID)
 	return true;
 }
 
-bool CAim::IsDistanceAllowsUseWeapon(int iWeaponID, float flDistance)
+bool CAim::IsDistanceAllowsUseWeapon( int iWeaponID, float flDistance )
 {
-	switch (iWeaponID)
+	switch ( iWeaponID )
 	{
 	case WEAPON_RPG:
 		if ( flDistance <= 340.f )
@@ -402,7 +468,7 @@ bool CAim::IsDistanceAllowsUseWeapon(int iWeaponID, float flDistance)
 			return false;
 
 		return true;
-		
+
 	case WEAPON_EGON:
 		if ( flDistance <= 128.f || flDistance > 2048.f )
 			return false;
@@ -414,7 +480,7 @@ bool CAim::IsDistanceAllowsUseWeapon(int iWeaponID, float flDistance)
 			return false;
 
 		return true;
-		
+
 	case WEAPON_SPORE_LAUNCHER:
 		if ( flDistance <= 500.f || flDistance > 800.f )
 			return false;
@@ -432,9 +498,9 @@ bool CAim::IsDistanceAllowsUseWeapon(int iWeaponID, float flDistance)
 	return true;
 }
 
-bool CAim::IsTargetCanBeHurted(eClassID iClassID, int iWeaponID)
+bool CAim::IsTargetCanBeHurted( eClassID iClassID, int iWeaponID )
 {
-	switch (iClassID)
+	switch ( iClassID )
 	{
 	case CLASS_NPC_TENTACLE:
 	case CLASS_NPC_DESTROYED_OSPREY:
@@ -454,9 +520,9 @@ bool CAim::IsTargetCanBeHurted(eClassID iClassID, int iWeaponID)
 	return true;
 }
 
-int CAim::ConcludeAttackButton(int iWeaponID, int iClip, float flDistance)
+int CAim::ConcludeAttackButton( int iWeaponID, int iClip, float flDistance )
 {
-	switch (iWeaponID)
+	switch ( iWeaponID )
 	{
 	case WEAPON_SHOTGUN:
 		if ( flDistance <= 256.f && iClip > 1 )
@@ -471,7 +537,7 @@ int CAim::ConcludeAttackButton(int iWeaponID, int iClip, float flDistance)
 	return IN_ATTACK;
 }
 
-bool CAim::IsFiring(int iWeaponID, usercmd_t *cmd)
+bool CAim::IsFiring( int iWeaponID, usercmd_t *cmd )
 {
 	switch ( iWeaponID )
 	{
@@ -489,39 +555,39 @@ bool CAim::IsFiring(int iWeaponID, usercmd_t *cmd)
 
 		break;
 
-/*
-	case WEAPON_GAUSS:
-		if ( ClientWeapon()->GetWeaponData()->fuser4 > 0.f )
-		{
-			if ( Client()->ButtonLast() & IN_ATTACK2 )
-			{
-				if ( !(cmd->buttons & IN_ATTACK2) )
-					return true;
-			}
-			else if ( Client()->ButtonLast() & IN_ALT1 )
-			{
-				if ( !(cmd->buttons & IN_ALT1) )
-					return true;
-			}
-			else if ( ClientWeapon()->GetWeaponData()->fuser4 == 1.f )
-			{
-				return true;
-			}
+		/*
+			case WEAPON_GAUSS:
+				if ( ClientWeapon()->GetWeaponData()->fuser4 > 0.f )
+				{
+					if ( Client()->ButtonLast() & IN_ATTACK2 )
+					{
+						if ( !(cmd->buttons & IN_ATTACK2) )
+							return true;
+					}
+					else if ( Client()->ButtonLast() & IN_ALT1 )
+					{
+						if ( !(cmd->buttons & IN_ALT1) )
+							return true;
+					}
+					else if ( ClientWeapon()->GetWeaponData()->fuser4 == 1.f )
+					{
+						return true;
+					}
 
-			return false;
-		}
-		else if ( cmd->buttons & IN_ATTACK2 )
-		{
-			return false;
-		}
+					return false;
+				}
+				else if ( cmd->buttons & IN_ATTACK2 )
+				{
+					return false;
+				}
 
-		break;
-*/
+				break;
+		*/
 	}
 
-	if ( cmd->buttons & (IN_ATTACK | IN_ATTACK2) )
+	if ( cmd->buttons & ( IN_ATTACK | IN_ATTACK2 ) )
 	{
-		if (cmd->buttons & IN_ATTACK)
+		if ( cmd->buttons & IN_ATTACK )
 		{
 			if ( ClientWeapon()->CanPrimaryAttack() )
 				return true;
@@ -536,11 +602,11 @@ bool CAim::IsFiring(int iWeaponID, usercmd_t *cmd)
 	return false;
 }
 
-bool CAim::IsStillFiring(int iWeaponID, usercmd_t *cmd)
+bool CAim::IsStillFiring( int iWeaponID, usercmd_t *cmd )
 {
 	// To hit a target, we still need to aim after firing from a weapon
 
-	switch (iWeaponID)
+	switch ( iWeaponID )
 	{
 	case WEAPON_M16:
 		if ( ClientWeapon()->GetWeaponData()->fuser2 != 0.f )
@@ -553,12 +619,12 @@ bool CAim::IsStillFiring(int iWeaponID, usercmd_t *cmd)
 		{
 			if ( Client()->ButtonLast() & IN_ATTACK2 )
 			{
-				if ( !(cmd->buttons & IN_ATTACK2) )
+				if ( !( cmd->buttons & IN_ATTACK2 ) )
 					return true;
 			}
 			else if ( Client()->ButtonLast() & IN_ALT1 )
 			{
-				if ( !(cmd->buttons & IN_ALT1) )
+				if ( !( cmd->buttons & IN_ALT1 ) )
 					return true;
 			}
 			else if ( ClientWeapon()->GetWeaponData()->fuser4 == 1.f )
@@ -609,13 +675,13 @@ CEntity *CAim::FindBestTarget()
 
 	if ( g_Config.cvars.aimbot_consider_fov )
 	{
-		g_pEngineFuncs->GetViewAngles(va);
-		AngleVectors(va, &vForward, NULL, NULL);
+		g_pEngineFuncs->GetViewAngles( va );
+		AngleVectors( va, &vForward, NULL, NULL );
 	}
 
-	for (register int i = 1; i <= g_EntityList.GetMaxEntities(); i++)
+	for ( register int i = 1; i <= g_EntityList.GetMaxEntities(); i++ )
 	{
-		CEntity &ent = pEnts[i];
+		CEntity &ent = pEnts[ i ];
 
 		if ( !ent.m_bValid )
 			continue;
@@ -639,18 +705,18 @@ CEntity *CAim::FindBestTarget()
 			continue;
 		}
 
-		float dist_sqr = (pLocal->curstate.origin - ent.m_pEntity->curstate.origin).LengthSqr();
+		float dist_sqr = ( pLocal->curstate.origin - ent.m_pEntity->curstate.origin ).LengthSqr();
 
 		if ( dist_sqr < flDistanceSqr )
 		{
 			Vector vecMins = ent.m_vecOrigin + ent.m_vecMins;
 			Vector vecMaxs = ent.m_vecOrigin + ent.m_vecMaxs;
 
-			Vector vecTargetPoint = (vecMins + (vecMaxs - vecMins) * 0.6);
+			Vector vecTargetPoint = ( vecMins + ( vecMaxs - vecMins ) * 0.6 );
 
 			if ( g_Config.cvars.aimbot_consider_fov )
 			{
-				float angle = acos( vForward.Dot( (vecTargetPoint - vecEyes).Normalize() ) ) * M_RAD2DEG;
+				float angle = acos( vForward.Dot( ( vecTargetPoint - vecEyes ).Normalize() ) ) * M_RAD2DEG;
 
 				if ( angle > g_Config.cvars.aimbot_fov )
 					continue;
@@ -658,27 +724,27 @@ CEntity *CAim::FindBestTarget()
 
 			extra_class_info_t &extra_info = GetExtraEntityClassInfo( (eClassID)ent.m_classInfo.id );
 
-			if ( std::binary_search(extra_info.sequence_dead.begin(), extra_info.sequence_dead.end(), (unsigned char)ent.m_pEntity->curstate.sequence) )
+			if ( std::binary_search( extra_info.sequence_dead.begin(), extra_info.sequence_dead.end(), (unsigned char)ent.m_pEntity->curstate.sequence ) )
 				continue;
 
 			vHitboxes.clear();
 
 			if ( g_Config.cvars.aimbot_aim_hitboxes && !extra_info.aimbot_hitboxes.empty() )
 			{
-				if ( g_Config.cvars.aimbot_aim_head && std::find( vHitboxes.begin(), vHitboxes.end(), extra_info.aimbot_hitboxes[HITBOX_HEAD] ) == vHitboxes.end() )
-					vHitboxes.push_back( extra_info.aimbot_hitboxes[HITBOX_HEAD] );
+				if ( g_Config.cvars.aimbot_aim_head && std::find( vHitboxes.begin(), vHitboxes.end(), extra_info.aimbot_hitboxes[ HITBOX_HEAD ] ) == vHitboxes.end() )
+					vHitboxes.push_back( extra_info.aimbot_hitboxes[ HITBOX_HEAD ] );
 
-				if ( g_Config.cvars.aimbot_aim_neck && std::find( vHitboxes.begin(), vHitboxes.end(), extra_info.aimbot_hitboxes[HITBOX_NECK] ) == vHitboxes.end() )
-					vHitboxes.push_back( extra_info.aimbot_hitboxes[HITBOX_NECK] );
+				if ( g_Config.cvars.aimbot_aim_neck && std::find( vHitboxes.begin(), vHitboxes.end(), extra_info.aimbot_hitboxes[ HITBOX_NECK ] ) == vHitboxes.end() )
+					vHitboxes.push_back( extra_info.aimbot_hitboxes[ HITBOX_NECK ] );
 
-				if ( g_Config.cvars.aimbot_aim_chest && std::find( vHitboxes.begin(), vHitboxes.end(), extra_info.aimbot_hitboxes[HITBOX_CHEST] ) == vHitboxes.end() )
-					vHitboxes.push_back( extra_info.aimbot_hitboxes[HITBOX_CHEST] );
+				if ( g_Config.cvars.aimbot_aim_chest && std::find( vHitboxes.begin(), vHitboxes.end(), extra_info.aimbot_hitboxes[ HITBOX_CHEST ] ) == vHitboxes.end() )
+					vHitboxes.push_back( extra_info.aimbot_hitboxes[ HITBOX_CHEST ] );
 			}
 
 			// No hitboxes to aim, check the mid point then
 			if ( vHitboxes.empty() )
 			{
-				if ( IsCanSeeTarget(&ent, vecEyes, vecTargetPoint) )
+				if ( IsCanSeeTarget( &ent, vecEyes, vecTargetPoint ) )
 				{
 					pTarget = &ent;
 					flDistanceSqr = dist_sqr;
@@ -687,11 +753,11 @@ CEntity *CAim::FindBestTarget()
 			}
 			else
 			{
-				for (unsigned int i = 0; i < vHitboxes.size(); i++)
+				for ( unsigned int i = 0; i < vHitboxes.size(); i++ )
 				{
-					vecTargetPoint = ent.m_rgHitboxes[ vHitboxes[i] ];
+					vecTargetPoint = ent.m_rgHitboxes[ vHitboxes[ i ] ];
 
-					if ( IsCanSeeTarget(&ent, vecEyes, vecTargetPoint) )
+					if ( IsCanSeeTarget( &ent, vecEyes, vecTargetPoint ) )
 					{
 						pTarget = &ent;
 						flDistanceSqr = dist_sqr;
@@ -707,28 +773,28 @@ CEntity *CAim::FindBestTarget()
 	return pTarget;
 }
 
-bool CAim::IsCanSeeTarget(CEntity *pEntity, Vector &vecEyes, Vector &vecPoint)
+bool CAim::IsCanSeeTarget( CEntity *pEntity, Vector &vecEyes, Vector &vecPoint )
 {
 	pmtrace_t trace;
 
-	g_pEventAPI->EV_SetTraceHull(PM_HULL_POINT);
-	g_pEventAPI->EV_PlayerTrace(vecEyes,
-								vecPoint,
-								g_Config.cvars.aimbot_ignore_blockers ? PM_WORLD_ONLY : ( g_Config.cvars.aimbot_ignore_glass ? PM_GLASS_IGNORE : PM_NORMAL ),
-								-1,
-								&trace);
+	g_pEventAPI->EV_SetTraceHull( PM_HULL_POINT );
+	g_pEventAPI->EV_PlayerTrace( vecEyes,
+								 vecPoint,
+								 g_Config.cvars.aimbot_ignore_blockers ? PM_WORLD_ONLY : ( g_Config.cvars.aimbot_ignore_glass ? PM_GLASS_IGNORE : PM_NORMAL ),
+								 -1,
+								 &trace );
 
-	return g_Config.cvars.aimbot_ignore_blockers ? ( trace.fraction == 1.f ) : ( g_pEventAPI->EV_IndexFromTrace(&trace) == pEntity->m_pEntity->index );
+	return g_Config.cvars.aimbot_ignore_blockers ? ( trace.fraction == 1.f ) : ( g_pEventAPI->EV_IndexFromTrace( &trace ) == pEntity->m_pEntity->index );
 }
 
-void CAim::DirectionToAngles(Vector &vecDir, Vector &vecAngles)
+void CAim::DirectionToAngles( Vector &vecDir, Vector &vecAngles )
 {
-	vecAngles.x = -atan2f(vecDir.z, vecDir.Length2D()) * M_RAD2DEG;
-	vecAngles.y = atan2f(vecDir.y, vecDir.x) * M_RAD2DEG;
+	vecAngles.x = -atan2f( vecDir.z, vecDir.Length2D() ) * M_RAD2DEG;
+	vecAngles.y = atan2f( vecDir.y, vecDir.x ) * M_RAD2DEG;
 	vecAngles.z = 0.f;
 }
 
-void CAim::NoRecoil(usercmd_t *cmd)
+void CAim::NoRecoil( usercmd_t *cmd )
 {
 	if ( g_Config.cvars.no_recoil && !Client()->IsDead() && Client()->HasWeapon() && Client()->CanAttack() && !ClientWeapon()->IsReloading() )
 	{
@@ -736,17 +802,17 @@ void CAim::NoRecoil(usercmd_t *cmd)
 
 		if ( cmd->buttons & IN_ATTACK )
 		{
-			if ( ClientWeapon()->IsCustom() || (!ClientWeapon()->IsCustom() && ClientWeapon()->CanPrimaryAttack()) )
+			if ( ClientWeapon()->IsCustom() || ( !ClientWeapon()->IsCustom() && ClientWeapon()->CanPrimaryAttack() ) )
 			{
 				Vector vecNoRecoil;
-				
-				if (Client()->GetCurrentWeaponID() == WEAPON_M249)
+
+				if ( Client()->GetCurrentWeaponID() == WEAPON_M249 )
 				{
 					vecNoRecoil = m_vecPunchAngle + m_vecEVPunchAngle;
 				}
 				else
 				{
-					vecNoRecoil = (m_vecPunchAngle + m_vecEVPunchAngle) * 2;
+					vecNoRecoil = ( m_vecPunchAngle + m_vecEVPunchAngle ) * 2;
 				}
 
 				vecNoRecoil.z = 0.f;
@@ -756,11 +822,11 @@ void CAim::NoRecoil(usercmd_t *cmd)
 				g_bOverrideVirtualVA = true;
 			}
 		}
-		else if (cmd->buttons & IN_ATTACK2)
+		else if ( cmd->buttons & IN_ATTACK2 )
 		{
-			if ( ClientWeapon()->IsCustom() || (!ClientWeapon()->IsCustom() && ClientWeapon()->CanSecondaryAttack()) )
+			if ( ClientWeapon()->IsCustom() || ( !ClientWeapon()->IsCustom() && ClientWeapon()->CanSecondaryAttack() ) )
 			{
-				Vector vecNoRecoil = (m_vecPunchAngle + m_vecEVPunchAngle) * 2;
+				Vector vecNoRecoil = ( m_vecPunchAngle + m_vecEVPunchAngle ) * 2;
 				vecNoRecoil.z = 0.f;
 
 				cmd->viewangles -= vecNoRecoil;
@@ -771,17 +837,17 @@ void CAim::NoRecoil(usercmd_t *cmd)
 	}
 }
 
-void CAim::Pre_V_CalcRefdef(ref_params_t *pparams)
+void CAim::Pre_V_CalcRefdef( ref_params_t *pparams )
 {
-	m_vecPunchAngle = *reinterpret_cast<Vector *>(pparams->punchangle);
+	m_vecPunchAngle = *reinterpret_cast<Vector *>( pparams->punchangle );
 	m_vecEVPunchAngle = *ev_punchangle;
 }
 
-void CAim::Post_V_CalcRefdef(ref_params_t *pparams)
+void CAim::Post_V_CalcRefdef( ref_params_t *pparams )
 {
 	if ( g_Config.cvars.no_recoil_visual )
 	{
-		*reinterpret_cast<Vector *>(pparams->viewangles) -= m_vecPunchAngle + m_vecEVPunchAngle;
+		*reinterpret_cast<Vector *>( pparams->viewangles ) -= m_vecPunchAngle + m_vecEVPunchAngle;
 	}
 }
 
@@ -789,140 +855,140 @@ void CAim::Post_V_CalcRefdef(ref_params_t *pparams)
 // Event Hooks
 //-----------------------------------------------------------------------------
 
-void HOOKED_EventHook_FireGlock1(event_args_t *args)
+void HOOKED_EventHook_FireGlock1( event_args_t *args )
 {
 	if ( g_bOverrideVirtualVA && args->entindex == Client()->GetPlayerIndex() )
-		*reinterpret_cast<Vector *>(args->angles) = g_vecLastVirtualVA;
+		*reinterpret_cast<Vector *>( args->angles ) = g_vecLastVirtualVA;
 
-	ORIG_EventHook_FireGlock1(args);
+	ORIG_EventHook_FireGlock1( args );
 }
 
-void HOOKED_EventHook_FireGlock2(event_args_t *args)
+void HOOKED_EventHook_FireGlock2( event_args_t *args )
 {
 	if ( g_bOverrideVirtualVA && args->entindex == Client()->GetPlayerIndex() )
-		*reinterpret_cast<Vector *>(args->angles) = g_vecLastVirtualVA;
+		*reinterpret_cast<Vector *>( args->angles ) = g_vecLastVirtualVA;
 
-	ORIG_EventHook_FireGlock2(args);
+	ORIG_EventHook_FireGlock2( args );
 }
 
-void HOOKED_EventHook_FireShotGunSingle(event_args_t *args)
+void HOOKED_EventHook_FireShotGunSingle( event_args_t *args )
 {
 	if ( g_bOverrideVirtualVA && args->entindex == Client()->GetPlayerIndex() )
-		*reinterpret_cast<Vector *>(args->angles) = g_vecLastVirtualVA;
+		*reinterpret_cast<Vector *>( args->angles ) = g_vecLastVirtualVA;
 
-	ORIG_EventHook_FireShotGunSingle(args);
+	ORIG_EventHook_FireShotGunSingle( args );
 }
 
-void HOOKED_EventHook_FireShotGunDouble(event_args_t *args)
+void HOOKED_EventHook_FireShotGunDouble( event_args_t *args )
 {
 	if ( g_bOverrideVirtualVA && args->entindex == Client()->GetPlayerIndex() )
-		*reinterpret_cast<Vector *>(args->angles) = g_vecLastVirtualVA;
+		*reinterpret_cast<Vector *>( args->angles ) = g_vecLastVirtualVA;
 
-	ORIG_EventHook_FireShotGunDouble(args);
+	ORIG_EventHook_FireShotGunDouble( args );
 }
 
-void HOOKED_EventHook_FireMP5(event_args_t *args)
+void HOOKED_EventHook_FireMP5( event_args_t *args )
 {
 	if ( g_bOverrideVirtualVA && args->entindex == Client()->GetPlayerIndex() )
-		*reinterpret_cast<Vector *>(args->angles) = g_vecLastVirtualVA;
+		*reinterpret_cast<Vector *>( args->angles ) = g_vecLastVirtualVA;
 
-	ORIG_EventHook_FireMP5(args);
+	ORIG_EventHook_FireMP5( args );
 }
 
-void HOOKED_EventHook_FirePython(event_args_t *args)
+void HOOKED_EventHook_FirePython( event_args_t *args )
 {
 	if ( g_bOverrideVirtualVA && args->entindex == Client()->GetPlayerIndex() )
-		*reinterpret_cast<Vector *>(args->angles) = g_vecLastVirtualVA;
+		*reinterpret_cast<Vector *>( args->angles ) = g_vecLastVirtualVA;
 
-	ORIG_EventHook_FirePython(args);
+	ORIG_EventHook_FirePython( args );
 }
 
-void HOOKED_EventHook_FireDeagle(event_args_t *args)
+void HOOKED_EventHook_FireDeagle( event_args_t *args )
 {
 	if ( g_bOverrideVirtualVA && args->entindex == Client()->GetPlayerIndex() )
-		*reinterpret_cast<Vector *>(args->angles) = g_vecLastVirtualVA;
+		*reinterpret_cast<Vector *>( args->angles ) = g_vecLastVirtualVA;
 
-	ORIG_EventHook_FireDeagle(args);
+	ORIG_EventHook_FireDeagle( args );
 }
 
-void HOOKED_EventHook_FireGauss(event_args_t *args)
+void HOOKED_EventHook_FireGauss( event_args_t *args )
 {
 	if ( g_bOverrideVirtualVA && args->entindex == Client()->GetPlayerIndex() )
-		*reinterpret_cast<Vector *>(args->angles) = g_vecLastVirtualVA;
+		*reinterpret_cast<Vector *>( args->angles ) = g_vecLastVirtualVA;
 
-	ORIG_EventHook_FireGauss(args);
+	ORIG_EventHook_FireGauss( args );
 }
 
-void HOOKED_EventHook_Uzi(event_args_t *args)
+void HOOKED_EventHook_Uzi( event_args_t *args )
 {
 	if ( g_bOverrideVirtualVA && args->entindex == Client()->GetPlayerIndex() )
-		*reinterpret_cast<Vector *>(args->angles) = g_vecLastVirtualVA;
+		*reinterpret_cast<Vector *>( args->angles ) = g_vecLastVirtualVA;
 
-	ORIG_EventHook_Uzi(args);
+	ORIG_EventHook_Uzi( args );
 }
 
-void HOOKED_EventHook_UziAkimbo(event_args_t *args)
+void HOOKED_EventHook_UziAkimbo( event_args_t *args )
 {
 	if ( g_bOverrideVirtualVA && args->entindex == Client()->GetPlayerIndex() )
-		*reinterpret_cast<Vector *>(args->angles) = g_vecLastVirtualVA;
+		*reinterpret_cast<Vector *>( args->angles ) = g_vecLastVirtualVA;
 
-	ORIG_EventHook_UziAkimbo(args);
+	ORIG_EventHook_UziAkimbo( args );
 }
 
-void HOOKED_EventHook_WeaponCustom(event_args_t *args)
+void HOOKED_EventHook_WeaponCustom( event_args_t *args )
 {
 	if ( g_bOverrideVirtualVA && args->entindex == Client()->GetPlayerIndex() )
-		*reinterpret_cast<Vector *>(args->angles) = g_vecLastVirtualVA;
+		*reinterpret_cast<Vector *>( args->angles ) = g_vecLastVirtualVA;
 
-	ORIG_EventHook_WeaponCustom(args);
+	ORIG_EventHook_WeaponCustom( args );
 }
 
-void HOOKED_EventHook_Minigun(event_args_t *args)
+void HOOKED_EventHook_Minigun( event_args_t *args )
 {
 	if ( g_bOverrideVirtualVA && args->entindex == Client()->GetPlayerIndex() )
-		*reinterpret_cast<Vector *>(args->angles) = g_vecLastVirtualVA;
+		*reinterpret_cast<Vector *>( args->angles ) = g_vecLastVirtualVA;
 
-	ORIG_EventHook_Minigun(args);
+	ORIG_EventHook_Minigun( args );
 }
 
-void HOOKED_EventHook_SniperRifle(event_args_t *args)
+void HOOKED_EventHook_SniperRifle( event_args_t *args )
 {
 	if ( g_bOverrideVirtualVA && args->entindex == Client()->GetPlayerIndex() )
-		*reinterpret_cast<Vector *>(args->angles) = g_vecLastVirtualVA;
+		*reinterpret_cast<Vector *>( args->angles ) = g_vecLastVirtualVA;
 
-	ORIG_EventHook_SniperRifle(args);
+	ORIG_EventHook_SniperRifle( args );
 }
 
-void HOOKED_EventHook_M249(event_args_t *args)
+void HOOKED_EventHook_M249( event_args_t *args )
 {
 	if ( g_bOverrideVirtualVA && args->entindex == Client()->GetPlayerIndex() )
-		*reinterpret_cast<Vector *>(args->angles) = g_vecLastVirtualVA;
+		*reinterpret_cast<Vector *>( args->angles ) = g_vecLastVirtualVA;
 
-	ORIG_EventHook_M249(args);
+	ORIG_EventHook_M249( args );
 }
 
-void HOOKED_EventHook_M16(event_args_t *args)
+void HOOKED_EventHook_M16( event_args_t *args )
 {
 	if ( g_bOverrideVirtualVA && args->entindex == Client()->GetPlayerIndex() )
-		*reinterpret_cast<Vector *>(args->angles) = g_vecLastVirtualVA;
+		*reinterpret_cast<Vector *>( args->angles ) = g_vecLastVirtualVA;
 
-	ORIG_EventHook_M16(args);
+	ORIG_EventHook_M16( args );
 }
 
-void HOOKED_EventHook_FireShockRifle(event_args_t *args)
+void HOOKED_EventHook_FireShockRifle( event_args_t *args )
 {
 	if ( g_bOverrideVirtualVA && args->entindex == Client()->GetPlayerIndex() )
-		*reinterpret_cast<Vector *>(args->angles) = g_vecLastVirtualVA;
+		*reinterpret_cast<Vector *>( args->angles ) = g_vecLastVirtualVA;
 
-	ORIG_EventHook_FireShockRifle(args);
+	ORIG_EventHook_FireShockRifle( args );
 }
 
-void HOOKED_EventHook_DisplacerSpin(event_args_t *args)
+void HOOKED_EventHook_DisplacerSpin( event_args_t *args )
 {
 	if ( g_bOverrideVirtualVA && args->entindex == Client()->GetPlayerIndex() )
-		*reinterpret_cast<Vector *>(args->angles) = g_vecLastVirtualVA;
+		*reinterpret_cast<Vector *>( args->angles ) = g_vecLastVirtualVA;
 
-	ORIG_EventHook_DisplacerSpin(args);
+	ORIG_EventHook_DisplacerSpin( args );
 }
 
 //-----------------------------------------------------------------------------
@@ -935,7 +1001,7 @@ bool CAim::Load()
 
 	if ( !m_pfnV_PunchAxis )
 	{
-		Warning("Couldn't find function \"V_PunchAxis\"\n");
+		Warning( "Couldn't find function \"V_PunchAxis\"\n" );
 		return false;
 	}
 
@@ -945,18 +1011,18 @@ bool CAim::Load()
 void CAim::PostLoad()
 {
 	ud_t inst;
-	MemoryUtils()->InitDisasm(&inst, m_pfnV_PunchAxis, 32, 64);
+	MemoryUtils()->InitDisasm( &inst, m_pfnV_PunchAxis, 32, 64 );
 
 	do
 	{
-		if (inst.mnemonic == UD_Imovss && inst.operand[0].type == UD_OP_MEM && inst.operand[0].index == UD_R_EAX &&
-			inst.operand[0].scale == 4 && inst.operand[0].offset == 32 && inst.operand[1].type == UD_OP_REG && inst.operand[1].base == UD_R_XMM0)
+		if ( inst.mnemonic == UD_Imovss && inst.operand[ 0 ].type == UD_OP_MEM && inst.operand[ 0 ].index == UD_R_EAX &&
+			 inst.operand[ 0 ].scale == 4 && inst.operand[ 0 ].offset == 32 && inst.operand[ 1 ].type == UD_OP_REG && inst.operand[ 1 ].base == UD_R_XMM0 )
 		{
-			ev_punchangle = reinterpret_cast<Vector *>(inst.operand[0].lval.udword);
+			ev_punchangle = reinterpret_cast<Vector *>( inst.operand[ 0 ].lval.udword );
 			break;
 		}
 
-	} while ( MemoryUtils()->Disassemble(&inst) );
+	} while ( MemoryUtils()->Disassemble( &inst ) );
 
 	event_t *pEventHook = g_pEventHooks;
 
@@ -964,77 +1030,77 @@ void CAim::PostLoad()
 	{
 		if ( pEventHook->name )
 		{
-			if ( !stricmp(pEventHook->name, "events/glock1.sc") )
+			if ( !stricmp( pEventHook->name, "events/glock1.sc" ) )
 			{
 				ORIG_EventHook_FireGlock1 = pEventHook->function;
 				pEventHook->function = HOOKED_EventHook_FireGlock1;
 			}
-			else if ( !stricmp(pEventHook->name, "events/glock2.sc") )
+			else if ( !stricmp( pEventHook->name, "events/glock2.sc" ) )
 			{
 				ORIG_EventHook_FireGlock2 = pEventHook->function;
 				pEventHook->function = HOOKED_EventHook_FireGlock2;
 			}
-			else if ( !stricmp(pEventHook->name, "events/shotgun1.sc") )
+			else if ( !stricmp( pEventHook->name, "events/shotgun1.sc" ) )
 			{
 				ORIG_EventHook_FireShotGunSingle = pEventHook->function;
 				pEventHook->function = HOOKED_EventHook_FireShotGunSingle;
 			}
-			else if ( !stricmp(pEventHook->name, "events/shotgun2.sc") )
+			else if ( !stricmp( pEventHook->name, "events/shotgun2.sc" ) )
 			{
 				ORIG_EventHook_FireShotGunDouble = pEventHook->function;
 				pEventHook->function = HOOKED_EventHook_FireShotGunDouble;
 			}
-			else if ( !stricmp(pEventHook->name, "events/mp5.sc") )
+			else if ( !stricmp( pEventHook->name, "events/mp5.sc" ) )
 			{
 				ORIG_EventHook_FireMP5 = pEventHook->function;
 				pEventHook->function = HOOKED_EventHook_FireMP5;
 			}
-			else if ( !stricmp(pEventHook->name, "events/python.sc") )
+			else if ( !stricmp( pEventHook->name, "events/python.sc" ) )
 			{
 				ORIG_EventHook_FirePython = pEventHook->function;
 				pEventHook->function = HOOKED_EventHook_FirePython;
 			}
-			else if ( !stricmp(pEventHook->name, "events/deagle.sc") )
+			else if ( !stricmp( pEventHook->name, "events/deagle.sc" ) )
 			{
 				ORIG_EventHook_FireDeagle = pEventHook->function;
 				pEventHook->function = HOOKED_EventHook_FireDeagle;
 			}
-			else if ( !stricmp(pEventHook->name, "events/gauss.sc") )
+			else if ( !stricmp( pEventHook->name, "events/gauss.sc" ) )
 			{
 				ORIG_EventHook_FireGauss = pEventHook->function;
 				pEventHook->function = HOOKED_EventHook_FireGauss;
 			}
-			else if ( !stricmp(pEventHook->name, "events/uzi.sc") )
+			else if ( !stricmp( pEventHook->name, "events/uzi.sc" ) )
 			{
 				ORIG_EventHook_Uzi = pEventHook->function;
 				pEventHook->function = HOOKED_EventHook_Uzi;
 			}
-			else if ( !stricmp(pEventHook->name, "events/uziakimbo.sc") )
+			else if ( !stricmp( pEventHook->name, "events/uziakimbo.sc" ) )
 			{
 				ORIG_EventHook_UziAkimbo = pEventHook->function;
 				pEventHook->function = HOOKED_EventHook_UziAkimbo;
 			}
-			else if ( !stricmp(pEventHook->name, "events/weapon_custom.sc") )
+			else if ( !stricmp( pEventHook->name, "events/weapon_custom.sc" ) )
 			{
 				ORIG_EventHook_WeaponCustom = pEventHook->function;
 				pEventHook->function = HOOKED_EventHook_WeaponCustom;
 			}
-			else if ( !stricmp(pEventHook->name, "events/minigun.sc") )
+			else if ( !stricmp( pEventHook->name, "events/minigun.sc" ) )
 			{
 				ORIG_EventHook_Minigun = pEventHook->function;
 				pEventHook->function = HOOKED_EventHook_Minigun;
 			}
-			else if ( !stricmp(pEventHook->name, "events/sniperrifle.sc") )
+			else if ( !stricmp( pEventHook->name, "events/sniperrifle.sc" ) )
 			{
 				ORIG_EventHook_SniperRifle = pEventHook->function;
 				pEventHook->function = HOOKED_EventHook_SniperRifle;
 			}
-			else if ( !stricmp(pEventHook->name, "events/m249.sc") )
+			else if ( !stricmp( pEventHook->name, "events/m249.sc" ) )
 			{
 				ORIG_EventHook_M249 = pEventHook->function;
 				pEventHook->function = HOOKED_EventHook_M249;
 			}
-			else if ( !stricmp(pEventHook->name, "events/m16a2.sc") )
+			else if ( !stricmp( pEventHook->name, "events/m16a2.sc" ) )
 			{
 				ORIG_EventHook_M16 = pEventHook->function;
 				pEventHook->function = HOOKED_EventHook_M16;
@@ -1065,63 +1131,63 @@ void CAim::Unload()
 	{
 		if ( pEventHook->name )
 		{
-			if ( !stricmp(pEventHook->name, "events/glock1.sc") )
+			if ( !stricmp( pEventHook->name, "events/glock1.sc" ) )
 			{
 				pEventHook->function = ORIG_EventHook_FireGlock1;
 			}
-			else if ( !stricmp(pEventHook->name, "events/glock2.sc") )
+			else if ( !stricmp( pEventHook->name, "events/glock2.sc" ) )
 			{
 				pEventHook->function = ORIG_EventHook_FireGlock2;
 			}
-			else if ( !stricmp(pEventHook->name, "events/shotgun1.sc") )
+			else if ( !stricmp( pEventHook->name, "events/shotgun1.sc" ) )
 			{
 				pEventHook->function = ORIG_EventHook_FireShotGunSingle;
 			}
-			else if ( !stricmp(pEventHook->name, "events/shotgun2.sc") )
+			else if ( !stricmp( pEventHook->name, "events/shotgun2.sc" ) )
 			{
 				pEventHook->function = ORIG_EventHook_FireShotGunDouble;
 			}
-			else if ( !stricmp(pEventHook->name, "events/mp5.sc") )
+			else if ( !stricmp( pEventHook->name, "events/mp5.sc" ) )
 			{
 				pEventHook->function = ORIG_EventHook_FireMP5;
 			}
-			else if ( !stricmp(pEventHook->name, "events/python.sc") )
+			else if ( !stricmp( pEventHook->name, "events/python.sc" ) )
 			{
 				pEventHook->function = ORIG_EventHook_FirePython;
 			}
-			else if ( !stricmp(pEventHook->name, "events/deagle.sc") )
+			else if ( !stricmp( pEventHook->name, "events/deagle.sc" ) )
 			{
 				pEventHook->function = ORIG_EventHook_FireDeagle;
 			}
-			else if ( !stricmp(pEventHook->name, "events/gauss.sc") )
+			else if ( !stricmp( pEventHook->name, "events/gauss.sc" ) )
 			{
 				pEventHook->function = ORIG_EventHook_FireGauss;
 			}
-			else if ( !stricmp(pEventHook->name, "events/uzi.sc") )
+			else if ( !stricmp( pEventHook->name, "events/uzi.sc" ) )
 			{
 				pEventHook->function = ORIG_EventHook_Uzi;
 			}
-			else if ( !stricmp(pEventHook->name, "events/uziakimbo.sc") )
+			else if ( !stricmp( pEventHook->name, "events/uziakimbo.sc" ) )
 			{
 				pEventHook->function = ORIG_EventHook_UziAkimbo;
 			}
-			else if ( !stricmp(pEventHook->name, "events/weapon_custom.sc") )
+			else if ( !stricmp( pEventHook->name, "events/weapon_custom.sc" ) )
 			{
 				pEventHook->function = ORIG_EventHook_WeaponCustom;
 			}
-			else if ( !stricmp(pEventHook->name, "events/minigun.sc") )
+			else if ( !stricmp( pEventHook->name, "events/minigun.sc" ) )
 			{
 				pEventHook->function = ORIG_EventHook_Minigun;
 			}
-			else if ( !stricmp(pEventHook->name, "events/sniperrifle.sc") )
+			else if ( !stricmp( pEventHook->name, "events/sniperrifle.sc" ) )
 			{
 				pEventHook->function = ORIG_EventHook_SniperRifle;
 			}
-			else if ( !stricmp(pEventHook->name, "events/m249.sc") )
+			else if ( !stricmp( pEventHook->name, "events/m249.sc" ) )
 			{
 				pEventHook->function = ORIG_EventHook_M249;
 			}
-			else if ( !stricmp(pEventHook->name, "events/m16a2.sc") )
+			else if ( !stricmp( pEventHook->name, "events/m16a2.sc" ) )
 			{
 				pEventHook->function = ORIG_EventHook_M16;
 			}

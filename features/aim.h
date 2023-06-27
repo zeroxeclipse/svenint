@@ -20,6 +20,8 @@ class CEntity;
 
 class CAim : public CBaseFeature
 {
+	friend static int ScriptFunc_Aimbot( struct lua_State *pLuaState );
+
 public:
 	virtual bool Load();
 	virtual void PostLoad();
@@ -35,10 +37,12 @@ public:
 	void Post_V_CalcRefdef(ref_params_t *pparams);
 
 private:
-	bool Aimbot(usercmd_t *cmd, bool &bAnglesChanged);
+	bool Aimbot(usercmd_t *cmd, bool bAimbot, bool bSilentAimbot, bool bRagebot, bool bChangeAnglesBack, bool &bAnglesChanged);
 	void NoRecoil(usercmd_t *cmd);
 
 private:
+	void SetChangeAnglesBack();
+
 	bool IsUsingMountedGun();
 
 	bool CheckReload(int iWeaponID, int iClip, usercmd_t *cmd);
@@ -62,6 +66,9 @@ private:
 	Vector m_vecEVPunchAngle;
 
 	Vector m_vecTargetPoint;
+
+	bool m_bChangeAnglesBack;
+	Vector m_vecChangeAnglesTarget;
 };
 
 extern CAim g_Aim;
