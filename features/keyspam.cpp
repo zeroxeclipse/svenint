@@ -24,8 +24,19 @@ int *key_dest = NULL;
 
 CON_COMMAND_EXTERN(sc_spam_hold_mode, ConCommand_SpamHoldMode, "Toggle spam hold mode")
 {
-	Msg(g_Config.cvars.keyspam_hold_mode ? "Hold Mode disabled\n" : "Hold Mode enabled\n");
-	g_Config.cvars.keyspam_hold_mode = !g_Config.cvars.keyspam_hold_mode;
+	bool bValue;
+
+	if ( args.ArgC() > 1 )
+	{
+		bValue = !!atoi( args[ 1 ] );
+	}
+	else
+	{
+		bValue = !g_Config.cvars.keyspam_hold_mode;
+	}
+
+	Msg( bValue ? "Hold Mode enabled\n" : "Hold Mode disabled\n");
+	g_Config.cvars.keyspam_hold_mode = bValue;
 }
 
 CON_COMMAND_EXTERN(sc_spam_use, ConCommand_UseSpam, "Toggle E spam")
@@ -60,10 +71,21 @@ CON_COMMAND_EXTERN(sc_spam_q, ConCommand_SnarkSpam, "Toggle Q spam")
 
 CON_COMMAND_EXTERN(sc_spam_ctrl, ConCommand_CtrlSpam, "Toggle CTRL spam")
 {
+	bool bValue;
+
+	if ( args.ArgC() > 1 )
+	{
+		bValue = !!atoi( args[ 1 ] );
+	}
+	else
+	{
+		bValue = !g_Config.cvars.keyspam_ctrl;
+	}
+
 	g_pEngineFuncs->ClientCmd("-duck");
 
-	Msg(g_Config.cvars.keyspam_ctrl ? "CTRL Spam disabled\n" : "CTRL Spam enabled\n");
-	g_Config.cvars.keyspam_ctrl = !g_Config.cvars.keyspam_ctrl;
+	Msg( bValue ? "CTRL Spam enabled\n" : "CTRL Spam disabled\n" );
+	g_Config.cvars.keyspam_ctrl = bValue;
 }
 
 //-----------------------------------------------------------------------------
