@@ -8,6 +8,7 @@
 #endif
 
 #include <hl_sdk/common/Platform.h>
+#include <math/vector.h>
 
 //-----------------------------------------------------------------------------
 // Bsp file metainfo
@@ -217,11 +218,62 @@ typedef struct
 } bspleaf_t;
 
 //-----------------------------------------------------------------------------
-// BSP feature
+// 
 //-----------------------------------------------------------------------------
 
 #include <base_feature.h>
 #include <IDetoursAPI.h>
+#include <vector>
+
+//-----------------------------------------------------------------------------
+// Trigger type
+//-----------------------------------------------------------------------------
+
+enum TriggerType
+{
+	TRIGGER_ONCE = 0,
+	TRIGGER_MULTIPLE,
+	TRIGGER_HURT,
+	TRIGGER_HURT_HEAL,
+	TRIGGER_PUSH,
+	TRIGGER_TELEPORT,
+	TRIGGER_CHANGELEVEL,
+	TRIGGER_ANTIRUSH
+};
+
+//-----------------------------------------------------------------------------
+// Structs
+//-----------------------------------------------------------------------------
+
+struct TriggerEntity
+{
+	int iType;
+	int iModel;
+
+	Vector vecOrigin;
+	Vector vecMins;
+	Vector vecMaxs;
+
+	Vector vecMidPoint;
+	Vector vecDirection;
+
+	union
+	{
+		int iDamage;
+		int iSpeed;
+		float flPercentage;
+	};
+};
+
+struct MonsterSpawn
+{
+	char szClassname[ 48 ];
+	Vector vecOrigin;
+};
+
+//-----------------------------------------------------------------------------
+// BSP feature
+//-----------------------------------------------------------------------------
 
 class CBsp
 {
@@ -243,6 +295,9 @@ public:
 
 	void LoadBsp();
 	bool LoadEntsFromBsp(unsigned char *bsp, lump_t *lump_entities);
+
+	const std::vector<TriggerEntity> &GetTriggers( void ) const;
+	const std::vector<MonsterSpawn> &GetSpawns( void ) const;
 };
 
 extern CBsp g_Bsp;

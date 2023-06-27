@@ -16,7 +16,6 @@
 
 #include <istream>
 #include <streambuf>
-#include <vector>
 #include <unordered_map>
 #include <algorithm>
 
@@ -25,50 +24,8 @@
 #include "../config.h"
 
 //-----------------------------------------------------------------------------
-// Trigger type
-//-----------------------------------------------------------------------------
-
-enum TriggerType
-{
-	TRIGGER_ONCE = 0,
-	TRIGGER_MULTIPLE,
-	TRIGGER_HURT,
-	TRIGGER_HURT_HEAL,
-	TRIGGER_PUSH,
-	TRIGGER_TELEPORT,
-	TRIGGER_CHANGELEVEL,
-	TRIGGER_ANTIRUSH
-};
-
-//-----------------------------------------------------------------------------
 // Structs
 //-----------------------------------------------------------------------------
-
-struct TriggerEntity
-{
-	int iType;
-	int iModel;
-
-	Vector vecOrigin;
-	Vector vecMins;
-	Vector vecMaxs;
-
-	Vector vecMidPoint;
-	Vector vecDirection;
-
-	union
-	{
-		int iDamage;
-		int iSpeed;
-		float flPercentage;
-	};
-};
-
-struct MonsterSpawn
-{
-	char szClassname[48];
-	Vector vecOrigin;
-};
 
 struct membuf : std::streambuf
 {
@@ -1522,6 +1479,20 @@ bool CBsp::LoadEntsFromBsp(unsigned char *bsp, lump_t *lump_entities)
 		fclose(file);
 
 	return true;
+}
+
+//-----------------------------------------------------------------------------
+// Getters
+//-----------------------------------------------------------------------------
+
+const std::vector<TriggerEntity> &CBsp::GetTriggers( void ) const
+{
+	return vTriggers;
+}
+
+const std::vector<MonsterSpawn> &CBsp::GetSpawns( void ) const
+{
+	return vMonsterSpawns;
 }
 
 //-----------------------------------------------------------------------------
