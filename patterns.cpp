@@ -19,6 +19,7 @@ namespace Patterns
 
 		DEFINE_PATTERN( Mod_LeafPVS, "8B 44 24 08 8B 4C 24 04 8B 90 8C 00 00 00" );
 
+		DEFINE_PATTERN( V_FadeAlpha, "51 D9 ? ? ? ? ? DD ? ? ? ? ? 8A 0D" );
 		DEFINE_PATTERN( V_RenderView, "81 EC ? ? 00 00 A1 ? ? ? ? 33 C4 89 84 24 ? ? 00 00 D9 EE D9 15" );
 		DEFINE_PATTERN( R_RenderScene, "83 EC ? E8 ? ? ? ? 85 C0 74" );
 		DEFINE_PATTERN( R_RenderScene_HOOKED, "E9 ? ? ? ? ? ? ? 85 C0 74" );
@@ -89,6 +90,9 @@ namespace Patterns
 		DEFINE_PATTERN( gpGlobals, "A1 ? ? ? ? 8B 80 98 00 00 00 03 86 80 00 00 00 50 68 ? ? ? ? 6A ? FF 15 ? ? ? ? 83 C4" );
 		DEFINE_PATTERN( toggle_survival_mode_Callback, "E8 ? ? ? ? 33 C9 38 48 0C 0F 94 C1 89 48 04 8B C8 E9" );
 		DEFINE_PATTERN( PlayerSpawns, "57 8B 7C 24 08 85 FF 0F 84 ? ? ? ? 83 3F" );
+		DEFINE_PATTERN( FixPlayerStuck, "81 EC ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 FC 02 00 00" );
+		DEFINE_PATTERN( CBasePlayer__SpecialSpawn, "81 EC ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 38 03 00 00" );
+		DEFINE_PATTERN( CBasePlayer__vtable, "C7 06 ? ? ? ? 8D 9E 74 08 00 00 C7 86 00 06 00 00 FF FF FF FF" );
 	}
 
 	namespace GameOverlay

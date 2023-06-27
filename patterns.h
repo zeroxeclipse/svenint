@@ -26,6 +26,7 @@ namespace Patterns
 
 		EXTERN_PATTERN( Mod_LeafPVS );
 
+		EXTERN_PATTERN( V_FadeAlpha );
 		EXTERN_PATTERN( V_RenderView );
 		EXTERN_PATTERN( R_RenderScene );
 		EXTERN_PATTERN( R_RenderScene_HOOKED );
@@ -95,6 +96,9 @@ namespace Patterns
 		EXTERN_PATTERN( gpGlobals );
 		EXTERN_PATTERN( toggle_survival_mode_Callback );
 		EXTERN_PATTERN( PlayerSpawns );
+		EXTERN_PATTERN( FixPlayerStuck );
+		EXTERN_PATTERN( CBasePlayer__SpecialSpawn );
+		EXTERN_PATTERN( CBasePlayer__vtable );
 	}
 
 	namespace GameOverlay
