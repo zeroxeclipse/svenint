@@ -290,6 +290,13 @@ static int RemoveTimer(lua_State *pLuaState)
 	return 1;
 }
 
+static int RemoveAllTimers(lua_State *pLuaState)
+{
+	g_TimersHandler.ClearTimers();
+
+	return 0;
+}
+
 //-----------------------------------------------------------------------------
 // Init lib
 //-----------------------------------------------------------------------------
@@ -301,6 +308,9 @@ LUALIB_API int luaopen_logic(lua_State *pLuaState)
 	
 	lua_pushcfunction(pLuaState, RemoveTimer);
 	lua_setglobal(pLuaState, "RemoveTimer");
+	
+	lua_pushcfunction(pLuaState, RemoveAllTimers);
+	lua_setglobal(pLuaState, "RemoveAllTimers");
 
 	return 1;
 }
