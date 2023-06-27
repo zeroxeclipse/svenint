@@ -10,19 +10,21 @@
 #include <convar.h>
 #include <dbg.h>
 
-#include <data_struct/hash.h>
-#include <generichash.h>
 #include <messagebuffer.h>
 
 #include "speedrun_tools.h"
+#include "input_manager.h"
 
 #include "../modules/opengl.h"
 #include "../modules/server.h"
 #include "../modules/server_client_bridge.h"
 
+#include "../game/draw_context.h"
 #include "../game/drawing.h"
 #include "../game/utils.h"
 #include "../game/entitylist.h"
+#include "../game/structs.h"
+
 #include "../utils/demo_message.h"
 #include "../strafe/strafe_utils.h"
 
@@ -39,24 +41,6 @@ DECLARE_FUNC_PTR( vgui::HFont, __cdecl, VGUI2_GetEngineFont );
 
 DECLARE_HOOK( void, __cdecl, UTIL_GetCircularGaussianSpread, float *, float * );
 DECLARE_HOOK( qboolean, __cdecl, Host_FilterTime, float );
-DECLARE_HOOK( int, __cdecl, Cbuf_AddText, const char * );
-DECLARE_HOOK( int, __cdecl, ServerCmd, const char * );
-
-//-----------------------------------------------------------------------------
-// Forward declaration of CHash-related functions
-//-----------------------------------------------------------------------------
-
-typedef const char *cstring_t;
-
-static bool CompareFunc( const cstring_t &a, const cstring_t &b )
-{
-	return !stricmp( a, b );
-}
-
-static unsigned int HashFunc( const cstring_t &a )
-{
-	return HashStringCaseless( a );
-}
 
 //-----------------------------------------------------------------------------
 // Vars
@@ -67,21 +51,14 @@ DEFINE_PATTERN( Host_FilterTime_sig, "E9 ? ? ? ? 90 90 90 8B 0D ? ? ? ? D8" );
 DEFINE_PATTERN( host_framerate_patch_sig, "74 ? DD ? B8" );
 
 CSpeedrunTools g_SpeedrunTools;
-CHash<cstring_t> g_WhitelistCommands( 15, CompareFunc, HashFunc );
-
-// input manager
-bool im_record = false;
-FILE *im_file = NULL;
-static bool im_saved_move = false;
-static int im_version = IM_FILE_VERSION;
-static input_frame_t frame_buffer;
-static std::string im_filename;
-static std::string im_commands;
 
 // sc_st_setangles
 static bool s_bSetAngles = false;
+static bool s_bSetAngles2 = false;
 static Vector s_vecSetAngles;
 static Vector s_vecSetAnglesSpeed;
+static Vector s_vecSetAngles2;
+static float s_flSetAngles2Lerp;
 // sc_st_follow_point
 static bool s_bFollowPoint = false;
 static float s_flFollowPointLerp = 1.f;
@@ -100,9 +77,6 @@ static bool s_bNotifyTimescaleChanged = false;
 //-----------------------------------------------------------------------------
 // ConCommands, CVars..
 //-----------------------------------------------------------------------------
-
-ConVar sc_im_autorecord( "sc_im_autorecord", "0", FCVAR_CLIENTDLL, "Automatically record inputs at map start" );
-ConVar sc_im_autoplay( "sc_im_autoplay", "0", FCVAR_CLIENTDLL, "Automatically play inputs at map start" );
 
 ConVar sc_st_min_frametime( "sc_st_min_frametime", "0", FCVAR_CLIENTDLL, "Min frametime to run a frame" );
 
@@ -130,6 +104,42 @@ CON_COMMAND_NO_WRAPPER( sc_st_timer, "Show speedrun timer" )
 {
 	Msg( g_Config.cvars.st_timer ? "Speedrun Timer disabled\n" : "Speedrun Timer enabled\n" );
 	g_Config.cvars.st_timer = !g_Config.cvars.st_timer;
+}
+
+CON_COMMAND_NO_WRAPPER( sc_st_reset_timer, "Reset speedrun timer" )
+{
+	g_SpeedrunTools.StartTimer();
+}
+
+CON_COMMAND_NO_WRAPPER( sc_st_legit_mode, "Forcibly disable all not legit cheats / features in SvenInt" )
+{
+	Msg( "<SvenInt> Legit mode is ON\n" );
+	Utils()->PrintChatText( "<SvenInt> Legit mode is ON" );
+
+	g_Config.cvars.ragebot = false;
+	g_Config.cvars.silent_aimbot = false;
+	g_Config.cvars.fakelag = false;
+	g_Config.cvars.fast_crowbar = false;
+	g_Config.cvars.fast_crowbar2 = false;
+	g_Config.cvars.fast_medkit = false;
+	g_Config.cvars.rotate_dead_body = false;
+	g_Config.cvars.quake_guns = false;
+	g_Config.cvars.no_recoil = false;
+	g_Config.cvars.fp_roaming = false;
+	g_Config.cvars.thirdperson = false;
+	g_Config.cvars.one_tick_exploit = false;
+	g_Config.cvars.replace_players_models = false;
+	g_Config.cvars.replace_model_on_self = false;
+	g_Config.cvars.replace_players_models_with_randoms = false;
+	g_Config.cvars.replace_specified_players_models = false;
+	g_Config.cvars.revert_pitch = false;
+	g_Config.cvars.revert_yaw = false;
+	g_Config.cvars.spin_pitch_angle = false;
+	g_Config.cvars.lock_pitch = false;
+	g_Config.cvars.lock_yaw = false;
+	g_Config.cvars.skybox = 0;
+
+	g_SpeedrunTools.SetLegitMode( true );
 }
 
 CON_COMMAND( sc_st_timescale, "Set timescale" )
@@ -166,6 +176,11 @@ CON_COMMAND( sc_st_follow_point, "Set local player view angles to a point and fo
 	s_bFollowPoint = true;
 }
 
+CON_COMMAND( sc_st_follow_point_stop, "Stop following point" )
+{
+	s_bFollowPoint = false;
+}
+
 CON_COMMAND( sc_st_setangles, "Set local player view angles" )
 {
 	if ( args.ArgC() != 4 )
@@ -197,228 +212,465 @@ CON_COMMAND( sc_st_setangles, "Set local player view angles" )
 	}
 }
 
-CON_COMMAND( sc_im_record, "Record inputs" )
+CON_COMMAND( sc_st_setangles_stop, "Stop setting angles" )
 {
-	if ( args.ArgC() >= 2 )
-	{
-		void IM_Record( const char *pszFilename );
-
-		IM_Record( args[ 1 ] );
-	}
-	else
-	{
-		Msg( "Usage:  sc_im_record <filename>\n" );
-	}
+	s_bSetAngles = false;
 }
 
-CON_COMMAND( sc_im_play, "Playback inputs" )
+CON_COMMAND( sc_st_setangles2, "Set local player view angles with given interpolation" )
 {
-	if ( args.ArgC() >= 2 )
+	if ( args.ArgC() != 4 )
 	{
-		void IM_Play( const char *pszFilename );
-
-		IM_Play( args[ 1 ] );
-	}
-	else
-	{
-		Msg( "Usage:  sc_im_play <filename>\n" );
-	}
-}
-
-CON_COMMAND( sc_im_split, "Split playing back inputs" )
-{
-	void IM_Split();
-
-	IM_Split();
-}
-
-CON_COMMAND( sc_im_stop, "Stop recording inputs" )
-{
-	void IM_Stop();
-
-	IM_Stop();
-}
-
-//-----------------------------------------------------------------------------
-// Input Manager
-//-----------------------------------------------------------------------------
-
-void IM_Record( const char *pszFilename )
-{
-	if ( im_file )
-	{
-		Msg( "Already in action\n" );
+		Msg( "Usage: sc_st_setangles <pitch> <yaw> <lerp>\n" );
+		s_bSetAngles2 = false;
 		return;
 	}
 
-	auto ends_with = []( std::string const &value, std::string const &ending )
-	{
-		if ( ending.size() > value.size() )
-			return false;
+	s_vecSetAngles2.x = atof( args[ 1 ] );
+	s_vecSetAngles2.y = atof( args[ 2 ] );
+	s_vecSetAngles2.z = 0.f;
+	s_flSetAngles2Lerp = atof( args[ 3 ] );
 
-		return std::equal( ending.rbegin(), ending.rend(), value.rbegin() );
-	};
+	NormalizeAngles( s_vecSetAngles2 );
 
-	std::string sFilename = pszFilename;
-
-	if ( !ends_with( sFilename, ".bin" ) )
-	{
-		sFilename += ".bin";
-	}
-
-	im_filename = "sven_internal/input_manager/";
-	im_filename += sFilename;
-
-	im_file = fopen( im_filename.c_str(), "wb" );
-
-	if ( im_file )
-	{
-		int header_buffer = IM_FILE_HEADER;
-		fwrite( &header_buffer, 1, sizeof( short ), im_file );
-
-		int header_version = IM_FILE_VERSION;
-		fwrite( &header_version, 1, sizeof( short ), im_file );
-
-		im_version = IM_FILE_VERSION;
-
-		Msg( "Recording inputs..\n" );
-
-		im_record = true;
-		im_saved_move = false;
-	}
-	else
-	{
-		Warning( "sc_im_record: failed to create file\n" );
-	}
+	s_bSetAngles2 = true;
 }
 
-void IM_Play( const char *pszFilename )
+CON_COMMAND( sc_st_setangles2_stop, "Stop setting angles" )
 {
-	if ( im_file )
-	{
-		Msg( "Already in action\n" );
+	s_bSetAngles2 = false;
+}
+
+//-----------------------------------------------------------------------------
+// Incredible shit to find possible revivable spots
+//-----------------------------------------------------------------------------
+
+CON_COMMAND( sc_test_revive, "" )
+{
+	if ( SvenModAPI()->GetClientState() != CLS_ACTIVE )
 		return;
-	}
 
-	auto ends_with = []( std::string const &value, std::string const &ending )
+	// settings
+	float HULL_STEP = 2.f;
+	bool DRAW_VALID_SPOTS_ONLY = false;
+
+	if ( args.ArgC() > 1 )
+		HULL_STEP = (float)atof( args[ 1 ] );
+	
+	if ( args.ArgC() > 2 )
+		DRAW_VALID_SPOTS_ONLY = !!atoi( args[ 2 ] );
+
+	Render()->DrawClear();
+
+	if ( Host_IsServerActive() )
 	{
-		if ( ending.size() > value.size() )
-			return false;
+		edict_t *pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( g_pPlayerMove->player_index + 1 );
 
-		return std::equal( ending.rbegin(), ending.rend(), value.rbegin() );
-	};
+		if ( FNullEnt( pPlayer ) || !IsValidEntity( pPlayer ) )
+			return;
 
-	std::string sFilename = pszFilename;
+		int flags;
+		TraceResult tr;
+		Vector vecOrigin, vecHullMins, vecHullMaxs;
 
-	if ( !ends_with( sFilename, ".bin" ) )
-	{
-		sFilename += ".bin";
-	}
+		flags = pPlayer->v.flags;
+		vecOrigin = pPlayer->v.origin;
 
-	im_filename = "sven_internal/input_manager/";
-	im_filename += sFilename;
+		g_pServerEngineFuncs->pfnTraceHull( vecOrigin, vecOrigin, 0 /* dont_ignore_monsters */, 1 /* human_hull */, pPlayer, &tr );
 
-	im_file = fopen( im_filename.c_str(), "rb" );
+		Msg( "sc_test_revive: Ducking = %d\n", ( flags & FL_DUCKING ) == FL_DUCKING );
 
-	if ( im_file )
-	{
-		int header_buffer = IM_FILE_HEADER;
-		int header_version = IM_FILE_VERSION;
-
-		fread( &header_buffer, 1, sizeof( short ), im_file );
-		fread( &header_version, 1, sizeof( short ), im_file );
-
-		if ( header_buffer == IM_FILE_HEADER )
+		if ( flags & FL_DUCKING || tr.fStartSolid )
 		{
-			if ( header_version >= 1 && header_version <= IM_FILE_VERSION )
-			{
-				im_record = false;
-				im_version = header_version;
-				Msg( "Playing back inputs..\n" );
-			}
-			else
-			{
-				Warning( "sc_im_play: Unsupported file version\n" );
-				im_file = NULL;
-			}
+			vecHullMins = VEC_DUCK_HULL_MIN;
+			vecHullMaxs = VEC_DUCK_HULL_MAX;
+
+			flags |= FL_DUCKING;
 		}
 		else
 		{
-			Warning( "sc_im_play: Unsupported file\n" );
-			im_file = NULL;
+			vecHullMins = VEC_HULL_MIN;
+			vecHullMaxs = VEC_HULL_MAX;
+		}
+
+		Msg( "sc_test_revive: TraceHull, blocked = %d\n", tr.fStartSolid );
+
+		Vector vecUpHead = vecOrigin + Vector( 0, 0, 32 ); // idk about name
+
+		g_pServerEngineFuncs->pfnTraceLine( vecUpHead, vecOrigin, 1 /* ignore_monsters */, pPlayer, &tr );
+
+		Msg( "sc_test_revive: TraceLine up, old = (%.3f, %.3f, %.3f), new = (%.3f, %.3f, %.3f)\n", VectorExpand( vecOrigin ), VectorExpand( tr.vecEndPos ) );
+
+		vecOrigin = tr.vecEndPos;
+
+		// FixPlayerCrouchStuck
+		for ( int i = 0; i < 18; i++ )
+		{
+			Msg( "sc_test_revive: FixPlayerCrouchStuck, vecOrigin.z = %.3f\n", vecOrigin.z );
+
+			g_pServerEngineFuncs->pfnTraceHull( vecOrigin, vecOrigin, 0 /* dont_ignore_monsters */, 3 /* head_hull */, pPlayer, &tr );
+
+			if ( !tr.fStartSolid )
+				break;
+
+			vecOrigin.z += 1.f;
+		}
+
+		// FixPlayerStuck
+		int maxsX, hulltype;
+		float minX, maxX, minY, maxY, minZ, maxZ;
+		Vector vecHull, vecTestOrigin;
+
+		const int MAX_HULL_BOUND = 48;
+
+		const Vector vecDebugBoxMins( -0.5, -0.5, -0.5 );
+		const Vector vecDebugBoxMaxs( 0.5, 0.5, 0.5 );
+
+		if ( vecHullMaxs.x > 0.f )
+			maxsX = (int)vecHullMaxs.x;
+		else
+			maxsX = 8;
+
+		vecHull.x = 16.f;
+		vecHull.y = 16.f;
+
+		if ( flags & FL_DUCKING )
+		{
+			vecHull.z = 36.f;
+			hulltype = 3; // head_hull
+		}
+		else
+		{
+			vecHull.z = 72.f;
+			hulltype = 1; // human_hull
+		}
+
+		if ( maxsX <= MAX_HULL_BOUND )
+		{
+			// Iterate from the largest hull, don't spend time and perfomance on small and medium ones
+			for ( int i = MAX_HULL_BOUND; i <= MAX_HULL_BOUND; i += maxsX )
+			//for ( int i = maxsX; i <= MAX_HULL_BOUND; i += maxsX )
+			{
+				Msg( "sc_test_revive: FixPlayerStuck, hull = %d\n", i );
+
+				float hull = (float)i;
+
+				minX = vecOrigin.x - hull;
+				maxX = vecOrigin.x + hull;
+
+				minY = vecOrigin.y - hull;
+				maxY = vecOrigin.y + hull;
+
+				minZ = vecOrigin.z - hull;
+				maxZ = vecOrigin.z + hull;
+
+				for ( float x = minX; x <= maxX; x += HULL_STEP )
+				{
+					for ( float y = minY; y <= maxY; y += HULL_STEP )
+					{
+						for ( float z = minZ; z <= maxZ; z += HULL_STEP )
+						{
+							vecTestOrigin.x = x;
+							vecTestOrigin.y = y;
+							vecTestOrigin.z = z;
+
+							g_pServerEngineFuncs->pfnTraceHull( vecTestOrigin, vecHull, 0 /* dont_ignore_monsters */, hulltype, pPlayer, &tr );
+
+							// Free space
+							if ( !tr.fStartSolid )
+							{
+								Render()->DrawBox( vecTestOrigin, vecDebugBoxMins, vecDebugBoxMaxs, { 0, 255, 0, 127 }, 1e6 );
+							}
+							else if ( !DRAW_VALID_SPOTS_ONLY )
+							{
+								Render()->DrawBox( vecTestOrigin, vecDebugBoxMins, vecDebugBoxMaxs, { 255, 0, 0, 127 }, 1e6 );
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 	else
 	{
-		Warning( "sc_im_play: failed to open file\n" );
+		// Client one is inconsistent but still it can give good results
+
+		int flags;
+		pmtrace_t tr;
+		Vector vecOrigin, vecHullMins, vecHullMaxs;
+
+		flags = g_pPlayerMove->flags;
+		vecOrigin = g_pPlayerMove->origin;
+
+		g_pEventAPI->EV_SetTraceHull( PM_HULL_PLAYER ); // human_hull
+		g_pEventAPI->EV_PlayerTrace( vecOrigin, vecOrigin, PM_NORMAL, -1, &tr );
+
+		Msg( "sc_test_revive: Ducking = %d\n", ( flags & FL_DUCKING ) == FL_DUCKING );
+
+		if ( flags & FL_DUCKING || tr.startsolid )
+		{
+			vecHullMins = VEC_DUCK_HULL_MIN;
+			vecHullMaxs = VEC_DUCK_HULL_MAX;
+
+			flags |= FL_DUCKING;
+		}
+		else
+		{
+			vecHullMins = VEC_HULL_MIN;
+			vecHullMaxs = VEC_HULL_MAX;
+		}
+
+		Msg( "sc_test_revive: TraceHull, blocked = %d\n", tr.startsolid );
+
+		Vector vecUpHead = vecOrigin + Vector( 0, 0, 32 ); // idk about name
+
+		// Inconsistent!!! No trace flag 'ignore_monsters' for the client
+		g_pEventAPI->EV_SetTraceHull( PM_HULL_POINT );
+		g_pEventAPI->EV_PlayerTrace( vecUpHead, vecOrigin, PM_NORMAL, -1, &tr );
+
+		Msg( "sc_test_revive: TraceLine up, old = (%.3f, %.3f, %.3f), new = (%.3f, %.3f, %.3f)\n", VectorExpand( vecOrigin ), VectorExpand( tr.endpos ) );
+
+		vecOrigin = tr.endpos;
+
+		// FixPlayerCrouchStuck
+		for ( int i = 0; i < 18; i++ )
+		{
+			Msg( "sc_test_revive: FixPlayerCrouchStuck, z = %.3f\n", vecOrigin.z );
+
+			g_pEventAPI->EV_SetTraceHull( PM_HULL_DUCKED_PLAYER ); // head_hull but it's just ducked hull of player
+			g_pEventAPI->EV_PlayerTrace( vecOrigin, vecOrigin, PM_NORMAL, -1, &tr );
+
+			if ( !tr.startsolid )
+				break;
+
+			vecOrigin.z += 1.f;
+		}
+
+		// FixPlayerStuck
+		int maxsX, hulltype;
+		float minX, maxX, minY, maxY, minZ, maxZ;
+		Vector vecHull, vecTestOrigin;
+
+		const int MAX_HULL_BOUND = 48;
+
+		const Vector vecDebugBoxMins( -0.5, -0.5, -0.5 );
+		const Vector vecDebugBoxMaxs( 0.5, 0.5, 0.5 );
+
+		if ( vecHullMaxs.x > 0.f )
+			maxsX = (int)vecHullMaxs.x;
+		else
+			maxsX = 8;
+
+		vecHull.x = 16.f;
+		vecHull.y = 16.f;
+
+		if ( flags & FL_DUCKING )
+		{
+			vecHull.z = 36.f;
+			hulltype = PM_HULL_DUCKED_PLAYER; // head_hull but it's just ducked hull of player
+		}
+		else
+		{
+			vecHull.z = 72.f;
+			hulltype = PM_HULL_PLAYER; // human_hull
+		}
+
+		if ( maxsX <= MAX_HULL_BOUND )
+		{
+			// Iterate from the largest hull, don't spend time and perfomance on small and medium ones
+			for ( int i = MAX_HULL_BOUND; i <= MAX_HULL_BOUND; i += maxsX )
+			//for ( int i = maxsX; i <= MAX_HULL_BOUND; i += maxsX )
+			{
+				Msg( "sc_test_revive: FixPlayerStuck, hull = %d\n", i );
+
+				float hull = (float)i;
+
+				minX = vecOrigin.x - hull;
+				maxX = vecOrigin.x + hull;
+
+				minY = vecOrigin.y - hull;
+				maxY = vecOrigin.y + hull;
+
+				minZ = vecOrigin.z - hull;
+				maxZ = vecOrigin.z + hull;
+
+				for ( float x = minX; x <= maxX; x += HULL_STEP )
+				{
+					for ( float y = minY; y <= maxY; y += HULL_STEP )
+					{
+						for ( float z = minZ; z <= maxZ; z += HULL_STEP )
+						{
+							vecTestOrigin.x = x;
+							vecTestOrigin.y = y;
+							vecTestOrigin.z = z;
+
+							g_pEventAPI->EV_SetTraceHull( hulltype );
+							g_pEventAPI->EV_PlayerTrace( vecTestOrigin, vecHull, PM_NORMAL, -1, &tr );
+
+							// Free space
+							if ( !tr.startsolid )
+							{
+								Render()->DrawBox( vecTestOrigin, vecDebugBoxMins, vecDebugBoxMaxs, { 0, 255, 0, 127 }, 1e6 );
+							}
+							else if ( !DRAW_VALID_SPOTS_ONLY )
+							{
+								Render()->DrawBox( vecTestOrigin, vecDebugBoxMins, vecDebugBoxMaxs, { 255, 0, 0, 127 }, 1e6 );
+							}
+						}
+					}
+				}
+			}
+		}
 	}
-}
 
-void IM_Split()
-{
-	if ( !im_file || im_record )
+	// Server-side playground
+/*
+	// FixPlayerStuck
+	int maxsX, hulltype;
+	float minX, maxX, minY, maxY, minZ, maxZ;
+	Vector vecHull, vecTestOrigin;
+
+	const int MAX_HULL_BOUND = 48;
+	const float HULL_STEP = 2.f;
+
+	if ( vecHullMaxs.x > 0.f )
+		maxsX = (int)vecHullMaxs.x;
+	else
+		maxsX = 8;
+
+	vecHull.x = 16.f;
+	vecHull.y = 16.f;
+
+	if ( flags & FL_DUCKING )
 	{
-		Msg( "Not playing back inputs\n" );
-		return;
-	}
+		vecHull.z = 36.f;
 
-	long size = ftell( im_file );
-	unsigned char *fileData = (unsigned char *)malloc( size );
-
-	if ( !fileData )
-	{
-		Sys_Error( "sc_im_split: Failed to allocate memory" );
-		return;
-	}
-
-	fseek( im_file, 0, SEEK_SET );
-	fread( fileData, 1, size, im_file );
-
-	fclose( im_file );
-
-	im_file = fopen( im_filename.c_str(), "wb" );
-	im_record = true;
-	im_saved_move = false;
-
-	if ( im_file )
-	{
-		im_version = *( (short *)( fileData + sizeof( short ) ) );
-
-		fwrite( fileData, 1, size, im_file );
-		Msg( "Split playing back inputs\n" );
+	#if REVTEST_CLIENT
+		hulltype = PM_HULL_DUCKED_PLAYER; // head_hull but it's just ducked hull of player
+	#else
+		hulltype = 3; // head_hull
+	#endif
 	}
 	else
 	{
-		im_file = NULL;
+		vecHull.z = 72.f;
 
-		Warning( "sc_im_split: failed to create file\n" );
+	#if REVTEST_CLIENT
+		hulltype = PM_HULL_PLAYER;
+	#else
+		hulltype = 1; // human_hull
+	#endif
 	}
-}
 
-void IM_Stop()
-{
-	if ( im_file )
+	if ( maxsX <= MAX_HULL_BOUND )
 	{
-		fclose( im_file );
-		Msg( im_record ? "Saved recorded inputs\n" : "Stopped playing back inputs\n" );
+		int c = 0;
+
+		for ( int i = MAX_HULL_BOUND; i <= MAX_HULL_BOUND; i += maxsX )
+		//for ( int i = maxsX; i <= MAX_HULL_BOUND; i += maxsX )
+		{
+			Msg( "sc_test_revive: FixPlayerStuck: hulldelta = %d\n", i );
+
+			float hull = (float)i;
+
+			//Color clr;
+
+			//switch ( c )
+			//{
+			//case 0:
+			//	clr.r = 255;
+			//	clr.g = 0;
+			//	clr.b = 0;
+			//	clr.a = 127;
+			//	break;
+
+			//case 1:
+			//	clr.r = 0;
+			//	clr.g = 255;
+			//	clr.b = 0;
+			//	clr.a = 127;
+			//	break;
+
+			//case 2:
+			//	clr.r = 0;
+			//	clr.g = 0;
+			//	clr.b = 255;
+			//	clr.a = 127;
+			//	break;
+			//}
+
+			//c++;
+
+			//for ( float x = vecOrigin.x - hull; x <= vecOrigin.x + hull; x += HULL_STEP )
+			//{
+			//	for ( float y = vecOrigin.y - hull; y <= vecOrigin.y + hull; y += HULL_STEP )
+			//	{
+			//		for ( float z = vecOrigin.z - hull; z <= vecOrigin.z + hull; z += HULL_STEP )
+			//		{
+			//			vecTestOrigin.x = x;
+			//			vecTestOrigin.y = y;
+			//			vecTestOrigin.z = z;
+
+			//		#if REVTEST_CLIENT
+			//			g_pEventAPI->EV_SetTraceHull( hulltype );
+			//			g_pEventAPI->EV_PlayerTrace( vecTestOrigin, vecHull, PM_NORMAL, -1, &tr );
+			//		#else
+			//			g_pServerEngineFuncs->pfnTraceHull( vecTestOrigin, vecHull, 0, hulltype, pPlayer, &tr );
+			//		#endif
+
+			//			// Free space
+			//		#if REVTEST_CLIENT
+			//			if ( !tr.startsolid )
+			//		#else
+			//			if ( !tr.fStartSolid )
+			//		#endif
+			//			{
+			//				//vecOrigin = vecTestOrigin;
+			//				//break;
+
+			//				Render()->DrawBox( vecTestOrigin, Vector( -0.5f, -0.5f, -0.5f ), Vector( 0.5f, 0.5f, 0.5f ), clr, 1e6 );
+			//			}
+			//			else
+			//			{
+			//				//Render()->DrawBox( vecTestOrigin, Vector( -0.5f, -0.5f, -0.5f ), Vector( 0.5f, 0.5f, 0.5f ), { 255, 0, 0, 127 }, 1e6 );
+			//			}
+			//		}
+			//	}
+			//}
+
+			for ( int j = 0; j < 64; j++ )
+			{
+				minX = vecOrigin.x - hull;
+				maxX = vecOrigin.x + hull;
+
+				minY = vecOrigin.y - hull;
+				maxY = vecOrigin.y + hull;
+
+				minZ = vecOrigin.z - hull;
+				maxZ = vecOrigin.z + hull;
+
+				vecTestOrigin.x = g_pServerEngineFuncs->pfnRandomFloat( minX, maxX );
+				vecTestOrigin.y = g_pServerEngineFuncs->pfnRandomFloat( minY, maxY );
+				vecTestOrigin.z = g_pServerEngineFuncs->pfnRandomFloat( minZ, maxZ );
+
+				g_pServerEngineFuncs->pfnTraceHull( vecTestOrigin, vecHull, 0, hulltype, pPlayer, &tr );
+
+				// Free space
+				if ( !tr.fStartSolid )
+				{
+					//vecOrigin = vecTestOrigin;
+					//break;
+
+					Render()->DrawBox( vecTestOrigin, Vector( -0.25f, -0.25f, -0.25f ), Vector( 0.25f, 0.25f, 0.25f ), { 0, 255, 0, 127 }, 1e6 );
+				}
+				else
+				{
+					Render()->DrawBox( vecTestOrigin, Vector( -0.25f, -0.25f, -0.25f ), Vector( 0.25f, 0.25f, 0.25f ), { 255, 0, 0, 127 }, 1e6 );
+				}
+			}
+		}
 	}
-	else
-	{
-		Msg( "Not in action\n" );
-	}
-
-	im_file = NULL;
-	im_record = false;
-}
-
-bool IM_IsPlayingBack()
-{
-	return im_file != NULL && !im_record;
-}
-
-bool IM_IsRecording()
-{
-	return im_file != NULL && im_record;
+*/
 }
 
 //-----------------------------------------------------------------------------
@@ -470,324 +722,16 @@ DECLARE_FUNC( qboolean, __cdecl, HOOKED_Host_FilterTime, float time )
 	return 0;
 }
 
-// Input Manager commands recorder
-DECLARE_FUNC( int, __cdecl, HOOKED_Cbuf_AddText, const char *pszCommand )
-{
-	if ( im_file && im_record && im_version >= 2 )
-	{
-		if ( *pszCommand != '\n' )
-		{
-			if ( !strncmp( "weapon_", pszCommand, strlen( "weapon_" ) ) ||
-				 !strncmp( "impulse ", pszCommand, strlen( "impulse " ) ) ||
-				 g_WhitelistCommands.Find( pszCommand ) != NULL )
-			{
-				im_commands += pszCommand;
-				im_commands += '\n';
-			}
-		}
-	}
-
-	return ORIG_Cbuf_AddText( pszCommand );
-}
-
-// Input Manager commands recorder
-DECLARE_FUNC( int, __cdecl, HOOKED_ServerCmd, const char *pszCommand )
-{
-	if ( im_file && im_record && im_version >= 2 )
-	{
-		if ( *pszCommand != '\n' )
-		{
-			if ( !strncmp( "weapon_", pszCommand, strlen( "weapon_" ) ) )
-			{
-				im_commands += pszCommand;
-				im_commands += '\n';
-			}
-		}
-	}
-
-	return ORIG_ServerCmd( pszCommand );
-}
-
-//-----------------------------------------------------------------------------
-// Draw box, no depth buffer
-//-----------------------------------------------------------------------------
-
-CDrawBoxNoDepthBuffer::CDrawBoxNoDepthBuffer( const Vector &vOrigin, const Vector &vMins, const Vector &vMaxs, const Color &color ) : m_color( color )
-{
-	if ( vOrigin.x == 0.f && vOrigin.y == 0.f && vOrigin.z == 0.f )
-	{
-		m_vecDrawOrigin = vMins + ( vMaxs - vMins ) * 0.5f;
-	}
-	else
-	{
-		m_vecDrawOrigin = vOrigin;
-	}
-
-	m_vecOrigin = vOrigin;
-	m_vecMins = vMins;
-	m_vecMaxs = vMaxs;
-}
-
-void CDrawBoxNoDepthBuffer::Draw()
-{
-	glEnable( GL_BLEND );
-	glDisable( GL_DEPTH_TEST );
-	glDisable( GL_ALPHA_TEST );
-	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-
-	glDisable( GL_TEXTURE_2D );
-
-	Vector vecPoints[ 8 ];
-
-	Vector vecMins = m_vecMins;
-	Vector vecMaxs = m_vecMaxs;
-
-	VectorAdd( vecMins, m_vecOrigin, vecMins );
-	VectorAdd( vecMaxs, m_vecOrigin, vecMaxs );
-
-	// Build points of box
-	vecPoints[ 0 ].x = vecMins.x;
-	vecPoints[ 0 ].y = vecMins.y;
-	vecPoints[ 0 ].z = vecMins.z;
-
-	vecPoints[ 1 ].x = vecMins.x;
-	vecPoints[ 1 ].y = vecMaxs.y;
-	vecPoints[ 1 ].z = vecMins.z;
-
-	vecPoints[ 2 ].x = vecMaxs.x;
-	vecPoints[ 2 ].y = vecMaxs.y;
-	vecPoints[ 2 ].z = vecMins.z;
-
-	vecPoints[ 3 ].x = vecMaxs.x;
-	vecPoints[ 3 ].y = vecMins.y;
-	vecPoints[ 3 ].z = vecMins.z;
-
-	vecPoints[ 4 ].x = vecMins.x;
-	vecPoints[ 4 ].y = vecMins.y;
-	vecPoints[ 4 ].z = vecMaxs.z;
-
-	vecPoints[ 5 ].x = vecMins.x;
-	vecPoints[ 5 ].y = vecMaxs.y;
-	vecPoints[ 5 ].z = vecMaxs.z;
-
-	vecPoints[ 6 ].x = vecMaxs.x;
-	vecPoints[ 6 ].y = vecMaxs.y;
-	vecPoints[ 6 ].z = vecMaxs.z;
-
-	vecPoints[ 7 ].x = vecMaxs.x;
-	vecPoints[ 7 ].y = vecMins.y;
-	vecPoints[ 7 ].z = vecMaxs.z;
-
-	glColor4ub( m_color.r, m_color.g, m_color.b, m_color.a );
-
-	for ( int i = 0; i < 4; i++ )
-	{
-		int j = ( i + 1 ) % 4;
-
-		glBegin( GL_TRIANGLE_STRIP );
-		glVertex3f( VectorExpand( vecPoints[ i ] ) );
-		glVertex3f( VectorExpand( vecPoints[ j ] ) );
-		glVertex3f( VectorExpand( vecPoints[ i + 4 ] ) );
-		glVertex3f( VectorExpand( vecPoints[ j + 4 ] ) );
-		glEnd();
-	}
-
-	// Bottom
-	glBegin( GL_TRIANGLE_STRIP );
-	glVertex3f( VectorExpand( vecPoints[ 2 ] ) );
-	glVertex3f( VectorExpand( vecPoints[ 1 ] ) );
-	glVertex3f( VectorExpand( vecPoints[ 3 ] ) );
-	glVertex3f( VectorExpand( vecPoints[ 0 ] ) );
-	glEnd();
-
-	// Top
-	glBegin( GL_TRIANGLE_STRIP );
-	glVertex3f( VectorExpand( vecPoints[ 4 ] ) );
-	glVertex3f( VectorExpand( vecPoints[ 5 ] ) );
-	glVertex3f( VectorExpand( vecPoints[ 7 ] ) );
-	glVertex3f( VectorExpand( vecPoints[ 6 ] ) );
-	glEnd();
-
-	glEnable( GL_TEXTURE_2D );
-
-	glDisable( GL_BLEND );
-	glDisable( GL_ALPHA_TEST );
-	glEnable( GL_DEPTH_TEST );
-}
-
-//-----------------------------------------------------------------------------
-// Draw box, no depth buffer
-//-----------------------------------------------------------------------------
-
-CWireframeBox::CWireframeBox( const Vector &vOrigin, const Vector &vMins, const Vector &vMaxs, const Color &color, float width, bool bIgnoreDepthBuffer ) : m_color( color )
-{
-	if ( vOrigin.x == 0.f && vOrigin.y == 0.f && vOrigin.z == 0.f )
-	{
-		m_vecDrawOrigin = vMins + ( vMaxs - vMins ) * 0.5f;
-	}
-	else
-	{
-		m_vecDrawOrigin = vOrigin;
-	}
-
-	m_vecOrigin = vOrigin;
-	m_vecMins = vMins;
-	m_vecMaxs = vMaxs;
-
-	m_flWidth = width;
-	m_bIgnoreDepthBuffer = bIgnoreDepthBuffer;
-}
-
-void CWireframeBox::Draw()
-{
-	glEnable( GL_BLEND );
-
-	if ( m_bIgnoreDepthBuffer )
-		glDisable( GL_DEPTH_TEST );
-
-	glDisable( GL_ALPHA_TEST );
-	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-
-	glDisable( GL_TEXTURE_2D );
-
-	Vector vecPoints[ 8 ];
-
-	Vector vecMins = m_vecMins;
-	Vector vecMaxs = m_vecMaxs;
-
-	VectorAdd( vecMins, m_vecOrigin, vecMins );
-	VectorAdd( vecMaxs, m_vecOrigin, vecMaxs );
-
-	// Build points of box
-	vecPoints[ 0 ].x = vecMins.x;
-	vecPoints[ 0 ].y = vecMins.y;
-	vecPoints[ 0 ].z = vecMins.z;
-
-	vecPoints[ 1 ].x = vecMins.x;
-	vecPoints[ 1 ].y = vecMaxs.y;
-	vecPoints[ 1 ].z = vecMins.z;
-
-	vecPoints[ 2 ].x = vecMaxs.x;
-	vecPoints[ 2 ].y = vecMaxs.y;
-	vecPoints[ 2 ].z = vecMins.z;
-
-	vecPoints[ 3 ].x = vecMaxs.x;
-	vecPoints[ 3 ].y = vecMins.y;
-	vecPoints[ 3 ].z = vecMins.z;
-
-	vecPoints[ 4 ].x = vecMins.x;
-	vecPoints[ 4 ].y = vecMins.y;
-	vecPoints[ 4 ].z = vecMaxs.z;
-
-	vecPoints[ 5 ].x = vecMins.x;
-	vecPoints[ 5 ].y = vecMaxs.y;
-	vecPoints[ 5 ].z = vecMaxs.z;
-
-	vecPoints[ 6 ].x = vecMaxs.x;
-	vecPoints[ 6 ].y = vecMaxs.y;
-	vecPoints[ 6 ].z = vecMaxs.z;
-
-	vecPoints[ 7 ].x = vecMaxs.x;
-	vecPoints[ 7 ].y = vecMins.y;
-	vecPoints[ 7 ].z = vecMaxs.z;
-
-	glColor4ub( m_color.r, m_color.g, m_color.b, m_color.a );
-	glLineWidth( m_flWidth );
-
-	for ( int i = 0; i < 4; i++ )
-	{
-		int j = ( i + 1 ) % 4;
-
-		glBegin( GL_LINES );
-			glVertex3f( VectorExpand( vecPoints[ i ] ) );
-			glVertex3f( VectorExpand( vecPoints[ i + 4 ] ) );
-
-			glVertex3f( VectorExpand( vecPoints[ i + 4 ] ) );
-			glVertex3f( VectorExpand( vecPoints[ j + 4 ] ) );
-
-			glVertex3f( VectorExpand( vecPoints[ j + 4 ] ) );
-			glVertex3f( VectorExpand( vecPoints[ i ] ) );
-
-			glVertex3f( VectorExpand( vecPoints[ i ] ) );
-			glVertex3f( VectorExpand( vecPoints[ j ] ) );
-		glEnd();
-	}
-	
-	// Bottom & Top
-	glBegin( GL_LINES );
-		glVertex3f( VectorExpand( vecPoints[ 0 ] ) );
-		glVertex3f( VectorExpand( vecPoints[ 2 ] ) );
-
-		glVertex3f( VectorExpand( vecPoints[ 4 ] ) );
-		glVertex3f( VectorExpand( vecPoints[ 6 ] ) );
-	glEnd();
-
-	/*
-	// Turn on wireframe mode
-	glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-
-	for ( int i = 0; i < 4; i++ )
-	{
-		int j = ( i + 1 ) % 4;
-
-		glBegin( GL_TRIANGLE_STRIP );
-			glVertex3f( VectorExpand( vecPoints[ i ] ) );
-			glVertex3f( VectorExpand( vecPoints[ j ] ) );
-			glVertex3f( VectorExpand( vecPoints[ i + 4 ] ) );
-			glVertex3f( VectorExpand( vecPoints[ j + 4 ] ) );
-		glEnd();
-	}
-
-	// Bottom
-	glBegin( GL_TRIANGLE_STRIP );
-		glVertex3f( VectorExpand( vecPoints[ 2 ] ) );
-		glVertex3f( VectorExpand( vecPoints[ 1 ] ) );
-		glVertex3f( VectorExpand( vecPoints[ 3 ] ) );
-		glVertex3f( VectorExpand( vecPoints[ 0 ] ) );
-	glEnd();
-
-	// Top
-	glBegin( GL_TRIANGLE_STRIP );
-		glVertex3f( VectorExpand( vecPoints[ 4 ] ) );
-		glVertex3f( VectorExpand( vecPoints[ 5 ] ) );
-		glVertex3f( VectorExpand( vecPoints[ 7 ] ) );
-		glVertex3f( VectorExpand( vecPoints[ 6 ] ) );
-	glEnd();
-
-	// Turn off wireframe mode
-	glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-	*/
-
-	glLineWidth( 1.f );
-
-	glEnable( GL_TEXTURE_2D );
-
-	glDisable( GL_BLEND );
-	glDisable( GL_ALPHA_TEST );
-
-	if ( m_bIgnoreDepthBuffer )
-		glEnable( GL_DEPTH_TEST );
-}
-
 //-----------------------------------------------------------------------------
 // Callbacks
 //-----------------------------------------------------------------------------
 
-void CSpeedrunTools::OnBeginLoading()
+void CSpeedrunTools::OnBeginLoading( void )
 {
 	is_hl_c17 = false;
 
 	iNihilanthIndex = 0;
 	pNihilanthVars = NULL;
-
-	if ( im_file )
-	{
-		fclose( im_file );
-		Msg( im_record ? "Saved recorded inputs\n" : "Stopped playing back inputs\n" );
-	}
-
-	im_file = NULL;
-	im_record = false;
 
 	StopTimer();
 }
@@ -840,13 +784,6 @@ void CSpeedrunTools::OnFirstClientdataReceived( client_data_t *pcldata, float fl
 				//	return;
 				//}
 
-				auto IsAABBIntersectingAABB = []( const Vector &vecBoxMins1, const Vector &vecBoxMaxs1, const Vector &vecBoxMins2, const Vector &vecBoxMaxs2 ) -> bool
-				{
-					return ( vecBoxMins1.x <= vecBoxMaxs2.x && vecBoxMaxs1.x >= vecBoxMins2.x ) &&
-						( vecBoxMins1.y <= vecBoxMaxs2.y && vecBoxMaxs1.y >= vecBoxMins2.y ) &&
-						( vecBoxMins1.z <= vecBoxMaxs2.z && vecBoxMaxs1.z >= vecBoxMins2.z );
-				};
-
 				Vector vecSpawnPoint;
 				Vector vecSpawnMins, vecSpawnMaxs;
 				Vector vecMins, vecMaxs;
@@ -863,7 +800,7 @@ void CSpeedrunTools::OnFirstClientdataReceived( client_data_t *pcldata, float fl
 				vecMins.z = vecMaxs.z = 0.f;
 				vecSpawnMins.z = vecSpawnMaxs.z = 0.f;
 
-				if ( !IsAABBIntersectingAABB( vecSpawnMins, vecSpawnMaxs, vecMins, vecMaxs ) )
+				if ( !UTIL_IsAABBIntersectingAABB( vecSpawnMins, vecSpawnMaxs, vecMins, vecMaxs ) )
 				{
 					g_pEngineFuncs->ClientCmd( "restart\nwait" );
 					return;
@@ -893,54 +830,6 @@ void CSpeedrunTools::OnFirstClientdataReceived( client_data_t *pcldata, float fl
 		}
 	}
 
-	if ( sc_im_autorecord.GetBool() || sc_im_autoplay.GetBool() )
-	{
-		if ( !im_file )
-		{
-			char mapname_buffer[ MAX_PATH ];
-
-			char *pszMapName = mapname_buffer;
-			char *pszExt = NULL;
-
-			strncpy( mapname_buffer, g_pEngineFuncs->GetLevelName(), MAX_PATH );
-			mapname_buffer[ MAX_PATH - 1 ] = 0;
-
-			// maps/<mapname>.bsp to <mapname>
-			while ( *pszMapName )
-			{
-				if ( *pszMapName == '/' )
-				{
-					pszMapName++;
-					break;
-				}
-
-				pszMapName++;
-			}
-
-			pszExt = pszMapName;
-
-			while ( *pszExt )
-			{
-				if ( *pszExt == '.' )
-				{
-					*pszExt = 0;
-					break;
-				}
-
-				pszExt++;
-			}
-
-			if ( sc_im_autoplay.GetBool() )
-			{
-				IM_Play( pszMapName );
-			}
-			else
-			{
-				IM_Record( pszMapName );
-			}
-		}
-	}
-
 	StartTimer();
 }
 
@@ -948,7 +837,7 @@ void CSpeedrunTools::OnFirstClientdataReceived( client_data_t *pcldata, float fl
 // GameFrame
 //-----------------------------------------------------------------------------
 
-void CSpeedrunTools::GameFrame()
+void CSpeedrunTools::GameFrame( void )
 {
 	CheckPlayerHulls_Server();
 
@@ -976,16 +865,6 @@ void CSpeedrunTools::GameFrame()
 			pNihilanthVars = NULL;
 		}
 	}
-
-	if ( im_file && im_record && im_saved_move && im_version >= 2 )
-	{
-		size_t length = im_commands.length();
-
-		fwrite( &length, sizeof( size_t ), 1, im_file );
-		fwrite( im_commands.c_str(), length, 1, im_file );
-	}
-
-	im_commands.clear();
 }
 
 //-----------------------------------------------------------------------------
@@ -994,13 +873,13 @@ void CSpeedrunTools::GameFrame()
 
 void CSpeedrunTools::CreateMove( float frametime, struct usercmd_s *cmd, int active )
 {
-	Vector va;
-
-	if ( ( s_bSetAngles || s_bFollowPoint ) && ( im_file == NULL || im_record ) )
+	if ( ( s_bSetAngles || s_bSetAngles2 || s_bFollowPoint ) && ( !g_InputManager.IsInAction() || g_InputManager.IsRecording() ) )
 	{
+		Vector va;
+
 		auto ChangeAngleBySpeed = []( float &flAngle, float flTargetAngle, float flChangeSpeed ) -> bool
 		{
-			float normalizedDiff = Strafe::NormalizeDeg( static_cast<double>( flTargetAngle ) - flAngle );
+			float normalizedDiff = Strafe::NormalizeDeg( static_cast<double>( flTargetAngle - flAngle ) );
 
 			if ( std::abs( normalizedDiff ) > flChangeSpeed )
 			{
@@ -1011,7 +890,7 @@ void CSpeedrunTools::CreateMove( float frametime, struct usercmd_s *cmd, int act
 			flAngle = flTargetAngle;
 			return false;
 		};
-
+		
 		if ( s_bFollowPoint )
 		{
 			Vector vecAngles, vecDir;
@@ -1024,8 +903,10 @@ void CSpeedrunTools::CreateMove( float frametime, struct usercmd_s *cmd, int act
 			vecAngles.y = atan2f( vecDir.y, vecDir.x ) * (float)( 180.0 / M_PI );
 			vecAngles.z = 0.f;
 
-			float flNormalizedPitch = Strafe::NormalizeDeg( s_vecFollowPoint[ PITCH ] - va[ PITCH ] );
-			float flNormalizedYaw = Strafe::NormalizeDeg( s_vecFollowPoint[ YAW ] - va[ YAW ] );
+			NormalizeAngles( vecAngles );
+
+			float flNormalizedPitch = Strafe::NormalizeDeg( vecAngles[ PITCH ] - va[ PITCH ] );
+			float flNormalizedYaw = Strafe::NormalizeDeg( vecAngles[ YAW ] - va[ YAW ] );
 
 			float flSetPitchSpeed = std::abs( flNormalizedPitch ) * s_flFollowPointLerp;
 			float flSetYawSpeed = std::abs( flNormalizedYaw ) * s_flFollowPointLerp;
@@ -1033,12 +914,19 @@ void CSpeedrunTools::CreateMove( float frametime, struct usercmd_s *cmd, int act
 			bool bPitchChanged = ChangeAngleBySpeed( va[ PITCH ], vecAngles[ PITCH ], flSetPitchSpeed );
 			bool bYawChanged = ChangeAngleBySpeed( va[ YAW ], vecAngles[ YAW ], flSetYawSpeed );
 
+			NormalizeAngles( va );
+
 			if ( bPitchChanged || bYawChanged )
+			{
 				g_pEngineFuncs->SetViewAngles( va );
+				VectorCopy( va, cmd->viewangles );
+			}
 		}
 		else if ( s_bSetAngles )
 		{
 			g_pEngineFuncs->GetViewAngles( va );
+
+			va.y = NormalizeAngle( va.y );
 
 			bool bPitchChanged = ChangeAngleBySpeed( va[ PITCH ], s_vecSetAngles[ PITCH ], s_vecSetAnglesSpeed[ PITCH ] );
 			bool bYawChanged = ChangeAngleBySpeed( va[ YAW ], s_vecSetAngles[ YAW ], s_vecSetAnglesSpeed[ YAW ] );
@@ -1049,91 +937,42 @@ void CSpeedrunTools::CreateMove( float frametime, struct usercmd_s *cmd, int act
 			//if ( bYawChanged )
 			//	cmd->viewangles[YAW] = va[YAW];
 
-			if ( !bPitchChanged && !bYawChanged )
-				s_bSetAngles = false;
-			else
-				g_pEngineFuncs->SetViewAngles( va );
-		}
-	}
+			NormalizeAngles( va );
 
-	if ( im_file != NULL )
-	{
-		if ( im_record )
+			if ( !bPitchChanged && !bYawChanged )
+			{
+				s_bSetAngles = false;
+			}
+			else
+			{
+				g_pEngineFuncs->SetViewAngles( va );
+				VectorCopy( va, cmd->viewangles );
+			}
+		}
+		else if ( s_bSetAngles2 )
 		{
 			g_pEngineFuncs->GetViewAngles( va );
 
-			frame_buffer.realviewangles[ 0 ] = va[ 0 ];
-			frame_buffer.realviewangles[ 1 ] = va[ 1 ];
-			frame_buffer.realviewangles[ 2 ] = va[ 2 ];
+			float flNormalizedPitch = Strafe::NormalizeDeg( s_vecSetAngles2[ PITCH ] - va[ PITCH ] );
+			float flNormalizedYaw = Strafe::NormalizeDeg( s_vecSetAngles2[ YAW ] - va[ YAW ] );
 
-			frame_buffer.viewangles[ 0 ] = cmd->viewangles[ 0 ];
-			frame_buffer.viewangles[ 1 ] = cmd->viewangles[ 1 ];
-			frame_buffer.viewangles[ 2 ] = cmd->viewangles[ 2 ];
+			float flSetPitchSpeed = std::abs( flNormalizedPitch ) * s_flSetAngles2Lerp;
+			float flSetYawSpeed = std::abs( flNormalizedYaw ) * s_flSetAngles2Lerp;
 
-			frame_buffer.forwardmove = cmd->forwardmove;
-			frame_buffer.sidemove = cmd->sidemove;
+			bool bPitchChanged = ChangeAngleBySpeed( va[ PITCH ], s_vecSetAngles2[ PITCH ], flSetPitchSpeed );
+			bool bYawChanged = ChangeAngleBySpeed( va[ YAW ], s_vecSetAngles2[ YAW ], flSetYawSpeed );
 
-			frame_buffer.buttons = cmd->buttons;
-			frame_buffer.impulse = cmd->impulse;
-			frame_buffer.weaponselect = cmd->weaponselect;
+			NormalizeAngles( va );
 
-			fwrite( &frame_buffer, IM_FRAME_SIZE, 1, im_file );
-
-			im_saved_move = true;
-		}
-		else
-		{
-			size_t command_buffer_length;
-			size_t bytes = fread( &frame_buffer, 1, IM_FRAME_SIZE, im_file );
-
-			if ( bytes != IM_FRAME_SIZE )
+			if ( !bPitchChanged && !bYawChanged )
 			{
-				fclose( im_file );
-
-				im_file = NULL;
-				im_record = false;
-
-				Msg( "Finished playing back inputs\n" );
-
-				return;
+				s_bSetAngles = false;
 			}
-
-			if ( im_version >= 2 )
+			else
 			{
-				fread( &command_buffer_length, 1, sizeof( size_t ), im_file );
-
-				if ( command_buffer_length > 0 )
-				{
-					char *command_buffer = (char *)malloc( command_buffer_length + 1 );
-
-					Assert( command_buffer != NULL );
-
-					if ( command_buffer != NULL )
-					{
-						fread( command_buffer, 1, command_buffer_length, im_file );
-						command_buffer[ command_buffer_length ] = '\0';
-
-						g_pEngineFuncs->ClientCmd( command_buffer );
-					}
-				}
+				g_pEngineFuncs->SetViewAngles( va );
+				VectorCopy( va, cmd->viewangles );
 			}
-
-			va[ 0 ] = frame_buffer.realviewangles[ 0 ];
-			va[ 1 ] = frame_buffer.realviewangles[ 1 ];
-			va[ 2 ] = frame_buffer.realviewangles[ 2 ];
-
-			cmd->viewangles[ 0 ] = frame_buffer.viewangles[ 0 ];
-			cmd->viewangles[ 1 ] = frame_buffer.viewangles[ 1 ];
-			cmd->viewangles[ 2 ] = frame_buffer.viewangles[ 2 ];
-
-			cmd->forwardmove = frame_buffer.forwardmove;
-			cmd->sidemove = frame_buffer.sidemove;
-
-			cmd->buttons = frame_buffer.buttons;
-			cmd->impulse = frame_buffer.impulse;
-			cmd->weaponselect = frame_buffer.weaponselect;
-
-			g_pEngineFuncs->SetViewAngles( va );
 		}
 	}
 }
@@ -1142,20 +981,14 @@ void CSpeedrunTools::CreateMove( float frametime, struct usercmd_s *cmd, int act
 // VidInit
 //-----------------------------------------------------------------------------
 
-void CSpeedrunTools::OnVideoInit()
+void CSpeedrunTools::OnVideoInit( void )
 {
 	for ( int i = 0; i < MAXCLIENTS + 1; i++ )
 	{
 		m_vPlayersHulls[ i ].time = -1.f;
 	}
 
-	if ( im_file )
-	{
-		fclose( im_file );
-	}
-
-	im_file = NULL;
-	im_record = false;
+	m_bLegitMode = false;
 
 	m_flTimerTime = 0.f;
 	m_flLastTimerUpdate = -1.f;
@@ -1163,123 +996,19 @@ void CSpeedrunTools::OnVideoInit()
 	m_flDisplayHullsNextSend = -1.f;
 
 	m_bShowReviveInfo = false;
+	m_bShowReviveBoostInfo = false;
 }
 
 //-----------------------------------------------------------------------------
 // CalcRefDef
 //-----------------------------------------------------------------------------
 
-void CSpeedrunTools::V_CalcRefDef()
+void CSpeedrunTools::V_CalcRefDef( void )
 {
 	DrawReviveInfo();
-
-	if ( g_Config.cvars.st_player_hulls )
-	{
-		cl_entity_t *pLocal = g_pEngineFuncs->GetLocalPlayer();
-		int iLocalPlayer = g_pPlayerMove->player_index + 1;
-
-		for ( int i = 0; i < MAXENTS; i++ )
-		{
-			//Vector vecScreen;
-
-			model_t *pModel = NULL;
-			cl_entity_t *pEntity = g_pEngineFuncs->GetEntityByIndex( i );
-
-			if ( pEntity == NULL || pEntity->curstate.renderfx != (int)kRenderFxDeadPlayer && !pEntity->player )
-				continue;
-
-			if ( pEntity->curstate.messagenum < pLocal->curstate.messagenum || ( !g_Config.cvars.st_player_hulls_show_local_player && iLocalPlayer == i ) )
-				continue;
-
-			if ( pEntity->curstate.renderfx == (int)kRenderFxDeadPlayer )
-			{
-				if ( g_Config.cvars.st_player_hulls_dead_color[ 3 ] == 0.f )
-					continue;
-
-				DrawBox( pEntity->origin,
-						 pEntity->curstate.mins,
-						 pEntity->curstate.maxs,
-						 g_Config.cvars.st_player_hulls_dead_color[ 0 ],
-						 g_Config.cvars.st_player_hulls_dead_color[ 1 ],
-						 g_Config.cvars.st_player_hulls_dead_color[ 2 ],
-						 g_Config.cvars.st_player_hulls_dead_color[ 3 ],
-						 g_Config.cvars.st_player_hulls_wireframe_width,
-						 g_Config.cvars.st_player_hulls_show_wireframe );
-			}
-			else
-			{
-				if ( g_Config.cvars.st_player_hulls_color[ 3 ] == 0.f )
-					continue;
-
-				DrawBox( iLocalPlayer == i ? g_pPlayerMove->origin : pEntity->origin,
-						 pEntity->curstate.mins,
-						 pEntity->curstate.maxs,
-						 g_Config.cvars.st_player_hulls_color[ 0 ],
-						 g_Config.cvars.st_player_hulls_color[ 1 ],
-						 g_Config.cvars.st_player_hulls_color[ 2 ],
-						 g_Config.cvars.st_player_hulls_color[ 3 ],
-						 g_Config.cvars.st_player_hulls_wireframe_width,
-						 g_Config.cvars.st_player_hulls_show_wireframe );
-			}
-
-			//if ( !strstr(pModel->name, "models/player/") )
-			//{
-			//	bool bVisible = UTIL_WorldToScreen(pEntity->curstate.origin + pEntity->curstate.mins +
-			//									   ((pEntity->curstate.origin + pEntity->curstate.maxs) - (pEntity->curstate.origin + pEntity->curstate.mins)) * 0.5f, vecScreen);
-
-			//	if ( bVisible )
-			//	{
-			//		g_Drawing.DrawStringF( g_hFontESP, vecScreen.x, vecScreen.y, 255, 255, 255, 255, FONT_ALIGN_CENTER, "idx: %d", i );
-			//	}
-			//}
-		}
-	}
-	else if ( g_Config.cvars.st_server_player_hulls )
-	{
-		int iLocalPlayer = g_pPlayerMove->player_index + 1;
-
-		for ( int i = 1; i <= g_pEngineFuncs->GetMaxClients(); i++ )
-		{
-			playerhull_display_info_t &display_info = m_vPlayersHulls[ i ];
-
-			if ( display_info.time >= *dbRealtime )
-			{
-				if ( !g_Config.cvars.st_player_hulls_show_local_player && iLocalPlayer == i )
-					continue;
-
-				if ( display_info.dead )
-				{
-					if ( g_Config.cvars.st_player_hulls_dead_color[ 3 ] == 0.f )
-						continue;
-
-					DrawBox( display_info.origin,
-							 display_info.mins,
-							 display_info.maxs,
-							 g_Config.cvars.st_player_hulls_dead_color[ 0 ],
-							 g_Config.cvars.st_player_hulls_dead_color[ 1 ],
-							 g_Config.cvars.st_player_hulls_dead_color[ 2 ],
-							 g_Config.cvars.st_player_hulls_dead_color[ 3 ],
-							 g_Config.cvars.st_player_hulls_wireframe_width,
-							 g_Config.cvars.st_player_hulls_show_wireframe );
-				}
-				else
-				{
-					if ( g_Config.cvars.st_player_hulls_color[ 3 ] == 0.f )
-						continue;
-
-					DrawBox( display_info.origin,
-							 display_info.mins,
-							 display_info.maxs,
-							 g_Config.cvars.st_player_hulls_color[ 0 ],
-							 g_Config.cvars.st_player_hulls_color[ 1 ],
-							 g_Config.cvars.st_player_hulls_color[ 2 ],
-							 g_Config.cvars.st_player_hulls_color[ 3 ],
-							 g_Config.cvars.st_player_hulls_wireframe_width,
-							 g_Config.cvars.st_player_hulls_show_wireframe );
-				}
-			}
-		}
-	}
+	DrawPlayerHulls();
+	DrawReviveBoostInfo();
+	DrawReviveUnstuckArea();
 }
 
 //-----------------------------------------------------------------------------
@@ -1311,10 +1040,10 @@ void CSpeedrunTools::OnHUDRedraw( float time )
 }
 
 //-----------------------------------------------------------------------------
-// Draw
+// 2D Draw
 //-----------------------------------------------------------------------------
 
-void CSpeedrunTools::Draw()
+void CSpeedrunTools::Draw( void )
 {
 	m_engineFont = VGUI2_GetEngineFont();
 
@@ -1329,6 +1058,7 @@ void CSpeedrunTools::Draw()
 	ShowSelfgaussInfo( r, g, b );
 	ShowEntityInfo( r, g, b );
 	ShowReviveInfo( r, g, b );
+	ShowReviveBoostInfo( r, g, b );
 
 	DrawPlayersHullsNickname_Server();
 }
@@ -1337,7 +1067,7 @@ void CSpeedrunTools::Draw()
 // Current segment time
 //-----------------------------------------------------------------------------
 
-float CSpeedrunTools::SegmentCurrentTime()
+float CSpeedrunTools::SegmentCurrentTime( void )
 {
 	if ( Host_IsServerActive() && m_bSegmentStarted )
 	{
@@ -1345,6 +1075,20 @@ float CSpeedrunTools::SegmentCurrentTime()
 	}
 
 	return 0.f;
+}
+
+//-----------------------------------------------------------------------------
+// Legit mode
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::SetLegitMode( bool state )
+{
+	m_bLegitMode = state;
+}
+
+bool CSpeedrunTools::IsLegitMode( void ) const
+{
+	return m_bLegitMode;
 }
 
 //-----------------------------------------------------------------------------
@@ -1416,7 +1160,7 @@ void CSpeedrunTools::ShowTimer( float flTime, bool bServer )
 // Start timer
 //-----------------------------------------------------------------------------
 
-void CSpeedrunTools::StartTimer()
+void CSpeedrunTools::StartTimer( void )
 {
 	if ( Host_IsServerActive() && !g_bPlayingbackDemo )
 	{
@@ -1441,7 +1185,7 @@ void CSpeedrunTools::StartTimer()
 // Stop timer
 //-----------------------------------------------------------------------------
 
-void CSpeedrunTools::StopTimer()
+void CSpeedrunTools::StopTimer( void )
 {
 	if ( g_Config.cvars.st_timer && Host_IsServerActive() && !g_bPlayingbackDemo )
 	{
@@ -1480,57 +1224,37 @@ void CSpeedrunTools::StopTimer()
 // Check existing players to display
 //-----------------------------------------------------------------------------
 
-void CSpeedrunTools::CheckPlayerHulls_Server()
+void CSpeedrunTools::CheckPlayerHulls_Server( void )
 {
 	float flTime = *dbRealtime;
 
 	if ( g_Config.cvars.st_server_player_hulls )
 	{
-		class CBaseEntity;
-
-		class CBaseDeadPlayer
-		{
-		public:
-			void *vptr;
-			entvars_t *pev;
-
-		#ifdef _WIN32
-			char unknown[ 340 ];
-		#else
-			char unknown[ 356 ]; // 0x10 bytes
-		#endif
-
-			edict_t *m_pPlayer;
-			int m_iPlayerSerialNumber; // should be...
-		};
-
-		constexpr size_t CBasePlayer__IsAlive_index = 47;
-		constexpr size_t CBasePlayer__IsConnected_index = 218;
-
-		using CBasePlayer__IsAliveFn = bool( __thiscall * )( CBaseEntity * );
-		using CBasePlayer__IsConnectedFn = bool( __thiscall * )( CBaseEntity * );
-
-		static CBasePlayer__IsAliveFn CBasePlayer__IsAlive = NULL;
-		static CBasePlayer__IsConnectedFn CBasePlayer__IsConnected = NULL;
+		static Signatures::BasePlayer::IsAlive CBasePlayer__IsAlive = NULL;
+		static Signatures::BasePlayer::IsConnected CBasePlayer__IsConnected = NULL;
 
 		edict_t *pEntity = NULL;
+		edict_t *pPlayerEdict = NULL;
+
+		CBasePlayer *pPlayer = NULL;
+		CBaseDeadPlayer *pDeadPlayer = NULL;
 
 		while ( !FNullEnt( pEntity = g_pServerEngineFuncs->pfnFindEntityByString( pEntity, "classname", "deadplayer" ) ) )
 		{
 			if ( pEntity->v.effects & EF_NODRAW )
 				continue;
 
-			CBaseDeadPlayer *pDeadPlayer = reinterpret_cast<CBaseDeadPlayer *>( pEntity->pvPrivateData );
+			pDeadPlayer = reinterpret_cast<CBaseDeadPlayer *>( pEntity->pvPrivateData );
 
 			if ( pDeadPlayer == NULL )
 				continue;
 
-			edict_t *pPlayer = pDeadPlayer->m_pPlayer;
+			pPlayerEdict = pDeadPlayer->m_pPlayer;
 
-			if ( pPlayer == NULL || pPlayer->serialnumber != pDeadPlayer->m_iPlayerSerialNumber || pPlayer->free || pPlayer->pvPrivateData == NULL )
+			if ( pPlayerEdict == NULL || pPlayerEdict->serialnumber != pDeadPlayer->m_iPlayerSerialNumber || pPlayerEdict->free || pPlayerEdict->pvPrivateData == NULL )
 				continue;
 
-			int client = g_pServerEngineFuncs->pfnIndexOfEdict( pPlayer );
+			int client = g_pServerEngineFuncs->pfnIndexOfEdict( pPlayerEdict );
 
 			if ( m_flDisplayHullsNextSend <= flTime )
 				BroadcastPlayerHull_Server( client, 1, pEntity->v.origin, int( pEntity->v.mins.z ) == -18 );
@@ -1541,20 +1265,17 @@ void CSpeedrunTools::CheckPlayerHulls_Server()
 		// Now check players themselves
 		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 		{
-			edict_t *pEntity = g_pServerEngineFuncs->pfnPEntityOfEntIndex( i );
+			pEntity = g_pServerEngineFuncs->pfnPEntityOfEntIndex( i );
 
 			if ( !IsValidEntity( pEntity ) )
 				continue;
 
-			CBaseEntity *pPlayer = reinterpret_cast<CBaseEntity *>( pEntity->pvPrivateData );
-
-			if ( pPlayer == NULL )
-				continue;
+			pPlayer = reinterpret_cast<CBasePlayer *>( pEntity->pvPrivateData );
 
 			if ( CBasePlayer__IsAlive == NULL )
 			{
-				CBasePlayer__IsAlive = (CBasePlayer__IsAliveFn)MemoryUtils()->GetVirtualFunction( pPlayer, CBasePlayer__IsAlive_index );
-				CBasePlayer__IsConnected = (CBasePlayer__IsConnectedFn)MemoryUtils()->GetVirtualFunction( pPlayer, CBasePlayer__IsConnected_index );
+				CBasePlayer__IsAlive = (Signatures::BasePlayer::IsAlive)MemoryUtils()->GetVirtualFunction( pPlayer, Offsets::BasePlayer::IsAlive );
+				CBasePlayer__IsConnected = (Signatures::BasePlayer::IsConnected)MemoryUtils()->GetVirtualFunction( pPlayer, Offsets::BasePlayer::IsConnected );
 
 				AssertFatalMsg( CBasePlayer__IsAlive && CBasePlayer__IsConnected, "CBasePlayer::IsAlive && CBasePlayer::IsConnected" );
 			}
@@ -1577,7 +1298,7 @@ void CSpeedrunTools::CheckPlayerHulls_Server()
 // Draws nicknames of players to display
 //-----------------------------------------------------------------------------
 
-void CSpeedrunTools::DrawPlayersHullsNickname_Server()
+void CSpeedrunTools::DrawPlayersHullsNickname_Server( void )
 {
 	if ( !g_Config.cvars.st_server_player_hulls || g_Config.cvars.st_player_hulls )
 		return;
@@ -1658,26 +1379,233 @@ void CSpeedrunTools::DrawPlayerHull_Comm( int client, int dead, const Vector &ve
 }
 
 //-----------------------------------------------------------------------------
-// Draw box
+// Draw player hulls
 //-----------------------------------------------------------------------------
 
-void CSpeedrunTools::DrawBox(const Vector &vecOrigin, const Vector &vecMins, const Vector &vecMaxs, float r, float g, float b, float alpha, float width, bool wireframe)
+void CSpeedrunTools::DrawPlayerHulls( void )
 {
-	if ( wireframe )
+	if ( g_Config.cvars.st_server_player_hulls )
 	{
-		CWireframeBox *pWireframeBox = new CWireframeBox( vecOrigin, vecMins, vecMaxs, Color( r, g, b, alpha ), width, false );
+		int iLocalPlayer = g_pPlayerMove->player_index + 1;
 
-		Render()->AddDrawContext( pWireframeBox );
+		for ( int i = 1; i <= g_pEngineFuncs->GetMaxClients(); i++ )
+		{
+			playerhull_display_info_t &display_info = m_vPlayersHulls[ i ];
+
+			if ( display_info.time >= *dbRealtime )
+			{
+				if ( iLocalPlayer == i && !g_Config.cvars.st_player_hulls_show_local_player )
+					continue;
+
+				if ( display_info.dead )
+				{
+					if ( g_Config.cvars.st_player_hulls_dead_color[ 3 ] == 0.f )
+						continue;
+
+					DrawBox( display_info.origin,
+							 display_info.mins,
+							 display_info.maxs,
+							 g_Config.cvars.st_player_hulls_dead_color[ 0 ],
+							 g_Config.cvars.st_player_hulls_dead_color[ 1 ],
+							 g_Config.cvars.st_player_hulls_dead_color[ 2 ],
+							 g_Config.cvars.st_player_hulls_dead_color[ 3 ],
+							 g_Config.cvars.st_player_hulls_wireframe_width,
+							 g_Config.cvars.st_player_hulls_show_wireframe );
+				}
+				else
+				{
+					if ( g_Config.cvars.st_player_hulls_color[ 3 ] == 0.f )
+						continue;
+
+					DrawBox( display_info.origin,
+							 display_info.mins,
+							 display_info.maxs,
+							 g_Config.cvars.st_player_hulls_color[ 0 ],
+							 g_Config.cvars.st_player_hulls_color[ 1 ],
+							 g_Config.cvars.st_player_hulls_color[ 2 ],
+							 g_Config.cvars.st_player_hulls_color[ 3 ],
+							 g_Config.cvars.st_player_hulls_wireframe_width,
+							 g_Config.cvars.st_player_hulls_show_wireframe );
+				}
+			}
+		}
 	}
-	else
+	else if ( g_Config.cvars.st_player_hulls )
 	{
-		Render()->DrawBox( vecOrigin,
-						   vecMins,
-						   vecMaxs,
-						   r,
-						   g,
-						   b,
-						   alpha );
+		int iLocalPlayer = g_pPlayerMove->player_index + 1;
+
+		CEntity *pEnts = g_EntityList.GetList();
+
+		for ( register int i = 1; i <= MY_MAXENTS; i++ )
+		{
+			CEntity &ent = pEnts[ i ];
+
+			if ( !ent.m_bValid )
+				continue;
+
+			if ( ent.m_classInfo.id != CLASS_DEAD_PLAYER && !ent.m_bPlayer )
+				continue;
+
+			if ( iLocalPlayer == i && ( !g_Config.cvars.st_player_hulls_show_local_player || Client()->IsSpectating() ) )
+				continue;
+
+			if ( ent.m_bPlayer )
+			{
+				if ( g_Config.cvars.st_player_hulls_color[ 3 ] == 0.f )
+					continue;
+
+				DrawBox( iLocalPlayer == i ? g_pPlayerMove->origin : ent.m_pEntity->origin,
+						 ent.m_vecMins,
+						 ent.m_vecMaxs,
+						 g_Config.cvars.st_player_hulls_color[ 0 ],
+						 g_Config.cvars.st_player_hulls_color[ 1 ],
+						 g_Config.cvars.st_player_hulls_color[ 2 ],
+						 g_Config.cvars.st_player_hulls_color[ 3 ],
+						 g_Config.cvars.st_player_hulls_wireframe_width,
+						 g_Config.cvars.st_player_hulls_show_wireframe );
+			}
+			else
+			{
+				if ( g_Config.cvars.st_player_hulls_dead_color[ 3 ] == 0.f )
+					continue;
+
+				DrawBox( ent.m_pEntity->origin,
+						 ent.m_vecMins,
+						 ent.m_vecMaxs,
+						 g_Config.cvars.st_player_hulls_dead_color[ 0 ],
+						 g_Config.cvars.st_player_hulls_dead_color[ 1 ],
+						 g_Config.cvars.st_player_hulls_dead_color[ 2 ],
+						 g_Config.cvars.st_player_hulls_dead_color[ 3 ],
+						 g_Config.cvars.st_player_hulls_wireframe_width,
+						 g_Config.cvars.st_player_hulls_show_wireframe );
+			}
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Draw revive boost info
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::DrawReviveBoostInfo( void )
+{
+	if ( g_Config.cvars.st_show_revive_boost_info && !Client()->IsDead() && Client()->GetCurrentWeaponID() == WEAPON_MEDKIT )
+	{
+		const Vector vecReviveHullMins( -16, -16, 0 );
+		const Vector vecReviveHullMaxs( 16, 16, 72 );
+
+		Vector vecRevivableTargetCenter;
+		float flMinIntersection, flMaxIntersection;
+
+		CEntity *pEnts = g_EntityList.GetList();
+
+		Vector vecCenter = g_pPlayerMove->origin;
+
+		Vector vecMins = vecCenter + ( ( g_pPlayerMove->flags & FL_DUCKING ) ? VEC_DUCK_HULL_MIN : VEC_HULL_MIN );
+		Vector vecMaxs = vecCenter + ( ( g_pPlayerMove->flags & FL_DUCKING ) ? VEC_DUCK_HULL_MAX : VEC_HULL_MAX );
+
+		cl_entity_t *pTarget = NULL;
+
+		for ( register int i = 1; i <= MY_MAXENTS; i++ )
+		{
+			CEntity &ent = pEnts[ i ];
+
+			if ( !ent.m_bValid )
+				continue;
+
+			// Ignore invisible corpses of players
+			if ( ent.m_pEntity->curstate.effects & EF_NODRAW )
+				continue;
+
+			// The only revivable targets are players in DEAD state, grenades and corpses of players
+			if ( ( ent.m_bPlayer && !ent.m_bAlive ) || ( ent.m_classInfo.id == CLASS_ITEM_GRENADE && ( ent.m_bNeutral || ent.m_bEnemy ) ) || ent.m_classInfo.id == CLASS_DEAD_PLAYER )
+			{
+				vecRevivableTargetCenter = ent.m_vecOrigin;
+
+				Vector vecRevivableTargetMins = vecRevivableTargetCenter + vecReviveHullMins;
+				Vector vecRevivableTargetMaxs = vecRevivableTargetCenter + vecReviveHullMaxs;
+
+				if ( pTarget == NULL )
+				{
+					if ( UTIL_IsAABBIntersectingAABB( vecMins, vecMaxs, vecRevivableTargetMins, vecRevivableTargetMaxs ) )
+					{
+						Vector vecDir = ( vecCenter - vecRevivableTargetCenter ).Normalize();
+
+						if ( UTIL_IsRayIntersectingAABB( vecMins, vecMaxs, vecRevivableTargetCenter, vecDir, &flMinIntersection, &flMaxIntersection ) )
+						{
+							float flDistance, flDistanceToEdge;
+
+							// Condition ( flMinIntersection < 0.f ) is met if ray has started inside AABB
+							flDistance = ( flMinIntersection < 0.f ? flMaxIntersection : flMinIntersection );
+
+							UTIL_IsRayIntersectingAABB( vecRevivableTargetMins, vecRevivableTargetMaxs, vecRevivableTargetCenter, vecDir, NULL, &flMaxIntersection );
+
+							// Since everytime ray starts inside AABB of revivable target, we need only max distance of intersection since ( flMinIntersection < 0.f ) always true
+							flDistanceToEdge = flMaxIntersection;
+
+							// Draw boost direction
+							if ( g_Config.cvars.st_show_revive_boost_info_direction_type == 0 ) // box
+							{
+								float flBeamExtent = g_Config.cvars.st_show_revive_boost_info_direction_box_extent;
+								float flBeamLength = g_Config.cvars.st_show_revive_boost_info_direction_length;
+
+								Vector vecBeamMins( 0.f, -flBeamExtent / 2, -flBeamExtent / 2 );
+								Vector vecBeamMaxs( flBeamLength, flBeamExtent / 2, flBeamExtent / 2 );
+
+								Vector vecAngles;
+
+								VectorAngles( vecDir, vecAngles );
+								vecAngles.x *= -1.f; // omg it's inverted, need to fix SDK?
+
+								DrawBoxAngles( vecRevivableTargetCenter,
+											   vecBeamMins,
+											   vecBeamMaxs,
+											   vecAngles,
+											   g_Config.cvars.st_show_revive_boost_info_direction_color[ 0 ],
+											   g_Config.cvars.st_show_revive_boost_info_direction_color[ 1 ],
+											   g_Config.cvars.st_show_revive_boost_info_direction_color[ 2 ],
+											   g_Config.cvars.st_show_revive_boost_info_direction_color[ 3 ],
+											   g_Config.cvars.st_show_revive_boost_info_direction_line_width,
+											   g_Config.cvars.st_show_revive_boost_info_wireframe_direction_box );
+							}
+							else // line
+							{
+								Render()->DrawLine( vecRevivableTargetCenter,
+													vecRevivableTargetCenter + vecDir * g_Config.cvars.st_show_revive_boost_info_direction_length,
+													g_Config.cvars.st_show_revive_boost_info_direction_color[ 0 ],
+													g_Config.cvars.st_show_revive_boost_info_direction_color[ 1 ],
+													g_Config.cvars.st_show_revive_boost_info_direction_color[ 2 ],
+													g_Config.cvars.st_show_revive_boost_info_direction_color[ 3 ],
+													g_Config.cvars.st_show_revive_boost_info_direction_line_width );
+							}
+
+							m_pReviveBoostTarget = pTarget = ent.m_pEntity;
+							// Distance from center of AABB of revivable target minus distance to local player's AABB
+							m_flReviveBoostDistance = ( flDistanceToEdge >= flDistance ? ( flDistanceToEdge - flDistance ) : ( flDistance - flDistanceToEdge ) );
+							m_flReviveBoostAngle = vecDir.z;
+						}
+					}
+				}
+
+				DrawBox( vecRevivableTargetCenter,
+						 vecReviveHullMins,
+						 vecReviveHullMaxs,
+						 g_Config.cvars.st_show_revive_boost_info_hull_color[ 0 ],
+						 g_Config.cvars.st_show_revive_boost_info_hull_color[ 1 ],
+						 g_Config.cvars.st_show_revive_boost_info_hull_color[ 2 ],
+						 g_Config.cvars.st_show_revive_boost_info_hull_color[ 3 ],
+						 g_Config.cvars.st_show_revive_boost_info_wireframe_hull_width,
+						 g_Config.cvars.st_show_revive_boost_info_wireframe_hull );
+			}
+		}
+
+		if ( pTarget == NULL )
+		{
+			m_pReviveBoostTarget = NULL;
+			m_flReviveBoostDistance = -1.f;
+		}
+
+		m_bShowReviveBoostInfo = true;
 	}
 }
 
@@ -1685,7 +1613,7 @@ void CSpeedrunTools::DrawBox(const Vector &vecOrigin, const Vector &vecMins, con
 // Draw revive info
 //-----------------------------------------------------------------------------
 
-void CSpeedrunTools::DrawReviveInfo()
+void CSpeedrunTools::DrawReviveInfo( void )
 {
 	int iWeaponID = Client()->GetCurrentWeaponID();
 
@@ -1693,43 +1621,6 @@ void CSpeedrunTools::DrawReviveInfo()
 		 !Client()->IsDead() &&
 		 ( iWeaponID == WEAPON_MEDKIT || ( g_Config.cvars.st_show_revive_info_with_melee && ( iWeaponID == WEAPON_CROWBAR || iWeaponID == WEAPON_WRENCH ) ) ) )
 	{
-		auto IsSphereIntersectingAABB = []( const Vector &vecCenter, const float flRadiusSqr, const Vector &vecAbsMins, const Vector &vecAbsMaxs, float *pflOutDistance ) -> bool
-		{
-			float flDistanceToEdge = 0.f;
-			float flDistanceSqr = 0.f;
-
-			for ( int i = 0; i < 3 /* && flDistanceSqr <= flRadiusSqr */; i++ )
-			{
-				if ( vecCenter[ i ] < vecAbsMins[ i ] )
-				{
-					flDistanceToEdge = vecCenter[ i ] - vecAbsMins[ i ];
-				}
-				else if ( vecCenter[ i ] > vecAbsMaxs[ i ] )
-				{
-					flDistanceToEdge = vecCenter[ i ] - vecAbsMaxs[ i ];
-				}
-				else
-				{
-					flDistanceToEdge = 0.f;
-				}
-
-				flDistanceSqr += flDistanceToEdge * flDistanceToEdge;
-			}
-
-			if ( flDistanceSqr <= flRadiusSqr )
-			{
-				if ( pflOutDistance != NULL )
-					*pflOutDistance = sqrtf( flDistanceSqr );
-
-				return true;
-			}
-
-			if ( pflOutDistance != NULL )
-				*pflOutDistance = -1.f;
-
-			return false;
-		};
-
 		pmtrace_t tr;
 		Vector vecForward;
 
@@ -1747,7 +1638,8 @@ void CSpeedrunTools::DrawReviveInfo()
 		if ( tr.fraction >= 1.0 )
 		{
 			// Trace hull
-			g_pEventAPI->EV_SetTraceHull( 3 ); // PM_HULL_HEAD, need to fix SDK
+			g_pEventAPI->EV_SetTraceHull( PM_HULL_DUCKED_PLAYER ); // in server-side head_hull has the same size as hull of ducked player
+			//g_pEventAPI->EV_SetTraceHull( 3 ); // PM_HULL_HEAD, need to fix SDK
 			g_pEventAPI->EV_PlayerTrace( vecSrc, vecEnd, PM_NORMAL, ignore_ent, &tr );
 
 			if ( tr.fraction < 1.0 )
@@ -1757,6 +1649,7 @@ void CSpeedrunTools::DrawReviveInfo()
 				int ent = g_pEventAPI->EV_IndexFromTrace( &tr );
 				cl_entity_t *pEntity = g_pEngineFuncs->GetEntityByIndex( ent );
 
+				// pEntity == NULL || pEntity->IsBSPModel();
 				if ( ent == 0 || ( pEntity != NULL && ( pEntity->curstate.solid == SOLID_BSP || pEntity->curstate.movetype == MOVETYPE_PUSHSTEP ) ) )
 					UTIL_FindHullIntersectionClient( vecSrc, tr, Vector( -16, -16, -18 ), Vector( 16, 16, 18 ), ignore_ent ); // Duck hull
 
@@ -1769,35 +1662,45 @@ void CSpeedrunTools::DrawReviveInfo()
 		Vector vecOrigin, vecAbsMins, vecAbsMaxs;
 
 		cl_entity_t *pTarget = NULL;
-		cl_entity_t *pLocal = g_pEngineFuncs->GetLocalPlayer();
 
 		const float flTime = (float)*dbRealtime;
 		const float flReviveRadius = 64.f;
 		const float flReviveRadiusSqr = flReviveRadius * flReviveRadius;
 
-		for ( int i = 0; i < MAXENTS; i++ )
+		CEntity *pEnts = g_EntityList.GetList();
+
+		for ( register int i = 1; i <= MY_MAXENTS; i++ )
 		{
-			cl_entity_t *pEntity = g_pEngineFuncs->GetEntityByIndex( i );
+			CEntity &ent = pEnts[ i ];
 
-			if ( pEntity == NULL || pEntity->curstate.effects & EF_NODRAW || pEntity->curstate.renderfx != (int)kRenderFxDeadPlayer && !pEntity->player )
+			if ( !ent.m_bValid )
 				continue;
 
-			if ( pEntity->curstate.messagenum < pLocal->curstate.messagenum || pEntity == pLocal )
+			if ( ent.m_pEntity->curstate.effects & EF_NODRAW )
 				continue;
 
-			if ( pEntity->player && PlayerUtils()->GetHealth( i ) != -1.f )
-				continue;
+			// The only revivable targets are players in DEAD state, grenades and corpses of players
+			if ( ( ent.m_bPlayer && !ent.m_bAlive ) || ( ent.m_classInfo.id == CLASS_ITEM_GRENADE && ( ent.m_bNeutral || ent.m_bEnemy ) ) || ent.m_classInfo.id == CLASS_DEAD_PLAYER )
+			{
+				if ( ent.m_classInfo.id != CLASS_ITEM_GRENADE )
+				{
+					vecAbsMins = ent.m_vecOrigin + ent.m_vecMins;
+					vecAbsMaxs = ent.m_vecOrigin + ent.m_vecMaxs;
+				}
+				else
+				{
+					vecAbsMins = ent.m_pEntity->curstate.origin + Vector( -1, -1, -1 );
+					vecAbsMaxs = ent.m_pEntity->curstate.origin + Vector( 1, 1, 1 );
+				}
 
-			vecAbsMins = pEntity->curstate.origin + pEntity->curstate.mins;
-			vecAbsMaxs = pEntity->curstate.origin + pEntity->curstate.maxs;
+				if ( !UTIL_IsSphereIntersectingAABB( vecEnd, flReviveRadiusSqr, vecAbsMins, vecAbsMaxs, &flDistanceToTarget ) )
+					continue;
 
-			if ( !IsSphereIntersectingAABB( vecEnd, flReviveRadiusSqr, vecAbsMins, vecAbsMaxs, &flDistanceToTarget ) )
-				continue;
-
-			// We got a player or their dead body within radius
-			pTarget = pEntity;
-			vecOrigin = pEntity->curstate.origin;
-			break;
+				// We got a player / their dead body / grenade within radius
+				pTarget = ent.m_pEntity;
+				vecOrigin = ent.m_pEntity->curstate.origin;
+				break;
+			}
 		}
 
 		// Find targets from transmitted server hulls
@@ -1819,7 +1722,7 @@ void CSpeedrunTools::DrawReviveInfo()
 					vecAbsMins = display_info.origin + display_info.mins;
 					vecAbsMaxs = display_info.origin + display_info.maxs;
 
-					if ( !IsSphereIntersectingAABB( vecEnd, flReviveRadiusSqr, vecAbsMins, vecAbsMaxs, &flDistanceToTarget ) )
+					if ( !UTIL_IsSphereIntersectingAABB( vecEnd, flReviveRadiusSqr, vecAbsMins, vecAbsMaxs, &flDistanceToTarget ) )
 						continue;
 
 					pTarget = pEntity;
@@ -1943,10 +1846,115 @@ void CSpeedrunTools::DrawReviveInfo()
 }
 
 //-----------------------------------------------------------------------------
+// Draw revive / unstuck area
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::DrawReviveUnstuckArea( void )
+{
+	if ( g_Config.cvars.st_show_revive_area_info )
+	{
+		pmtrace_t tr;
+		bool bDucking;
+		Vector vecOrigin;
+
+		int iLocalPlayer = g_pPlayerMove->player_index + 1;
+
+		CEntity *pEnts = g_EntityList.GetList();
+
+		for ( register int i = 1; i <= MY_MAXENTS; i++ )
+		{
+			CEntity &ent = pEnts[ i ];
+
+			if ( !ent.m_bValid )
+				continue;
+
+			if ( ent.m_classInfo.id != CLASS_DEAD_PLAYER && !ent.m_bPlayer )
+				continue;
+
+			if ( iLocalPlayer == i && ( !g_Config.cvars.st_show_revive_area_local_player || Client()->IsSpectating() ) )
+				continue;
+
+			bDucking = false;
+			vecOrigin = ( iLocalPlayer == i ) ? g_pPlayerMove->origin : ent.m_pEntity->origin;
+
+			if ( ent.m_bPlayer )
+			{
+				g_pEventAPI->EV_SetTraceHull( PM_HULL_PLAYER );
+				g_pEventAPI->EV_PlayerTrace( vecOrigin, vecOrigin, PM_NORMAL, -1, &tr );
+
+				// Clipped with world
+				if ( tr.startsolid )
+				{
+					bDucking = true;
+				}
+			}
+			else if ( ent.m_pEntity->curstate.movetype == MOVETYPE_NONE ) // Sinking corpse
+			{
+				bDucking = true;
+			}
+
+			// Inconsistent!! but it's needed. For perfomance reasons I don't want to trace line / hull
+			if ( bDucking )
+			{
+				// FixPlayerCrouchStuck, trace hull
+				vecOrigin.z += 18.f;
+			}
+			else
+			{
+				// Trace line up to 32 units
+				vecOrigin.z += 32.f;
+			}
+
+			// Draw small hull
+			if ( g_Config.cvars.st_show_revive_area_draw_small_hull )
+			{
+				DrawBox( vecOrigin,
+						 ( bDucking ? VEC_DUCK_HULL_MIN : VEC_HULL_MIN ) + Vector( -16.f, -16.f, -16.f ),
+						 ( bDucking ? VEC_DUCK_HULL_MAX : VEC_HULL_MAX ) + Vector( 16.f, 16.f, 16.f ),
+						 g_Config.cvars.st_show_revive_area_small_hull_color[ 0 ],
+						 g_Config.cvars.st_show_revive_area_small_hull_color[ 1 ],
+						 g_Config.cvars.st_show_revive_area_small_hull_color[ 2 ],
+						 g_Config.cvars.st_show_revive_area_small_hull_color[ 3 ],
+						 g_Config.cvars.st_show_revive_area_small_hull_width,
+						 true );
+			}
+
+			// Draw medium hull
+			if ( g_Config.cvars.st_show_revive_area_draw_medium_hull )
+			{
+				DrawBox( vecOrigin,
+						 ( bDucking ? VEC_DUCK_HULL_MIN : VEC_HULL_MIN ) + Vector( -32.f, -32.f, -32.f ),
+						 ( bDucking ? VEC_DUCK_HULL_MAX : VEC_HULL_MAX ) + Vector( 32.f, 32.f, 32.f ),
+						 g_Config.cvars.st_show_revive_area_medium_hull_color[ 0 ],
+						 g_Config.cvars.st_show_revive_area_medium_hull_color[ 1 ],
+						 g_Config.cvars.st_show_revive_area_medium_hull_color[ 2 ],
+						 g_Config.cvars.st_show_revive_area_medium_hull_color[ 3 ],
+						 g_Config.cvars.st_show_revive_area_medium_hull_width,
+						 true );
+			}
+
+			if ( g_Config.cvars.st_show_revive_area_draw_large_hull )
+			{
+				// Draw large hull
+				DrawBox( vecOrigin,
+						 ( bDucking ? VEC_DUCK_HULL_MIN : VEC_HULL_MIN ) + Vector( -48.f, -48.f, -48.f ),
+						 ( bDucking ? VEC_DUCK_HULL_MAX : VEC_HULL_MAX ) + Vector( 48.f, 48.f, 48.f ),
+						 g_Config.cvars.st_show_revive_area_large_hull_color[ 0 ],
+						 g_Config.cvars.st_show_revive_area_large_hull_color[ 1 ],
+						 g_Config.cvars.st_show_revive_area_large_hull_color[ 2 ],
+						 g_Config.cvars.st_show_revive_area_large_hull_color[ 3 ],
+						 g_Config.cvars.st_show_revive_area_large_hull_width,
+						 true );
+			}
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
 // Send timescale to everyone
 //-----------------------------------------------------------------------------
 
-void CSpeedrunTools::BroadcastTimescale()
+void CSpeedrunTools::BroadcastTimescale( void )
 {
 	if ( Host_IsServerActive() && fps_max->value != 20.f )
 	{
@@ -2098,16 +2106,6 @@ void CSpeedrunTools::ShowPosition( int r, int g, int b )
 		y += height;
 
 		g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Z: %.6f", origin.z );
-
-		y += height;
-
-		pmtrace_t *pTrace = g_pEngineFuncs->PM_TraceLine( g_pPlayerMove->origin,
-														  g_pPlayerMove->origin - Vector( 0.f, 0.f, 8192.f ),
-														  PM_NORMAL,
-														  ( Client()->GetFlags() & FL_DUCKING ) ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER /* g_pPlayerMove->usehull */,
-														  -1 );
-
-		g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Distance to Ground: %.3f", pTrace->fraction * 8192.f );
 	}
 }
 
@@ -2166,7 +2164,8 @@ void CSpeedrunTools::ShowGaussBoostInfo( int r, int g, int b )
 		{
 			sk_plr_secondarygauss = CVar()->FindCvar( "sk_plr_secondarygauss" );
 
-			AssertFatal( sk_plr_secondarygauss != NULL );
+			if ( sk_plr_secondarygauss == NULL )
+				return;
 		}
 
 		int width, height;
@@ -2320,7 +2319,8 @@ void CSpeedrunTools::ShowSelfgaussInfo( int r, int g, int b )
 
 		edict_t *pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( g_pPlayerMove->player_index + 1 );
 
-		Assert( pPlayer != NULL );
+		if ( pPlayer == NULL )
+			return;
 
 		g_pServerEngineFuncs->pfnTraceLine( start, end, 0, pPlayer, &tr );
 
@@ -2400,7 +2400,8 @@ void CSpeedrunTools::ShowEntityInfo( int r, int g, int b )
 			TraceResult tr;
 			edict_t *pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( g_pPlayerMove->player_index + 1 );
 
-			Assert( pPlayer != NULL );
+			if ( pPlayer == NULL )
+				return;
 
 			g_pServerEngineFuncs->pfnTraceLine( start, end, 0, pPlayer, &tr );
 
@@ -2546,28 +2547,6 @@ void CSpeedrunTools::ShowEntityInfo( int r, int g, int b )
 					Vector traceEnd = tr.endpos;
 					CEntity *pEnts = g_EntityList.GetList();
 
-					auto IsLineIntersectingAABB = []( const Vector p1, const Vector p2, const Vector vecBoxMins, const Vector vecBoxMaxs ) -> bool
-					{
-						Vector vecLineDir = ( p2 - p1 ) * 0.5f;
-						Vector vecBoxMid = ( vecBoxMaxs - vecBoxMins ) * 0.5f;
-						Vector p3 = p1 + vecLineDir - ( vecBoxMins + vecBoxMaxs ) * 0.5f;
-						Vector vecAbsLineMid = Vector( abs( vecLineDir.x ), abs( vecLineDir.y ), abs( vecLineDir.z ) );
-
-						if ( abs( p3.x ) > vecBoxMid.x + vecAbsLineMid.x || abs( p3.y ) > vecBoxMid.y + vecAbsLineMid.y || abs( p3.z ) > vecBoxMid.z + vecAbsLineMid.z )
-							return false;
-
-						if ( abs( vecLineDir.y * p3.z - vecLineDir.z * p3.y ) > vecBoxMid.y * vecAbsLineMid.z + vecBoxMid.z * vecAbsLineMid.y )
-							return false;
-
-						if ( abs( vecLineDir.z * p3.x - vecLineDir.x * p3.z ) > vecBoxMid.z * vecAbsLineMid.x + vecBoxMid.x * vecAbsLineMid.z )
-							return false;
-
-						if ( abs( vecLineDir.x * p3.y - vecLineDir.y * p3.x ) > vecBoxMid.x * vecAbsLineMid.y + vecBoxMid.y * vecAbsLineMid.x )
-							return false;
-
-						return true;
-					};
-
 					for ( int i = 1; i <= g_pEngineFuncs->GetMaxClients(); i++ )
 					{
 						if ( i == g_pPlayerMove->player_index + 1 )
@@ -2593,7 +2572,7 @@ void CSpeedrunTools::ShowEntityInfo( int r, int g, int b )
 							vecMaxs += VEC_HULL_MAX;
 						}
 
-						if ( IsLineIntersectingAABB( start, traceEnd, vecMins, vecMaxs ) )
+						if ( UTIL_IsLineIntersectingAABB( start, traceEnd, vecMins, vecMaxs ) )
 						{
 							eligible_players.push_back( { ( start - ent.m_vecOrigin ).LengthSqr(), i } );
 						}
@@ -2717,18 +2696,18 @@ void CSpeedrunTools::ShowReviveInfo( int r, int g, int b )
 			{
 				player_info_t *pPlayerInfo = g_pEngineStudio->PlayerInfo( m_pReviveTarget->index - 1 );
 
-				g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Target: %s (%d)",
+				g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Revive Target: %s (%d)",
 										 pPlayerInfo ? pPlayerInfo->name : "N/A", m_pReviveTarget->index );
 			}
 			else
 			{
-				g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Target: %s (%d)",
+				g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Revive Target: %s (%d)",
 										 m_pReviveTarget->model ? m_pReviveTarget->model->name : "DEADPLAYER", m_pReviveTarget->index );
 			}
 		}
 		else
 		{
-			g_Drawing.DrawStringEx( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Target: N/A" );
+			g_Drawing.DrawStringEx( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Revive Target: N/A" );
 		}
 
 		y += height;
@@ -2747,6 +2726,97 @@ void CSpeedrunTools::ShowReviveInfo( int r, int g, int b )
 }
 
 //-----------------------------------------------------------------------------
+// Draw revive boost info
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::ShowReviveBoostInfo( int r, int g, int b )
+{
+	if ( m_bShowReviveBoostInfo )
+	{
+		int width, height;
+
+		int x = int( g_ScreenInfo.width * g_Config.cvars.st_show_revive_boost_info_width_frac );
+		int y = int( g_ScreenInfo.height * g_Config.cvars.st_show_revive_boost_info_height_frac );
+
+		if ( m_pReviveBoostTarget != NULL )
+		{
+			if ( m_pReviveBoostTarget->player )
+			{
+				player_info_t *pPlayerInfo = g_pEngineStudio->PlayerInfo( m_pReviveBoostTarget->index - 1 );
+
+				g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Revive Boost Target: %s (%d)",
+										 pPlayerInfo ? pPlayerInfo->name : "N/A", m_pReviveBoostTarget->index );
+			}
+			else
+			{
+				g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Revive Boost Target: %s (%d)",
+										 m_pReviveBoostTarget->model ? m_pReviveBoostTarget->model->name : "DEADPLAYER", m_pReviveBoostTarget->index );
+			}
+		}
+		else
+		{
+			g_Drawing.DrawStringEx( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Revive Boost Target: N/A" );
+		}
+
+		y += height;
+
+		if ( m_flReviveBoostDistance >= 0.f )
+		{
+			float flVerticalEfficiency = fabs( 100.f * m_flReviveBoostAngle );
+			float flHorizontalEfficiency = 100.f - flVerticalEfficiency;
+
+			g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Distance: %.2f", m_flReviveBoostDistance );
+
+			y += height;
+
+			g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Vertical Boost Efficiency: %.2f %%", flVerticalEfficiency );
+
+			y += height;
+
+			g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Horizontal Boost Efficiency: %.2f %%", flHorizontalEfficiency );
+
+			y += height;
+
+			if ( Host_IsServerActive() )
+			{
+				edict_t *pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( g_pPlayerMove->player_index + 1 );
+
+				if ( pPlayer == NULL )
+					return;
+
+				g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Vertical Speed: %.2f", fabs( pPlayer->v.velocity.z ) );
+
+				y += height;
+
+				g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Horizontal Speed: %.2f", pPlayer->v.velocity.Length2D() );
+
+				y += height;
+
+				g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Overall Speed: %.2f", pPlayer->v.velocity.Length() );
+			}
+			else
+			{
+				g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Vertical Speed: %.2f", fabs( g_pPlayerMove->velocity.z ) );
+
+				y += height;
+
+				g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Horizontal Speed: %.2f", g_pPlayerMove->velocity.Length2D() );
+
+				y += height;
+
+				g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Overall Speed: %.2f", g_pPlayerMove->velocity.Length() );
+			}
+		}
+		else
+		{
+			g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Distance: N/A" );
+		}
+
+		m_bShowReviveBoostInfo = false;
+	}
+}
+
+//-----------------------------------------------------------------------------
 // Init
 //-----------------------------------------------------------------------------
 
@@ -2759,6 +2829,7 @@ CSpeedrunTools::CSpeedrunTools()
 		m_vPlayersHulls.push_back( { 0, Vector(), Vector(), Vector(), -1.f } );
 	}
 
+	m_bLegitMode = false;
 	m_bSegmentStarted = false;
 
 	m_flSegmentTime = 0.f;
@@ -2773,6 +2844,11 @@ CSpeedrunTools::CSpeedrunTools()
 	m_pReviveTarget = NULL;
 	m_flReviveDistance = 0.f;;
 
+	m_bShowReviveBoostInfo = false;
+	m_pReviveBoostTarget = NULL;
+	m_flReviveBoostDistance = 0.f;
+	m_flReviveBoostAngle = 0.f;
+
 	m_pJumpOpCode = NULL;
 	m_PatchedJumpOpCode = 0x9090;
 
@@ -2783,7 +2859,11 @@ CSpeedrunTools::CSpeedrunTools()
 	m_engineFont = 0;
 }
 
-bool CSpeedrunTools::Load()
+//-----------------------------------------------------------------------------
+// Load feature
+//-----------------------------------------------------------------------------
+
+bool CSpeedrunTools::Load( void )
 {
 	ud_t inst;
 	bool ScanOK = true;
@@ -2817,64 +2897,9 @@ bool CSpeedrunTools::Load()
 		return false;
 	}
 
-	MemoryUtils()->InitDisasm( &inst, g_pEngineFuncs->ServerCmd, 32, 17 );
-
-	if ( MemoryUtils()->Disassemble( &inst ) )
-	{
-		if ( inst.mnemonic == UD_Ijmp )
-		{
-			m_pfnServerCmd = (unsigned char *)MemoryUtils()->CalcAbsoluteAddress( g_pEngineFuncs->ServerCmd );
-		}
-	}
-
-	if ( m_pfnServerCmd == NULL )
-	{
-		Warning( "Failed to get function \"ServerCmd\"\n" );
-		return false;
-	}
-
-	unsigned char *pfnClientCmd = NULL;
-
-	MemoryUtils()->InitDisasm( &inst, g_pEngineFuncs->ClientCmd, 32, 17 );
-
-	if ( MemoryUtils()->Disassemble( &inst ) )
-	{
-		if ( inst.mnemonic == UD_Ijmp )
-		{
-			pfnClientCmd = (unsigned char *)MemoryUtils()->CalcAbsoluteAddress( g_pEngineFuncs->ClientCmd );
-		}
-	}
-
-	if ( pfnClientCmd == NULL )
-	{
-		Warning( "Failed to get function \"ClientCmd\"\n" );
-		return false;
-	}
-
-	int iDisassembledBytes = 0;
-	MemoryUtils()->InitDisasm( &inst, pfnClientCmd, 32, 24 );
-
-	while ( iDisassembledBytes = MemoryUtils()->Disassemble( &inst ) )
-	{
-		if ( inst.mnemonic == UD_Icall )
-		{
-			m_pfnCbuf_AddText = (unsigned char *)MemoryUtils()->CalcAbsoluteAddress( pfnClientCmd );
-
-			break;
-		}
-
-		pfnClientCmd += iDisassembledBytes;
-	}
-
-	if ( m_pfnCbuf_AddText == NULL )
-	{
-		Warning( "Failed to get function \"Cbuf_AddText\"\n" );
-		return false;
-	}
-
 	unsigned char *pCallOpcode;
 
-	iDisassembledBytes = 0;
+	int iDisassembledBytes = 0;
 	void *pfnDrawConsoleString = g_pEngineFuncs->DrawConsoleString;
 
 	if ( *(unsigned char *)pfnDrawConsoleString == 0xE9 ) // JMP
@@ -2913,7 +2938,11 @@ bool CSpeedrunTools::Load()
 	return true;
 }
 
-void CSpeedrunTools::PostLoad()
+//-----------------------------------------------------------------------------
+// Post load feature
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::PostLoad( void )
 {
 	if ( host_framerate == NULL )
 		host_framerate = CVar()->FindCvar( "host_framerate" );
@@ -2921,35 +2950,19 @@ void CSpeedrunTools::PostLoad()
 	if ( fps_max == NULL )
 		fps_max = CVar()->FindCvar( "fps_max" );
 
-	g_WhitelistCommands.Insert( "kill" );
-	g_WhitelistCommands.Insert( "stuck_kill" );
-	g_WhitelistCommands.Insert( "gibme" );
-	g_WhitelistCommands.Insert( "lastinv" );
-	g_WhitelistCommands.Insert( "drop" );
-	g_WhitelistCommands.Insert( "dropammo" );
-	g_WhitelistCommands.Insert( "sc_chasecam" );
-	g_WhitelistCommands.Insert( "thirdperson" );
-	g_WhitelistCommands.Insert( "firstperson" );
-	g_WhitelistCommands.Insert( "npc_moveto" );
-	g_WhitelistCommands.Insert( "npc_findcover" );
-	g_WhitelistCommands.Insert( "medic" );
-	g_WhitelistCommands.Insert( "healme" );
-	g_WhitelistCommands.Insert( "grenade" );
-	g_WhitelistCommands.Insert( "takecover" );
-	g_WhitelistCommands.Insert( "sc_freeze" );
-	g_WhitelistCommands.Insert( "sc_freeze2" );
-
 	Hooks()->HookCvarChange( fps_max, CvarChangeHook_fps_max );
 
 	m_hUTIL_GetCircularGaussianSpread = DetoursAPI()->DetourFunction( m_pfnUTIL_GetCircularGaussianSpread, HOOKED_UTIL_GetCircularGaussianSpread, GET_FUNC_PTR( ORIG_UTIL_GetCircularGaussianSpread ) );
 	m_hHost_FilterTime = DetoursAPI()->DetourFunction( m_pfnHost_FilterTime, HOOKED_Host_FilterTime, GET_FUNC_PTR( ORIG_Host_FilterTime ) );
-	m_hCbuf_AddText = DetoursAPI()->DetourFunction( m_pfnCbuf_AddText, HOOKED_Cbuf_AddText, GET_FUNC_PTR( ORIG_Cbuf_AddText ) );
-	m_hServerCmd = DetoursAPI()->DetourFunction( m_pfnServerCmd, HOOKED_ServerCmd, GET_FUNC_PTR( ORIG_ServerCmd ) );
 
 	*(unsigned short *)m_pJumpOpCode = 0x9090; // NOP NOP
 }
 
-void CSpeedrunTools::Unload()
+//-----------------------------------------------------------------------------
+// Unload feature
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::Unload( void )
 {
 	*(unsigned short *)m_pJumpOpCode = m_PatchedJumpOpCode;
 
@@ -2957,6 +2970,4 @@ void CSpeedrunTools::Unload()
 
 	DetoursAPI()->RemoveDetour( m_hUTIL_GetCircularGaussianSpread );
 	DetoursAPI()->RemoveDetour( m_hHost_FilterTime );
-	DetoursAPI()->RemoveDetour( m_hCbuf_AddText );
-	DetoursAPI()->RemoveDetour( m_hServerCmd );
 }
