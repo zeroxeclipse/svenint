@@ -167,6 +167,7 @@ public:
 		bool aimbot_ignore_glass = false;
 		bool aimbot_ignore_blockers = false;
 		bool aimbot_consider_fov = false;
+		bool aimbot_change_angles_back = false;
 		float aimbot_fov = 90.f;
 		float aimbot_distance = 2048.f;
 		bool no_recoil = false;
@@ -443,6 +444,7 @@ public:
 		//-----------------------------------------------------------------------------
 
 		bool strafe = true;
+		bool strafe_vectorial = true;
 		bool strafe_ignore_ground = true;
 		int strafe_dir = 3; // enum
 		int strafe_type = 0; // enum
@@ -487,7 +489,8 @@ public:
 		bool rotate_dead_body = false;
 		bool remove_fov_cap = false;
 		bool auto_ceil_clipping = false;
-		int no_weapon_anim = 0; // enum
+		bool viewmodel_disable_idle = false;
+		bool viewmodel_disable_equip = false;
 
 		bool auto_wallstrafing = false;
 		float wallstrafing_angle = 6.5f;
@@ -568,7 +571,7 @@ public:
 		bool st_show_entity_info = false;
 		bool st_show_entity_info_check_players = true;
 		float st_show_entity_info_width_frac = 0.009f;
-		float st_show_entity_info_height_frac = 0.4f;
+		float st_show_entity_info_height_frac = 0.47f;
 		
 		bool st_show_revive_info = false;
 		bool st_show_revive_info_with_melee = false;
@@ -576,6 +579,31 @@ public:
 		float st_show_revive_info_height_frac = 0.25f;
 		float st_show_revive_info_color[ 4 ] = { 0.f, 1.f, 0.f, 0.5f };
 		float st_show_revive_info_no_ammo_color[ 4 ] = { 1.f, 0.f, 0.f, 0.5f };
+		
+		bool st_show_revive_boost_info = false;
+		bool st_show_revive_boost_info_wireframe_hull = true;
+		bool st_show_revive_boost_info_wireframe_direction_box = false;
+		int st_show_revive_boost_info_direction_type = 0;
+		float st_show_revive_boost_info_direction_length = 2048.f;
+		float st_show_revive_boost_info_direction_box_extent = 2.f;
+		float st_show_revive_boost_info_direction_line_width = 4.f;
+		float st_show_revive_boost_info_wireframe_hull_width = 4.f;
+		float st_show_revive_boost_info_width_frac = 0.009f;
+		float st_show_revive_boost_info_height_frac = 0.31f;
+		float st_show_revive_boost_info_hull_color[ 4 ] = { 0.f, 1.f, 0.f, 0.5f };
+		float st_show_revive_boost_info_direction_color[ 4 ] = { 1.f, 0.f, 0.f, 0.5f };
+
+		bool st_show_revive_area_info = false;
+		bool st_show_revive_area_local_player = true;
+		bool st_show_revive_area_draw_small_hull = true;
+		bool st_show_revive_area_draw_medium_hull = true;
+		bool st_show_revive_area_draw_large_hull = true;
+		float st_show_revive_area_small_hull_width = 3.f;
+		float st_show_revive_area_medium_hull_width = 3.f;
+		float st_show_revive_area_large_hull_width = 3.f;
+		float st_show_revive_area_small_hull_color[ 4 ] = { 1.f, 0.f, 0.f, 0.5f };
+		float st_show_revive_area_medium_hull_color[ 4 ] = { 0.f, 1.f, 0.f, 0.5f };
+		float st_show_revive_area_large_hull_color[ 4 ] = { 0.f, 0.f, 1.f, 0.5f };
 		
 		//-----------------------------------------------------------------------------
 		// Spam inputs

@@ -307,6 +307,7 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam( "AimUnknownEntities", cvars.aimbot_aim_unknown_ents );
 			ConfigManager()->ImportParam( "IgnoreGlass", cvars.aimbot_ignore_glass );
 			ConfigManager()->ImportParam( "IgnoreStudioModels", cvars.aimbot_ignore_blockers );
+			ConfigManager()->ImportParam( "ChangeAnglesBack", cvars.aimbot_change_angles_back );
 			ConfigManager()->ImportParam( "ConsiderFOV", cvars.aimbot_consider_fov );
 			ConfigManager()->ImportParam( "FOV", cvars.aimbot_fov );
 			ConfigManager()->ImportParam( "AimbotDistance", cvars.aimbot_distance );
@@ -698,7 +699,8 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam( "RotateDeadBody", cvars.rotate_dead_body );
 			ConfigManager()->ImportParam( "AutoCeilClipping", cvars.auto_ceil_clipping );
 			ConfigManager()->ImportParam( "RemoveFOVCap", cvars.remove_fov_cap );
-			ConfigManager()->ImportParam( "NoWeaponAnim", cvars.no_weapon_anim );
+			ConfigManager()->ImportParam( "ViewmodelDisableIdle", cvars.viewmodel_disable_idle );
+			ConfigManager()->ImportParam( "ViewmodelDisableEquipt", cvars.viewmodel_disable_equip );
 			ConfigManager()->ImportParam( "AutoWallstrafing", cvars.auto_wallstrafing );
 			ConfigManager()->ImportParam( "WallstrafingAngle", cvars.wallstrafing_angle );
 			ConfigManager()->ImportParam( "WallstrafingDistance", cvars.wallstrafing_dist );
@@ -772,8 +774,9 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam( "SelfgaussInfoHeightFrac", cvars.st_show_selfgauss_height_frac );
 			ConfigManager()->ImportParam( "ShowEntityInfo", cvars.st_show_entity_info );
 			ConfigManager()->ImportParam( "EntityInfoCheckPlayers", cvars.st_show_entity_info_check_players );
-			ConfigManager()->ImportParam( "EntityInfoWidthFrac", cvars.st_show_entity_info_width_frac );
-			ConfigManager()->ImportParam( "EntityInfoHeightFrac", cvars.st_show_entity_info_height_frac );
+			ConfigManager()->ImportParam( "EntityInfoScreenWidthFrac", cvars.st_show_entity_info_width_frac );
+			ConfigManager()->ImportParam( "EntityInfoScreenHeightFrac", cvars.st_show_entity_info_height_frac );
+
 			ConfigManager()->ImportParam( "ShowReviveInfo", cvars.st_show_revive_info );
 			ConfigManager()->ImportParam( "ShowReviveInfoWithMelee", cvars.st_show_revive_info_with_melee );
 			ConfigManager()->ImportParam( "ReviveInfoWidthFrac", cvars.st_show_revive_info_width_frac );
@@ -786,6 +789,46 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam( "ReviveInfoNoAmmoColor_G", cvars.st_show_revive_info_no_ammo_color[ 1 ] );
 			ConfigManager()->ImportParam( "ReviveInfoNoAmmoColor_B", cvars.st_show_revive_info_no_ammo_color[ 2 ] );
 			ConfigManager()->ImportParam( "ReviveInfoNoAmmoColor_A", cvars.st_show_revive_info_no_ammo_color[ 3 ] );
+
+			ConfigManager()->ImportParam( "ShowReviveBoostInfo", cvars.st_show_revive_boost_info );
+			ConfigManager()->ImportParam( "ReviveBoostInfoWireframeHull", cvars.st_show_revive_boost_info_wireframe_hull );
+			ConfigManager()->ImportParam( "ReviveBoostInfoWireframeDirectionBox", cvars.st_show_revive_boost_info_wireframe_direction_box );
+			ConfigManager()->ImportParam( "ReviveBoostInfoDirectionType", cvars.st_show_revive_boost_info_direction_type );
+			ConfigManager()->ImportParam( "ReviveBoostInfoDirectionLength", cvars.st_show_revive_boost_info_direction_length );
+			ConfigManager()->ImportParam( "ReviveBoostInfoDirectionBoxExtent", cvars.st_show_revive_boost_info_direction_box_extent );
+			ConfigManager()->ImportParam( "ReviveBoostInfoDirectionLineWidth", cvars.st_show_revive_boost_info_direction_line_width );
+			ConfigManager()->ImportParam( "ReviveBoostInfoWireframeHullWidth", cvars.st_show_revive_boost_info_wireframe_hull_width );
+			ConfigManager()->ImportParam( "ReviveBoostInfoWidthFrac", cvars.st_show_revive_boost_info_width_frac );
+			ConfigManager()->ImportParam( "ReviveBoostInfoHeightFrac", cvars.st_show_revive_boost_info_height_frac );
+			ConfigManager()->ImportParam( "ReviveBoostInfoHullColor_R", cvars.st_show_revive_boost_info_hull_color[ 0 ] );
+			ConfigManager()->ImportParam( "ReviveBoostInfoHullColor_G", cvars.st_show_revive_boost_info_hull_color[ 1 ] );
+			ConfigManager()->ImportParam( "ReviveBoostInfoHullColor_B", cvars.st_show_revive_boost_info_hull_color[ 2 ] );
+			ConfigManager()->ImportParam( "ReviveBoostInfoHullColor_A", cvars.st_show_revive_boost_info_hull_color[ 3 ] );
+			ConfigManager()->ImportParam( "ReviveBoostInfoDirectionColor_R", cvars.st_show_revive_boost_info_direction_color[ 0 ] );
+			ConfigManager()->ImportParam( "ReviveBoostInfoDirectionColor_G", cvars.st_show_revive_boost_info_direction_color[ 1 ] );
+			ConfigManager()->ImportParam( "ReviveBoostInfoDirectionColor_B", cvars.st_show_revive_boost_info_direction_color[ 2 ] );
+			ConfigManager()->ImportParam( "ReviveBoostInfoDirectionColor_A", cvars.st_show_revive_boost_info_direction_color[ 3 ] );
+
+			ConfigManager()->ImportParam( "ShowReviveAreaInfo", cvars.st_show_revive_area_info );
+			ConfigManager()->ImportParam( "ReviveAreaShowLocalPlayer", cvars.st_show_revive_area_local_player );
+			ConfigManager()->ImportParam( "ReviveAreaDrawSmallHull", cvars.st_show_revive_area_draw_small_hull );
+			ConfigManager()->ImportParam( "ReviveAreaDrawMediumHull", cvars.st_show_revive_area_draw_medium_hull );
+			ConfigManager()->ImportParam( "ReviveAreaDrawLargeHull", cvars.st_show_revive_area_draw_large_hull );
+			ConfigManager()->ImportParam( "ReviveAreaSmallHullWidth", cvars.st_show_revive_area_small_hull_width );
+			ConfigManager()->ImportParam( "ReviveAreaMediumHullWidth", cvars.st_show_revive_area_medium_hull_width );
+			ConfigManager()->ImportParam( "ReviveAreaLargeHullWidth", cvars.st_show_revive_area_large_hull_width );
+			ConfigManager()->ImportParam( "ReviveAreaInfoSmallHullColor_R", cvars.st_show_revive_area_small_hull_color[ 0 ] );
+			ConfigManager()->ImportParam( "ReviveAreaInfoSmallHullColor_G", cvars.st_show_revive_area_small_hull_color[ 1 ] );
+			ConfigManager()->ImportParam( "ReviveAreaInfoSmallHullColor_B", cvars.st_show_revive_area_small_hull_color[ 2 ] );
+			ConfigManager()->ImportParam( "ReviveAreaInfoSmallHullColor_A", cvars.st_show_revive_area_small_hull_color[ 3 ] );
+			ConfigManager()->ImportParam( "ReviveAreaInfoMediumHullColor_R", cvars.st_show_revive_area_medium_hull_color[ 0 ] );
+			ConfigManager()->ImportParam( "ReviveAreaInfoMediumHullColor_G", cvars.st_show_revive_area_medium_hull_color[ 1 ] );
+			ConfigManager()->ImportParam( "ReviveAreaInfoMediumHullColor_B", cvars.st_show_revive_area_medium_hull_color[ 2 ] );
+			ConfigManager()->ImportParam( "ReviveAreaInfoMediumHullColor_A", cvars.st_show_revive_area_medium_hull_color[ 3 ] );
+			ConfigManager()->ImportParam( "ReviveAreaInfoLargeHullColor_R", cvars.st_show_revive_area_large_hull_color[ 0 ] );
+			ConfigManager()->ImportParam( "ReviveAreaInfoLargeHullColor_G", cvars.st_show_revive_area_large_hull_color[ 1 ] );
+			ConfigManager()->ImportParam( "ReviveAreaInfoLargeHullColor_B", cvars.st_show_revive_area_large_hull_color[ 2 ] );
+			ConfigManager()->ImportParam( "ReviveAreaInfoLargeHullColor_A", cvars.st_show_revive_area_large_hull_color[ 3 ] );
 
 			ConfigManager()->EndSectionImport();
 		}
@@ -1130,6 +1173,7 @@ void CConfig::Save()
 			ConfigManager()->ExportParam( "AimUnknownEntities", cvars.aimbot_aim_unknown_ents );
 			ConfigManager()->ExportParam( "IgnoreGlass", cvars.aimbot_ignore_glass );
 			ConfigManager()->ExportParam( "IgnoreStudioModels", cvars.aimbot_ignore_blockers );
+			ConfigManager()->ExportParam( "ChangeAnglesBack", cvars.aimbot_change_angles_back );
 			ConfigManager()->ExportParam( "ConsiderFOV", cvars.aimbot_consider_fov );
 			ConfigManager()->ExportParam( "FOV", cvars.aimbot_fov );
 			ConfigManager()->ExportParam( "AimbotDistance", cvars.aimbot_distance );
@@ -1519,7 +1563,8 @@ void CConfig::Save()
 			ConfigManager()->ExportParam( "RotateDeadBody", cvars.rotate_dead_body );
 			ConfigManager()->ExportParam( "AutoCeilClipping", cvars.auto_ceil_clipping );
 			ConfigManager()->ExportParam( "RemoveFOVCap", cvars.remove_fov_cap );
-			ConfigManager()->ExportParam( "NoWeaponAnim", cvars.no_weapon_anim );
+			ConfigManager()->ExportParam( "ViewmodelDisableIdle", cvars.viewmodel_disable_idle );
+			ConfigManager()->ExportParam( "ViewmodelDisableEquipt", cvars.viewmodel_disable_equip );
 			ConfigManager()->ExportParam( "AutoWallstrafing", cvars.auto_wallstrafing );
 			ConfigManager()->ExportParam( "WallstrafingAngle", cvars.wallstrafing_angle );
 			ConfigManager()->ExportParam( "WallstrafingDistance", cvars.wallstrafing_dist );
@@ -1593,8 +1638,9 @@ void CConfig::Save()
 			ConfigManager()->ExportParam( "SelfgaussInfoHeightFrac", cvars.st_show_selfgauss_height_frac );
 			ConfigManager()->ExportParam( "ShowEntityInfo", cvars.st_show_entity_info );
 			ConfigManager()->ExportParam( "EntityInfoCheckPlayers", cvars.st_show_entity_info_check_players );
-			ConfigManager()->ExportParam( "EntityInfoWidthFrac", cvars.st_show_entity_info_width_frac );
-			ConfigManager()->ExportParam( "EntityInfoHeightFrac", cvars.st_show_entity_info_height_frac );
+			ConfigManager()->ExportParam( "EntityInfoScreenWidthFrac", cvars.st_show_entity_info_width_frac );
+			ConfigManager()->ExportParam( "EntityInfoScreenHeightFrac", cvars.st_show_entity_info_height_frac );
+
 			ConfigManager()->ExportParam( "ShowReviveInfo", cvars.st_show_revive_info );
 			ConfigManager()->ExportParam( "ShowReviveInfoWithMelee", cvars.st_show_revive_info_with_melee );
 			ConfigManager()->ExportParam( "ReviveInfoWidthFrac", cvars.st_show_revive_info_width_frac );
@@ -1607,6 +1653,46 @@ void CConfig::Save()
 			ConfigManager()->ExportParam( "ReviveInfoNoAmmoColor_G", cvars.st_show_revive_info_no_ammo_color[ 1 ] );
 			ConfigManager()->ExportParam( "ReviveInfoNoAmmoColor_B", cvars.st_show_revive_info_no_ammo_color[ 2 ] );
 			ConfigManager()->ExportParam( "ReviveInfoNoAmmoColor_A", cvars.st_show_revive_info_no_ammo_color[ 3 ] );
+
+			ConfigManager()->ExportParam( "ShowReviveBoostInfo", cvars.st_show_revive_boost_info );
+			ConfigManager()->ExportParam( "ReviveBoostInfoWireframeHull", cvars.st_show_revive_boost_info_wireframe_hull );
+			ConfigManager()->ExportParam( "ReviveBoostInfoWireframeDirectionBox", cvars.st_show_revive_boost_info_wireframe_direction_box );
+			ConfigManager()->ExportParam( "ReviveBoostInfoDirectionType", cvars.st_show_revive_boost_info_direction_type );
+			ConfigManager()->ExportParam( "ReviveBoostInfoDirectionLength", cvars.st_show_revive_boost_info_direction_length );
+			ConfigManager()->ExportParam( "ReviveBoostInfoDirectionBoxExtent", cvars.st_show_revive_boost_info_direction_box_extent );
+			ConfigManager()->ExportParam( "ReviveBoostInfoDirectionLineWidth", cvars.st_show_revive_boost_info_direction_line_width );
+			ConfigManager()->ExportParam( "ReviveBoostInfoWireframeHullWidth", cvars.st_show_revive_boost_info_wireframe_hull_width );
+			ConfigManager()->ExportParam( "ReviveBoostInfoWidthFrac", cvars.st_show_revive_boost_info_width_frac );
+			ConfigManager()->ExportParam( "ReviveBoostInfoHeightFrac", cvars.st_show_revive_boost_info_height_frac );
+			ConfigManager()->ExportParam( "ReviveBoostInfoHullColor_R", cvars.st_show_revive_boost_info_hull_color[ 0 ] );
+			ConfigManager()->ExportParam( "ReviveBoostInfoHullColor_G", cvars.st_show_revive_boost_info_hull_color[ 1 ] );
+			ConfigManager()->ExportParam( "ReviveBoostInfoHullColor_B", cvars.st_show_revive_boost_info_hull_color[ 2 ] );
+			ConfigManager()->ExportParam( "ReviveBoostInfoHullColor_A", cvars.st_show_revive_boost_info_hull_color[ 3 ] );
+			ConfigManager()->ExportParam( "ReviveBoostInfoDirectionColor_R", cvars.st_show_revive_boost_info_direction_color[ 0 ] );
+			ConfigManager()->ExportParam( "ReviveBoostInfoDirectionColor_G", cvars.st_show_revive_boost_info_direction_color[ 1 ] );
+			ConfigManager()->ExportParam( "ReviveBoostInfoDirectionColor_B", cvars.st_show_revive_boost_info_direction_color[ 2 ] );
+			ConfigManager()->ExportParam( "ReviveBoostInfoDirectionColor_A", cvars.st_show_revive_boost_info_direction_color[ 3 ] );
+
+			ConfigManager()->ExportParam( "ShowReviveAreaInfo", cvars.st_show_revive_area_info );
+			ConfigManager()->ExportParam( "ReviveAreaShowLocalPlayer", cvars.st_show_revive_area_local_player );
+			ConfigManager()->ExportParam( "ReviveAreaDrawSmallHull", cvars.st_show_revive_area_draw_small_hull );
+			ConfigManager()->ExportParam( "ReviveAreaDrawMediumHull", cvars.st_show_revive_area_draw_medium_hull );
+			ConfigManager()->ExportParam( "ReviveAreaDrawLargeHull", cvars.st_show_revive_area_draw_large_hull );
+			ConfigManager()->ExportParam( "ReviveAreaSmallHullWidth", cvars.st_show_revive_area_small_hull_width );
+			ConfigManager()->ExportParam( "ReviveAreaMediumHullWidth", cvars.st_show_revive_area_medium_hull_width );
+			ConfigManager()->ExportParam( "ReviveAreaLargeHullWidth", cvars.st_show_revive_area_large_hull_width );
+			ConfigManager()->ExportParam( "ReviveAreaInfoSmallHullColor_R", cvars.st_show_revive_area_small_hull_color[ 0 ] );
+			ConfigManager()->ExportParam( "ReviveAreaInfoSmallHullColor_G", cvars.st_show_revive_area_small_hull_color[ 1 ] );
+			ConfigManager()->ExportParam( "ReviveAreaInfoSmallHullColor_B", cvars.st_show_revive_area_small_hull_color[ 2 ] );
+			ConfigManager()->ExportParam( "ReviveAreaInfoSmallHullColor_A", cvars.st_show_revive_area_small_hull_color[ 3 ] );
+			ConfigManager()->ExportParam( "ReviveAreaInfoMediumHullColor_R", cvars.st_show_revive_area_medium_hull_color[ 0 ] );
+			ConfigManager()->ExportParam( "ReviveAreaInfoMediumHullColor_G", cvars.st_show_revive_area_medium_hull_color[ 1 ] );
+			ConfigManager()->ExportParam( "ReviveAreaInfoMediumHullColor_B", cvars.st_show_revive_area_medium_hull_color[ 2 ] );
+			ConfigManager()->ExportParam( "ReviveAreaInfoMediumHullColor_A", cvars.st_show_revive_area_medium_hull_color[ 3 ] );
+			ConfigManager()->ExportParam( "ReviveAreaInfoLargeHullColor_R", cvars.st_show_revive_area_large_hull_color[ 0 ] );
+			ConfigManager()->ExportParam( "ReviveAreaInfoLargeHullColor_G", cvars.st_show_revive_area_large_hull_color[ 1 ] );
+			ConfigManager()->ExportParam( "ReviveAreaInfoLargeHullColor_B", cvars.st_show_revive_area_large_hull_color[ 2 ] );
+			ConfigManager()->ExportParam( "ReviveAreaInfoLargeHullColor_A", cvars.st_show_revive_area_large_hull_color[ 3 ] );
 
 			ConfigManager()->EndSectionExport();
 		}
