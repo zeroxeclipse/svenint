@@ -13,9 +13,14 @@
 
 typedef std::unordered_map<std::string, std::string> CmdMap;
 
+//-----------------------------------------------------------------------------
+// CMisc
+//-----------------------------------------------------------------------------
+
 class CMisc : public CBaseFeature
 {
 	friend class CAim;
+	friend static int ScriptFunc_Aimbot( struct lua_State *pLuaState );
 
 public:
 	CmdMap m_OnTickCommands;
@@ -36,15 +41,20 @@ public:
 	void OnAddEntityPost(int is_visible, int type, struct cl_entity_s *ent, const char *modelname);
 	void OnVideoInit();
 
+	bool IsFreezeOn( void ) const;
+	bool IsFreeze2On( void ) const;
+
 private:
 	void AutoJump(struct usercmd_s *cmd);
 	void AutoJumpLegacy(struct usercmd_s *cmd);
 	void JumpBug(float frametime, struct usercmd_s *cmd);
+	void JumpBugLegit(float frametime, struct usercmd_s *cmd);
 	void EdgeJump(float frametime, struct usercmd_s *cmd);
 	void Ducktap(struct usercmd_s *cmd);
 	void FastRun(struct usercmd_s *cmd);
 	void Spinner_Wrapper(struct usercmd_s *cmd);
 	void Spinner(struct usercmd_s *cmd);
+	void TriggerPushExploit(struct usercmd_s *cmd);
 	void AutoWallstrafing(struct usercmd_s *cmd);
 	void AutoReload(struct usercmd_s *cmd);
 	void Stick(struct usercmd_s *cmd);
@@ -65,8 +75,6 @@ private:
 
 	void QuakeGuns_V_CalcRefdef();
 	void QuakeGuns_HUD_PostRunCmd(struct local_state_s *to);
-
-	void NoWeaponAnim_HUD_PostRunCmd(struct local_state_s *to);
 
 private:
 	void *m_pfnQueryPerformanceCounter;

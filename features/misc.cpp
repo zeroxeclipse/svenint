@@ -18,6 +18,8 @@
 #include <netchan.h>
 
 #include "misc.h"
+#include "bsp.h"
+#include "input_manager.h"
 #include "speedrun_tools.h"
 
 #include <algorithm>
@@ -53,6 +55,7 @@ DECLARE_CLASS_HOOK(void, CClient_SoundEngine__Play2DSound, void *, const char *,
 CMisc g_Misc;
 
 cvar_t *ex_interp = NULL;
+cvar_t *fps_max = NULL;
 
 Vector g_vecSpinAngles(0.f, 0.f, 0.f);
 
@@ -78,6 +81,7 @@ static bool s_bFreeze2 = false;
 bool g_bForceFreeze2 = false;
 
 static bool s_bDucktap = false;
+static bool s_bJumpbugLegit = false;
 
 static float s_flTopColorDelay = 0.0f;
 static float s_flBottomColorDelay = 0.0f;
@@ -213,16 +217,27 @@ CON_COMMAND(sc_test, "Retrieve an entity's info")
 	}
 }
 
-CON_COMMAND_NO_WRAPPER(sc_autojump, "Toggle autojump")
+CON_COMMAND(sc_autojump, "Toggle autojump")
 {
+	bool bValue;
+
+	if ( args.ArgC() > 1 )
+	{
+		bValue = !!atoi( args[ 1 ] );
+	}
+	else
+	{
+		bValue = !g_Config.cvars.autojump;
+	}
+
 #if USE_GAY_PERFECT_AUTOJUMP
 	extern bool g_bJumpDown;
 #endif
 
-	Msg(g_Config.cvars.autojump ? "Auto Jump disabled\n" : "Auto Jump enabled\n");
-	g_Config.cvars.autojump = !g_Config.cvars.autojump;
+	Msg(bValue ? "Auto Jump enabled\n" : "Auto Jump disabled\n");
+	g_Config.cvars.autojump = bValue;
 
-	Utils()->PrintChatText("<SvenInt> Autojump is %s\n", g_Config.cvars.autojump ? "ON" : "OFF");
+	Utils()->PrintChatText("<SvenInt> Autojump is %s\n", bValue ? "ON" : "OFF");
 
 #if USE_GAY_PERFECT_AUTOJUMP
 	g_bJumpDown = false;
@@ -254,12 +269,42 @@ CON_COMMAND_NO_WRAPPER(sc_ducktap, "Toggle ducktapping")
 		g_pEngineFuncs->ClientCmd("+duck;wait;-duck");
 }
 
-CON_COMMAND_NO_WRAPPER(sc_jumpbug, "Toggle jumpbug")
+CON_COMMAND(sc_jumpbug, "Toggle jumpbug")
 {
-	Msg(g_Config.cvars.jumpbug ? "Jump Bug disabled\n" : "Jump Bug enabled\n");
-	g_Config.cvars.jumpbug = !g_Config.cvars.jumpbug;
+	bool bValue;
 
-	Utils()->PrintChatText("<SvenInt> Auto jumpbug is %s\n", g_Config.cvars.jumpbug ? "ON" : "OFF");
+	if ( args.ArgC() > 1 )
+	{
+		bValue = !!atoi( args[ 1 ] );
+	}
+	else
+	{
+		bValue = !g_Config.cvars.jumpbug;
+	}
+
+	Msg( bValue ? "Jump Bug enabled\n" : "Jump Bug disabled\n");
+	g_Config.cvars.jumpbug = bValue;
+
+	Utils()->PrintChatText("<SvenInt> Auto jumpbug is %s\n", bValue ? "ON" : "OFF");
+}
+
+CON_COMMAND(sc_jumpbug_legit, "Toggle legit jumpbug that adjusts your FPS")
+{
+	bool bValue;
+
+	if ( args.ArgC() > 1 )
+	{
+		bValue = !!atoi( args[ 1 ] );
+	}
+	else
+	{
+		bValue = !s_bJumpbugLegit;
+	}
+
+	Msg( bValue ? "Legit Jump Bug enabled\n" : "Legit Jump Bug disabled\n");
+	s_bJumpbugLegit = bValue;
+
+	Utils()->PrintChatText("<SvenInt> Legit Auto jumpbug is %s\n", bValue ? "ON" : "OFF");
 }
 
 CON_COMMAND_NO_WRAPPER(sc_edgejump, "Toggle edgejump")
@@ -645,6 +690,10 @@ static ConCommand output_command__sc_freeze2_toggle("-sc_freeze2_toggle", freeze
 static ConCommand input_command__sc_ducktap_toggle("+sc_ducktap", ducktap_toggle_key_down, "Auto ducktap input");
 static ConCommand output_command__sc_ducktap_toggle("-sc_ducktap", ducktap_toggle_key_up, "Auto ducktap output");
 
+ConVar sc_ducktap_adjust_fps("sc_ducktap_adjust_fps", "0", FCVAR_CLIENTDLL, "Change fps to the given value when ducktapping");
+ConVar sc_jumpbug_adjust_fps("sc_jumpbug_adjust_fps", "1000", FCVAR_CLIENTDLL, "Change fps to the given value to perform jumpbug in legit mode");
+ConVar sc_jumpbug_min_fall_velocity("sc_jumpbug_min_fall_velocity", "580", FCVAR_CLIENTDLL, "Minimal fall velocity for auto jumpbug");
+
 ConVar sc_app_speed("sc_app_speed", "1", FCVAR_CLIENTDLL, "Speed of application", true, 0.1f, false, FLT_MAX);
 ConVar sc_speedhack("sc_speedhack", "1", FCVAR_CLIENTDLL, "sc_speedhack <value> - Set speedhack value", true, 0.f, false, FLT_MAX);
 ConVar sc_speedhack_ltfx("sc_speedhack_ltfx", "0", FCVAR_CLIENTDLL, "sc_speedhack_ltfx <value> - Set LTFX speedhack value; 0 - disable, value < 0 - slower, value > 0 - faster", true, -100.f, false, FLT_MAX);
@@ -860,23 +909,17 @@ void CMisc::CreateMove(float frametime, struct usercmd_s *cmd, int active)
 
 	if ( !Client()->IsSpectating() )
 	{
-		//void GStrafe(struct usercmd_s *cmd);
-		//void StrafeHack(float frametime, struct usercmd_s *cmd, float visible, float crazy);
-
-		//extern ConVar sc_strafe2_crazy;
-		//extern ConVar sc_strafe2_invisible;
-
 		AutoSelfSink(cmd);
 		AutoCeilClipping(cmd);
 		AutoJump(cmd);
 		AutoJumpLegacy(cmd);
 		JumpBug(frametime, cmd);
+		JumpBugLegit(frametime, cmd);
 		EdgeJump(frametime, cmd);
 		Ducktap(cmd);
-		//GStrafe(cmd);
-		//StrafeHack(frametime, cmd, sc_strafe2_invisible.GetFloat(), sc_strafe2_crazy.GetFloat());
 		FastRun(cmd);
 		Spinner_Wrapper(cmd);
+		TriggerPushExploit(cmd);
 		AutoWallstrafing(cmd);
 		AutoReload(cmd);
 		Stick(cmd);
@@ -890,204 +933,6 @@ void CMisc::CreateMove(float frametime, struct usercmd_s *cmd, int active)
 	if ( s_bFreeze )
 		bSendPacket = false;
 }
-
-//ConVar sc_gstrafe("sc_gstrafe", "0");
-//ConVar sc_gstrafe_bhop("sc_gstrafe_bhop", "1");
-//ConVar sc_gstrafe_standup("sc_gstrafe_standup", "0");
-//ConVar sc_gstrafe_noslowdown("sc_gstrafe_noslowdown", "1");
-//
-//void GStrafe(struct usercmd_s *cmd)
-//{
-//	if (sc_gstrafe.GetBool())
-//	{
-//		static int gs_state = 0;
-//
-//		int iUseHull = (Client()->GetFlags() & FL_DUCKING) ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER;
-//
-//		Vector vTemp1 = g_pPlayerMove->origin;
-//		vTemp1[2] -= 8192;
-//		pmtrace_t *trace = g_pEngineFuncs->PM_TraceLine(g_pPlayerMove->origin, vTemp1, 1, iUseHull, -1);
-//		
-//		float flGroundAngle = 0.f;
-//		float flHeight = abs(trace->endpos.z - g_pPlayerMove->origin.z);
-//
-//		if (flHeight <= 60) flGroundAngle = acos(trace->plane.normal[2]) / M_PI * 180;
-//		else flGroundAngle = 0;
-//
-//		Vector vTemp2 = trace->endpos;
-//		pmtrace_t pTrace;
-//		g_pEventAPI->EV_SetTraceHull(iUseHull);
-//		g_pEventAPI->EV_PlayerTrace(g_pPlayerMove->origin, vTemp2, PM_GLASS_IGNORE | PM_STUDIO_BOX, Client()->GetPlayerIndex(), &pTrace);
-//		
-//		if (pTrace.fraction < 1.0f)
-//		{
-//			flHeight = abs(pTrace.endpos.z - g_pPlayerMove->origin.z);
-//			int ind = g_pEventAPI->EV_IndexFromTrace(&pTrace);
-//			if (ind > 0 && ind < 33)
-//			{
-//				cl_entity_t *pPlayer = g_pEngineFuncs->GetEntityByIndex(ind);
-//
-//				if (pPlayer)
-//				{
-//					float dst = g_pPlayerMove->origin.z - (iUseHull == 0 ? 32 : 18) - pPlayer->origin.z - flHeight;
-//					
-//					if (dst < 30)
-//					{
-//						flHeight -= 14.0;
-//					}
-//				}
-//			}
-//		}
-//
-//		if (sc_gstrafe_standup.GetBool() && flHeight < sc_gstrafe_standup.GetFloat())
-//		{
-//			if (sc_gstrafe_noslowdown.GetBool() && (flGroundAngle < 5) && (flHeight <= 0.000001f || Client()->IsOnGround()))
-//			{
-//				UTIL_SetGameSpeed(0.0001);
-//			}
-//
-//			cmd->buttons |= IN_DUCK;
-//		}
-//		if (gs_state == 0 && Client()->IsOnGround())
-//		{
-//			if ((flGroundAngle < 5) && sc_gstrafe_noslowdown.GetBool() != 0 && (flHeight <= 0.000001f || Client()->IsOnGround()))
-//			{
-//				UTIL_SetGameSpeed(0.0001);
-//			}
-//
-//			cmd->buttons |= IN_DUCK;
-//			gs_state = 1;
-//		}
-//		else if (gs_state == 1)
-//		{
-//			if ((flGroundAngle < 5) && sc_gstrafe_noslowdown.GetBool() != 0 && (flHeight <= 0.000001f || Client()->IsOnGround()))
-//			{
-//				UTIL_SetGameSpeed(0.0001);
-//			}
-//
-//
-//			if (sc_gstrafe_bhop.GetBool() && iUseHull == 0)
-//			{
-//				cmd->buttons |= IN_JUMP;
-//			}
-//
-//			cmd->buttons &= ~IN_DUCK;
-//			gs_state = 0;
-//		}
-//	}
-//}
-
-//ConVar sc_strafe2("sc_strafe2", "0");
-//ConVar sc_strafe2_dir("sc_strafe2_dir", "1");
-//ConVar sc_strafe2_speed("sc_strafe2_speed", "69");
-//ConVar sc_strafe2_crazy("sc_strafe2_crazy", "0");
-//ConVar sc_strafe2_invisible("sc_strafe2_invisible", "1");
-//
-//void StrafeHack(float frametime, struct usercmd_s *cmd, float visible, float crazy)
-//{
-//	auto YawForVec = [](float *fwd) -> float
-//	{
-//		if (fwd[1] == 0 && fwd[0] == 0)
-//		{
-//			return 0;
-//		}
-//		else
-//		{
-//			float yaw = (atan2(fwd[1], fwd[0]) * 180 / M_PI);
-//			if (yaw < 0)
-//				yaw += 360;
-//			return yaw;
-//		}
-//	};
-//
-//	if (sc_strafe2.GetBool() && !Client()->IsOnGround() && !Client()->IsOnLadder())
-//	{
-//		float flXYspeed = sqrt(M_SQR(g_pPlayerMove->velocity[0]) + M_SQR(g_pPlayerMove->velocity[1]));
-//
-//		float dir = 0;
-//
-//		int dir_value = sc_strafe2_dir.GetInt();
-//
-//		if (dir_value == 1)dir = 0;
-//		else if (dir_value == 2)	dir = 90;
-//		else if (dir_value == 3)	dir = 180;
-//		else if (dir_value == 4)	dir = -90;
-//
-//		if (flXYspeed < 15)
-//		{
-//			cmd->forwardmove = 400;
-//			cmd->sidemove = 0;
-//		}
-//
-//		float va_real[3] = { 0,0,0 };
-//		g_pEngineFuncs->GetViewAngles(va_real);
-//		va_real[1] += dir;
-//		float vspeed[3] = { g_pPlayerMove->velocity.x / g_pPlayerMove->velocity.Length(), g_pPlayerMove->velocity.y / g_pPlayerMove->velocity.Length(),0.0f};
-//		float va_speed = YawForVec(vspeed);
-//
-//		float adif = va_speed - va_real[1];
-//		while (adif < -180)adif += 360;
-//		while (adif > 180)adif -= 360;
-//		cmd->sidemove = (435) * (adif > 0 ? 1 : -1);
-//		cmd->forwardmove = 0;
-//		bool onlysidemove = (abs(adif) >= atan(30.0 / flXYspeed) / M_PI * 180);
-//		int aaddtova = 0;
-//
-//		//if(visible == 0) RotateInvisible(-(adif),0,cmd);
-//		//else 
-//		cmd->viewangles[1] -= (-(adif));
-//
-//		float fs = 0;
-//		if (!onlysidemove)
-//		{
-//			static float lv = 0;
-//			Vector fw = g_pPlayerMove->forward; fw[2] = 0; fw = fw.Normalize();
-//			float vel = M_SQR(fw[0] * g_pPlayerMove->velocity[0]) + M_SQR(fw[1] * g_pPlayerMove->velocity[1]);
-//
-//			fs = lv;
-//			lv = sqrt(sc_strafe2_speed.GetFloat() * 100000 / vel);//7300000//6500000
-//			static float lastang = 0;
-//			float ca = abs(adif);
-//			lastang = ca;
-//		}
-//
-//		if (visible == 0) cmd->forwardmove += fs;
-//		else
-//		{
-//			float ang = atan(fs / cmd->sidemove) / M_PI * 180;
-//			cmd->viewangles.y += ang;
-//		}
-//
-//		if (crazy != 0)
-//		{
-//			static int _crazy = 1;
-//			_crazy *= (-1);
-//			cmd->viewangles.x = 89 * _crazy;
-//		}
-//
-//		float sdmw = cmd->sidemove;
-//		float fdmw = cmd->forwardmove;
-//		switch ((int)sc_strafe2_dir.GetInt())
-//		{
-//		case 1:
-//			cmd->forwardmove = fdmw;
-//			cmd->sidemove = sdmw;
-//			break;
-//		case 2:
-//			cmd->forwardmove = -sdmw;
-//			cmd->sidemove = fdmw;
-//			break;
-//		case 3:
-//			cmd->forwardmove = -fdmw;
-//			cmd->sidemove = -sdmw;
-//			break;
-//		case 4:
-//			cmd->forwardmove = sdmw;
-//			cmd->sidemove = -fdmw;
-//			break;
-//		}
-//	}
-//}
 
 void CMisc::V_CalcRefdef(struct ref_params_s *pparams)
 {
@@ -1106,8 +951,13 @@ void CMisc::V_CalcRefdef(struct ref_params_s *pparams)
 
 void CMisc::HUD_PostRunCmd(struct local_state_s *from, struct local_state_s *to, struct usercmd_s *cmd, int runfuncs, double time, unsigned int random_seed)
 {
+	// For proper work of revive boost info
+	if ( s_bFreeze2 )
+	{
+		g_pPlayerMove->origin = Client()->GetClientData()->origin;
+	}
+
 	QuakeGuns_HUD_PostRunCmd(to);
-	NoWeaponAnim_HUD_PostRunCmd(to);
 }
 
 static int line_beamindex = 0;
@@ -1209,6 +1059,20 @@ void CMisc::OnVideoInit()
 	m_iLastWeaponID = 0;
 
 	g_pEngineFuncs->ClientCmd( "exec \"sven_internal/cfg/weapon_none.cfg\"" );
+}
+
+//-----------------------------------------------------------------------------
+// Freeze getters
+//-----------------------------------------------------------------------------
+
+bool CMisc::IsFreezeOn( void ) const
+{
+	return s_bFreeze;
+}
+
+bool CMisc::IsFreeze2On( void ) const
+{
+	return s_bFreeze2;
 }
 
 //-----------------------------------------------------------------------------
@@ -1544,7 +1408,7 @@ void CMisc::DupeWeapon(struct usercmd_s *cmd)
 
 void CMisc::AutoJump(struct usercmd_s *cmd)
 {
-	if ( IM_IsPlayingBack() )
+	if ( g_InputManager.IsPlayingback() )
 		return;
 
 #if USE_GAY_PERFECT_AUTOJUMP
@@ -1624,13 +1488,14 @@ void CMisc::AutoJumpLegacy(struct usercmd_s *cmd)
 
 void CMisc::JumpBug(float frametime, struct usercmd_s *cmd)
 {
-	extern bool im_record;
-	extern FILE *im_file;
-
 	static int nJumpBugState = 0;
 
-	if ( g_Config.cvars.jumpbug && Client()->GetFallVelocity() > 500.0f && g_pPlayerMove->movevars != NULL && ( im_file == NULL || im_record ) )
+	if ( g_Config.cvars.jumpbug &&
+		 g_pPlayerMove->flFallVelocity > sc_jumpbug_min_fall_velocity.GetFloat() /* PLAYER_MAX_SAFE_FALL_SPEED */ &&
+		 g_pPlayerMove->movevars != NULL /*&& ( !g_InputManager.IsInAction() || g_InputManager.IsRecording() )*/ )
 	{
+		int placeHolder, contents;
+
 		Vector vecPredictVelocity = Client()->GetVelocity() * frametime;
 
 		vecPredictVelocity.z = 0.f; // 2D only, height will be predicted separately
@@ -1649,8 +1514,80 @@ void CMisc::JumpBug(float frametime, struct usercmd_s *cmd)
 		float flHeight = fabsf(pTrace->endpos.z - vecPredictOrigin.z);
 		float flGroundNormalAngle = acos(pTrace->plane.normal.z);
 
-		if ( flGroundNormalAngle <= acosf(0.7f) && Client()->GetWaterLevel() == WL_NOT_IN_WATER && g_pEngineFuncs->PM_WaterEntity(pTrace->endpos) == -1 )
+		if ( flGroundNormalAngle <= acosf(0.7f) && Client()->GetWaterLevel() == WL_NOT_IN_WATER )
 		{
+			contents = g_pPlayerMove->PM_PointContents( pTrace->endpos, &placeHolder );
+
+			if ( contents <= CONTENTS_WATER && contents > CONTENTS_TRANSLUCENT )
+				return;
+
+		#if 0
+			bool bInAir = true;
+			bool bDucking = ( g_pPlayerMove->flags & FL_DUCKING );
+			int oldhull = g_pPlayerMove->usehull;
+
+			cmd->buttons |= IN_DUCK;
+			cmd->buttons &= ~IN_JUMP;
+
+			if ( g_pPlayerMove->bInDuck || bDucking )
+			{
+				Vector newOrigin = g_pPlayerMove->origin;
+
+				g_pPlayerMove->usehull = bDucking ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER;
+				pmtrace_t tr = g_pPlayerMove->PM_PlayerTrace( newOrigin, newOrigin, PM_NORMAL, -1 );
+
+				if ( !tr.startsolid )
+				{
+					g_pPlayerMove->usehull = PM_HULL_PLAYER;
+					tr = g_pPlayerMove->PM_PlayerTrace( newOrigin, newOrigin, PM_NORMAL, -1 );
+
+					if ( !tr.startsolid )
+					{
+						bDucking = false;
+
+						// Check water. If we're under water, return here.
+
+						Vector point = newOrigin;
+
+						// Pick a spot just above the players feet.
+						point[ 0 ] += ( bDucking ? ( VEC_DUCK_HULL_MIN[ 0 ] + VEC_DUCK_HULL_MAX[ 0 ] ) : ( VEC_HULL_MIN[ 0 ] + VEC_HULL_MAX[ 0 ] ) ) * 0.5f;
+						point[ 1 ] += ( bDucking ? ( VEC_DUCK_HULL_MIN[ 1 ] + VEC_DUCK_HULL_MAX[ 1 ] ) : ( VEC_HULL_MIN[ 1 ] + VEC_HULL_MAX[ 1 ] ) ) * 0.5f;
+						point[ 2 ] += ( ( bDucking ? VEC_DUCK_HULL_MIN[ 2 ] : VEC_HULL_MIN[ 2 ] ) + 1 );
+
+						contents = g_pPlayerMove->PM_PointContents( point, &placeHolder );
+
+						if ( !( contents <= CONTENTS_WATER && contents > CONTENTS_TRANSLUCENT ) )
+						{
+							// Check ground.
+							if ( g_pPlayerMove->velocity[ 2 ] <= 180 )
+							{
+								point = newOrigin;
+								point[ 2 ] -= 2;
+
+								g_pPlayerMove->usehull = bDucking ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER;
+								tr = g_pPlayerMove->PM_PlayerTrace( newOrigin, point, PM_NORMAL, -1 );
+
+								if ( !( tr.plane.normal[ 2 ] < 0.7 || tr.ent == -1 ) )
+								{
+									//if ( !tr.StartSolid && !tr.AllSolid )
+									//	VecCopy<float, 3>( tr.EndPos, player.Origin );
+
+									bInAir = false;
+								}
+							}
+						}
+					}
+				}
+			}
+
+			if ( !bInAir && !bDucking )
+			{
+				cmd->buttons |= IN_JUMP;
+				cmd->buttons &= ~IN_DUCK;
+			}
+
+			g_pPlayerMove->usehull = oldhull;
+		#else
 			float flFrameZDist = fabsf( (Client()->GetFallVelocity() + (g_pPlayerMove->movevars->gravity * frametime)) * frametime );
 
 			cmd->buttons |= IN_DUCK;
@@ -1681,6 +1618,7 @@ void CMisc::JumpBug(float frametime, struct usercmd_s *cmd)
 				}
 				break;
 			}
+		#endif
 		}
 		else
 		{
@@ -1691,6 +1629,190 @@ void CMisc::JumpBug(float frametime, struct usercmd_s *cmd)
 	{
 		nJumpBugState = 0;
 	}
+}
+
+//-----------------------------------------------------------------------------
+// Legit Auto Jumpbug
+//-----------------------------------------------------------------------------
+
+static void inline JB_ReturnFps(bool &bMustReturnFps, int iPreviousFps, char *pszFpsExecuteBuffer, int size)
+{
+	CVar()->SetValue( fps_max, iPreviousFps );
+
+	// Record fps change
+	if ( g_InputManager.IsRecording() )
+	{
+		snprintf( pszFpsExecuteBuffer, size, "fps_max %d", iPreviousFps );
+		g_InputManager.RecordCommand( pszFpsExecuteBuffer );
+	}
+
+	bMustReturnFps = false;
+}
+
+static void JB_Predict( bool &bInAir, bool &bDucking, Vector &vecOrigin, Vector &vecVelocity)
+{
+	pmtrace_t tr;
+	int contents, placeHolder;
+
+	// Predict jumpbug
+	if ( g_pPlayerMove->bInDuck || bDucking )
+	{
+		Vector newOrigin = vecOrigin;
+
+		g_pPlayerMove->usehull = bDucking ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER;
+		tr = g_pPlayerMove->PM_PlayerTrace( newOrigin, newOrigin, PM_NORMAL, -1 );
+
+		if ( !tr.startsolid )
+		{
+			g_pPlayerMove->usehull = PM_HULL_PLAYER;
+			tr = g_pPlayerMove->PM_PlayerTrace( newOrigin, newOrigin, PM_NORMAL, -1 );
+
+			if ( !tr.startsolid )
+			{
+				bDucking = false;
+
+				// Check water. If we're under water, return here.
+
+				Vector point = newOrigin;
+
+				// Pick a spot just above the players feet.
+				point[ 0 ] += ( bDucking ? ( VEC_DUCK_HULL_MIN[ 0 ] + VEC_DUCK_HULL_MAX[ 0 ] ) : ( VEC_HULL_MIN[ 0 ] + VEC_HULL_MAX[ 0 ] ) ) * 0.5f;
+				point[ 1 ] += ( bDucking ? ( VEC_DUCK_HULL_MIN[ 1 ] + VEC_DUCK_HULL_MAX[ 1 ] ) : ( VEC_HULL_MIN[ 1 ] + VEC_HULL_MAX[ 1 ] ) ) * 0.5f;
+				point[ 2 ] += ( ( bDucking ? VEC_DUCK_HULL_MIN[ 2 ] : VEC_HULL_MIN[ 2 ] ) + 1 );
+
+				contents = g_pPlayerMove->PM_PointContents( point, &placeHolder );
+
+				if ( !( contents <= CONTENTS_WATER && contents > CONTENTS_TRANSLUCENT ) )
+				{
+					// Check ground.
+					if ( vecVelocity[ 2 ] <= 180 )
+					{
+						point = newOrigin;
+						point[ 2 ] -= 2;
+
+						g_pPlayerMove->usehull = bDucking ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER;
+						tr = g_pPlayerMove->PM_PlayerTrace( newOrigin, point, PM_NORMAL, -1 );
+
+						if ( !( tr.plane.normal[ 2 ] < 0.7 || tr.ent == -1 ) )
+						{
+							//if ( !tr.StartSolid && !tr.AllSolid )
+							//	VecCopy<float, 3>( tr.EndPos, player.Origin );
+
+							bInAir = false;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+void CMisc::JumpBugLegit(float frametime, struct usercmd_s *cmd)
+{
+	//static char fps_buffer[ 32 ];
+	//static int fps_prev = 200;
+	//static bool must_return_fps = false;
+
+	if ( s_bJumpbugLegit &&
+		 g_pPlayerMove->flFallVelocity > sc_jumpbug_min_fall_velocity.GetFloat() /* PLAYER_MAX_SAFE_FALL_SPEED */ &&
+		 g_pPlayerMove->movevars != NULL /*&& ( !g_InputManager.IsInAction() || g_InputManager.IsRecording() )*/ )
+	{
+		pmtrace_t tr;
+		Vector vecOrigin, vecMove, vecVelocity, vecPredictOrigin, vecBottom;
+		int placeHolder, contents;
+
+		const int oldhull = g_pPlayerMove->usehull;
+
+		vecOrigin = g_pPlayerMove->origin;
+		vecVelocity = g_pPlayerMove->velocity;
+
+		// Apply gravity
+		UTIL_AddCorrectGravity( vecVelocity, frametime );
+
+		// Step
+		vecMove = vecVelocity * frametime;
+
+		// Trace forward
+		g_pPlayerMove->usehull = ( g_pPlayerMove->flags & FL_DUCKING ) ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER;
+
+		tr = g_pPlayerMove->PM_PlayerTrace( vecOrigin, vecOrigin + vecMove, PM_NORMAL, -1 );
+
+		vecPredictOrigin = tr.endpos;
+		vecBottom = vecPredictOrigin - Vector( 0.f, 0.f, 8192.f );
+
+		// Trace down
+		tr = g_pPlayerMove->PM_PlayerTrace( vecPredictOrigin, vecBottom, PM_NORMAL, -1 );
+
+		g_pPlayerMove->usehull = oldhull;
+
+		if ( acos( tr.plane.normal.z ) <= acos( 0.7f ) && g_pPlayerMove->waterlevel == WL_NOT_IN_WATER )
+		{
+			contents = g_pPlayerMove->PM_PointContents( tr.endpos, &placeHolder );
+
+			// In water, don't jumpbug
+			if ( contents <= CONTENTS_WATER && contents > CONTENTS_TRANSLUCENT )
+			{
+				//if ( must_return_fps )
+				//	JB_ReturnFps( must_return_fps, fps_prev, fps_buffer, M_ARRAYSIZE( fps_buffer ) );
+
+				return;
+			}
+
+			bool bInAir = true;
+			bool bDucking = ( g_pPlayerMove->flags & FL_DUCKING );
+
+			cmd->buttons |= IN_DUCK;
+			cmd->buttons &= ~IN_JUMP;
+
+			// Predict jumpbug
+			JB_Predict( bInAir, bDucking, g_pPlayerMove->origin, g_pPlayerMove->velocity );
+
+			//Utils()->PrintChatText( "bInAir: %d | bDucking: %d | onground: %d", bInAir, bDucking, Client()->IsOnGround() );
+
+			//// Still ducking, impossible to jumpbug! Need to adjust our FPS.
+			//if ( bInAir && !bDucking )
+			//{
+			//	bool bPredictInAir = true;
+			//	bool bPredictDucking = ( g_pPlayerMove->flags & FL_DUCKING );
+
+			//	JB_Predict( bPredictInAir, bPredictDucking, vecPredictOrigin, vecVelocity );
+
+			//	if ( bPredictInAir && bPredictDucking )
+			//	{
+			//		if ( !must_return_fps )
+			//		{
+			//			fps_prev = int( fps_max->value );
+
+			//			CVar()->SetValue( fps_max, sc_jumpbug_adjust_fps.GetInt() );
+
+			//			// Record fps change
+			//			if ( g_InputManager.IsRecording() )
+			//			{
+			//				snprintf( fps_buffer, M_ARRAYSIZE( fps_buffer ), "fps_max %d", sc_jumpbug_adjust_fps.GetInt() );
+			//				g_InputManager.RecordCommand( fps_buffer );
+			//			}
+
+			//			must_return_fps = true;
+
+			//			//Utils()->PrintChatText( "Can't jumpbug!" );
+			//		}
+			//	}
+			//}
+			//// Can jumpbug
+			//else
+			if ( !bInAir && !bDucking )
+			{
+				cmd->buttons |= IN_JUMP;
+				cmd->buttons &= ~IN_DUCK;
+			}
+
+			g_pPlayerMove->usehull = oldhull;
+			return;
+		}
+	}
+
+	//if ( must_return_fps )
+	//	JB_ReturnFps( must_return_fps, fps_prev, fps_buffer, M_ARRAYSIZE( fps_buffer ) );
 }
 
 //-----------------------------------------------------------------------------
@@ -1747,10 +1869,99 @@ void CMisc::Ducktap(struct usercmd_s *cmd)
 	//	}
 	//}
 
+	static char fps_buffer[ 32 ];
 	static int onground_prev = 0;
+	static int fps_prev = 200;
+	static bool must_return_fps = false;
+
+	// Change fps back to normal
+	if ( must_return_fps )
+	{
+		CVar()->SetValue( fps_max, fps_prev );
+
+		// Record fps change
+		if ( g_InputManager.IsRecording() )
+		{
+			snprintf( fps_buffer, M_ARRAYSIZE( fps_buffer ), "fps_max %d", fps_prev );
+			g_InputManager.RecordCommand( fps_buffer );
+		}
+
+		must_return_fps = false;
+	}
 
 	if ( s_bDucktap || g_Config.cvars.ducktap )
 	{
+		// No friction
+		if ( sc_ducktap_adjust_fps.GetInt() > 20 && Host_IsServerActive() && !g_pPlayerMove->bInDuck )
+		{
+			if ( g_pPlayerMove->onground == -1 && g_pPlayerMove->velocity.z < 0.f )
+			{
+				pmtrace_t tr;
+
+				bool bPredictedOnGround = false;
+
+				const int oldhull = g_pPlayerMove->usehull;
+				float flFrametime = g_pPlayerMove->frametime;
+				Vector vecVelocity = g_pPlayerMove->velocity;
+				Vector vecOrigin = g_pPlayerMove->origin;
+
+				UTIL_AddCorrectGravity( vecVelocity, flFrametime );
+
+				Vector vecMove = vecVelocity * flFrametime;
+
+				// Trace forward
+				g_pPlayerMove->usehull = ( g_pPlayerMove->flags & FL_DUCKING ) ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER;
+
+				tr = g_pPlayerMove->PM_PlayerTrace( vecOrigin, vecOrigin + vecMove, PM_NORMAL, -1 );
+
+				// Save trace pos
+				vecOrigin = tr.endpos;
+
+				// Did hit a wall or started in solid
+				if ( tr.fraction != 1.f && !tr.allsolid && tr.plane.normal.z >= 0.7f )
+				{
+					bPredictedOnGround = true;
+				}
+				else
+				{
+					Vector point = vecOrigin;
+					point.z -= 2.f;
+
+					// Trace down
+					g_pPlayerMove->usehull = ( g_pPlayerMove->flags & FL_DUCKING ) ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER;
+
+					tr = g_pPlayerMove->PM_PlayerTrace( vecOrigin, point, PM_NORMAL, -1 );
+
+					if ( tr.plane.normal.z >= 0.7f )
+					{
+						bPredictedOnGround = true;
+					}
+				}
+
+				g_pPlayerMove->usehull = oldhull;
+
+				// Not needed actually
+				//FixupGravityVelocity( vecVelocity, flFrametime );
+
+				if ( bPredictedOnGround )
+				{
+					fps_prev = int( fps_max->value );
+
+					CVar()->SetValue( fps_max, sc_ducktap_adjust_fps.GetInt() );
+
+					// Record fps change
+					if ( g_InputManager.IsRecording() )
+					{
+						snprintf( fps_buffer, M_ARRAYSIZE( fps_buffer ), "fps_max %d", sc_ducktap_adjust_fps.GetInt() );
+						g_InputManager.RecordCommand( fps_buffer );
+					}
+
+					must_return_fps = true;
+					return;
+				}
+			}
+		}
+
 		if ( g_pPlayerMove->onground != -1 && onground_prev == -1 && !g_pPlayerMove->bInDuck )
 		{
 			cmd->buttons |= IN_DUCK;
@@ -1953,6 +2164,67 @@ void CMisc::Spinner(struct usercmd_s *cmd)
 		else
 		{
 			m_bSpinCanChangePitch = false;
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Trigger push boost exploit
+//-----------------------------------------------------------------------------
+
+void CMisc::TriggerPushExploit( struct usercmd_s *cmd )
+{
+	static int duck_wait = 0;
+
+	if ( false )
+	{
+		Vector vecMins, vecMaxs, vecDuckMins, vecDuckMaxs;
+
+		bool bInteractedWithTrigger = false;
+
+		vecMins = g_pPlayerMove->origin + VEC_HULL_MIN;
+		vecMaxs = g_pPlayerMove->origin + VEC_HULL_MAX;
+		
+		vecDuckMins = g_pPlayerMove->origin + VEC_DUCK_HULL_MIN;
+		vecDuckMaxs = g_pPlayerMove->origin + VEC_DUCK_HULL_MAX;
+
+		const std::vector<TriggerEntity> &triggers = g_Bsp.GetTriggers();
+
+		for ( const TriggerEntity &trigger : triggers )
+		{
+			Vector vecTriggerMins = trigger.vecOrigin + trigger.vecMins;
+			Vector vecTriggerMaxs = trigger.vecOrigin + trigger.vecMaxs;
+			
+			Vector vecTriggerTestMins = vecTriggerMins + VEC_HULL_MIN;
+			Vector vecTriggerTestMaxs = vecTriggerMaxs + VEC_HULL_MAX;
+
+			if ( UTIL_IsAABBIntersectingAABB( vecMins, vecMaxs, vecTriggerTestMins, vecTriggerTestMaxs ) )
+			{
+				if ( !UTIL_IsAABBIntersectingAABB( vecDuckMins, vecDuckMaxs, vecTriggerMins, vecTriggerMaxs ) )
+				{
+					if ( duck_wait > 1 )
+						duck_wait = 0;
+
+					if ( duck_wait <= 0 )
+						cmd->buttons |= IN_DUCK;
+					else
+						cmd->buttons &= ~IN_DUCK;
+
+					duck_wait++;
+				}
+				else
+				{
+					duck_wait = 0;
+					cmd->buttons &= ~IN_DUCK;
+				}
+
+				bInteractedWithTrigger = true;
+			}
+		}
+
+		if ( !bInteractedWithTrigger )
+		{
+			duck_wait = 0;
 		}
 	}
 }
@@ -2608,7 +2880,7 @@ void CMisc::AutoSelfSink(struct usercmd_s *cmd) // improve it tf
 
 			if ( g_pPlayerMove->onground == -1 )
 			{
-				g_pEngineFuncs->ClientCmd("kill\n");
+				g_pEngineFuncs->ClientCmd("kill");
 				s_bSelfSink = false;
 			}
 		}
@@ -2666,22 +2938,78 @@ void CMisc::AutoSelfSink(struct usercmd_s *cmd) // improve it tf
 
 		case 3:
 		{
+			if ( g_pPlayerMove->onground != -1 )
+			{
+				selfsink2_state = 0;
+				s_bSelfSink2 = false;
+				break;
+			}
+
+			pmtrace_t tr;
+
+			bool bPredictedOnGround = false;
+			int oldhull = g_pPlayerMove->usehull;
+			float flFrametime = g_pPlayerMove->frametime;
+			Vector vecVelocity = g_pPlayerMove->velocity;
+			Vector vecOrigin = g_pPlayerMove->origin;
+
+			for ( int i = 0; i < 2; i++ )
+			{
+				UTIL_AddCorrectGravity( vecVelocity, flFrametime );
+
+				Vector vecMove = vecVelocity * flFrametime;
+
+				// Trace forward
+				g_pPlayerMove->usehull = ( g_pPlayerMove->flags & FL_DUCKING ) ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER;
+				tr = g_pPlayerMove->PM_PlayerTrace( vecOrigin, vecOrigin + vecMove, PM_NORMAL, -1 );
+
+				// Save trace pos
+				vecOrigin = tr.endpos;
+
+				// Did hit a wall or started in solid
+				if ( tr.fraction != 1.f && !tr.allsolid && tr.plane.normal.z >= 0.7f )
+				{
+					bPredictedOnGround = true;
+				}
+				else
+				{
+					Vector point = vecOrigin;
+					point.z -= 2.f;
+
+					// Trace down
+					g_pPlayerMove->usehull = ( g_pPlayerMove->flags & FL_DUCKING ) ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER;
+					tr = g_pPlayerMove->PM_PlayerTrace( vecOrigin, point, PM_NORMAL, -1 );
+
+					if ( tr.plane.normal.z >= 0.7f )
+					{
+						bPredictedOnGround = true;
+					}
+				}
+
+				g_pPlayerMove->usehull = oldhull;
+
+				UTIL_FixupGravityVelocity( vecVelocity, flFrametime );
+
+				if ( bPredictedOnGround )
+				{
+					g_pEngineFuncs->ClientCmd( "kill" );
+
+					selfsink2_state = 0;
+					s_bSelfSink2 = false;
+
+					break;
+				}
+			}
+
+			cmd->buttons |= IN_DUCK;
+			break;
+
+			/*
 			//float ent_gravity;
 
 			//Vector vecMove;
-			Vector vecOrigin = g_pPlayerMove->origin;
+			//Vector vecOrigin = g_pPlayerMove->origin;
 			//Vector vecVelocity = g_pPlayerMove->velocity;
-
-			//const float frametime = 1.f / CVar()->FindCvar("fps_max")->value;
-
-			//if ( g_pPlayerMove->gravity )
-			//	ent_gravity = g_pPlayerMove->gravity;
-			//else
-			//	ent_gravity = 1.f;
-
-			//vecVelocity.z -= ( ent_gravity * g_pPlayerMove->movevars->gravity * frametime );
-
-			//vecMove = vecVelocity * frametime;
 
 			// Trace forward
 			const int old_hull = g_pPlayerMove->usehull;
@@ -2696,7 +3024,7 @@ void CMisc::AutoSelfSink(struct usercmd_s *cmd) // improve it tf
 			//vecOrigin = trace.endpos;
 
 			// Did hit a wall or started in solid
-			if ( ( ( /* trace.fraction != 1.f */ fabs( vecOrigin.z - trace.endpos.z ) <= sc_selfsink2_min_height.GetFloat() && !trace.allsolid ) || trace.startsolid ) )
+			if ( ( ( fabs( vecOrigin.z - trace.endpos.z ) <= sc_selfsink2_min_height.GetFloat() && !trace.allsolid ) || trace.startsolid ) )
 			{
 				g_pEngineFuncs->ClientCmd( "kill" );
 
@@ -2710,9 +3038,7 @@ void CMisc::AutoSelfSink(struct usercmd_s *cmd) // improve it tf
 				s_bSelfSink2 = false;
 				break;
 			}
-
-			cmd->buttons |= IN_DUCK;
-			break;
+			*/
 		}
 		}
 	}
@@ -2795,49 +3121,6 @@ void CMisc::ColorPulsator()
 }
 
 //-----------------------------------------------------------------------------
-// No Weapon Animations
-//-----------------------------------------------------------------------------
-
-void CMisc::NoWeaponAnim_HUD_PostRunCmd(struct local_state_s *to)
-{
-	cl_entity_s *pViewModel = g_pEngineFuncs->GetViewModel();
-
-	if (!pViewModel)
-		return;
-
-	static int s_iWeaponID = -1;
-	static int s_iWaitTicks = 0;
-	static char *s_pszWeaponName = NULL;
-
-	int nWeaponID = to->client.m_iId;
-
-	if (g_Config.cvars.no_weapon_anim == 2)
-	{
-		if (s_iWeaponID != nWeaponID || s_iWeaponID == 0 && (s_pszWeaponName && *s_pszWeaponName && pViewModel->model->name && *pViewModel->model->name && strcmp(pViewModel->model->name, s_pszWeaponName)))
-		{
-			s_pszWeaponName = pViewModel->model->name;
-			s_iWeaponID = nWeaponID;
-
-			s_iWaitTicks = 5;
-		}
-
-		if (s_iWaitTicks > 0)
-		{
-			g_pEngineFuncs->WeaponAnim(0, 0);
-
-			--s_iWaitTicks;
-		}
-	}
-	else if (g_Config.cvars.no_weapon_anim == 1)
-	{
-		g_pEngineFuncs->WeaponAnim(0, 0);
-
-		s_iWeaponID = nWeaponID;
-		s_iWaitTicks = 0;
-	}
-}
-
-//-----------------------------------------------------------------------------
 // Quake Guns
 //-----------------------------------------------------------------------------
 
@@ -2913,6 +3196,15 @@ bool CMisc::Load()
 	if ( !ex_interp )
 	{
 		Warning("Can't find cvar \"ex_interp\"\n");
+		return false;
+	}
+	
+
+	fps_max = CVar()->FindCvar("fps_max");
+
+	if ( !fps_max )
+	{
+		Warning("Can't find cvar \"fps_max\"\n");
 		return false;
 	}
 
