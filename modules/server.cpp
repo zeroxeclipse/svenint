@@ -1,19 +1,29 @@
 #include "server.h"
+#include "server_client_bridge.h"
 
 #include "../patterns.h"
+#include "../game/structs.h"
 #include "../scripts/scripts.h"
 
 #include <dbg.h>
 #include <convar.h>
 #include <ISvenModAPI.h>
-#include <IDetoursAPI.h>
 
 //-----------------------------------------------------------------------------
-// Function pointers
+// Hooks & function pointers
 //-----------------------------------------------------------------------------
 
+DECLARE_HOOK( void, __cdecl, Use, edict_t *, edict_t * );
+DECLARE_HOOK( void, __cdecl, Touch, edict_t *, edict_t * );
 DECLARE_HOOK( void, __cdecl, PlayerSpawns, edict_t *, edict_t * );
+DECLARE_HOOK( bool, __cdecl, FixPlayerStuck, edict_t * );
 DECLARE_HOOK( void, __cdecl, ClientKill, edict_t * );
+DECLARE_HOOK( void, __cdecl, ClientPutInServer, edict_t * );
+
+DECLARE_CLASS_HOOK( void, CBasePlayer__SpecialSpawn, void * );
+DECLARE_CLASS_HOOK( void, CBasePlayer__BeginRevive, void *, float );
+DECLARE_CLASS_HOOK( void, CBasePlayer__EndRevive, void *, float );
+
 DECLARE_HOOK( void, __cdecl, RunPlayerMove, edict_t *, const float *, float, float, float, unsigned short, byte, byte );
 
 FUNC_SIGNATURE( void *, __cdecl, GetSurvivalModeInstanceFn );
@@ -26,7 +36,7 @@ CSurvivalMode__ToggleFn CSurvivalMode__Toggle = NULL;
 // Globals
 //-----------------------------------------------------------------------------
 
-HMODULE g_hServerDLL = NULL;
+CServerModule g_ServerModule;
 
 globalvars_t *gpGlobals = NULL;
 globalvars_t **gpGlobals_ptr = NULL;
@@ -37,32 +47,10 @@ NEW_DLL_FUNCTIONS *g_pNewServerFuncs = NULL;
 
 Host_IsServerActiveFn Host_IsServerActive = NULL;
 
-static DetourHandle_t hPlayerSpawns = DETOUR_INVALID_HANDLE;
-static DetourHandle_t hClientKill = DETOUR_INVALID_HANDLE;
-static void *s_pfnPlayerSpawns = NULL;
-
 // stores dll funcs
 static enginefuncs_t g_ServerEngineFuncs;
 static DLL_FUNCTIONS g_ServerFuncs;
 static NEW_DLL_FUNCTIONS g_NewServerFuncs;
-
-//-----------------------------------------------------------------------------
-// Hooks
-//-----------------------------------------------------------------------------
-
-DECLARE_FUNC( void, __cdecl, HOOKED_PlayerSpawns, edict_t *pSpawnSpot, edict_t *pPlayer )
-{
-	ORIG_PlayerSpawns( pSpawnSpot, pPlayer );
-
-	g_ScriptCallbacks.OnPlayerSpawn( pSpawnSpot, pPlayer );
-}
-
-DECLARE_FUNC( void, __cdecl, HOOKED_ClientKill, edict_t *pPlayer )
-{
-	ORIG_ClientKill( pPlayer );
-
-	g_ScriptCallbacks.OnClientKill( pPlayer );
-}
 
 //-----------------------------------------------------------------------------
 // ConCommands
@@ -74,20 +62,20 @@ CON_COMMAND( setpos, "Set local player's position" )
 	{
 		edict_t *pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( Client()->GetPlayerIndex() );
 
-		if ( !FNullEnt( pPlayer ) && IsValidEntity( pPlayer ) && pPlayer->pvPrivateData != NULL )
+		if ( !FNullEnt( pPlayer ) && IsValidEntity( pPlayer ) )
 		{
 			Vector vecOrigin = pPlayer->v.origin;
 
-			vecOrigin.x = atof( args[1] );
+			vecOrigin.x = atof( args[ 1 ] );
 
 			if ( args.ArgC() > 2 )
 			{
-				vecOrigin.y = atof( args[2] );
+				vecOrigin.y = atof( args[ 2 ] );
 			}
 
 			if ( args.ArgC() > 3 )
 			{
-				vecOrigin.z = atof( args[3] );
+				vecOrigin.z = atof( args[ 3 ] );
 			}
 
 			pPlayer->v.origin = vecOrigin;
@@ -101,20 +89,20 @@ CON_COMMAND( setpos_exact, "Set local player's position" )
 	{
 		edict_t *pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( Client()->GetPlayerIndex() );
 
-		if ( !FNullEnt( pPlayer ) && IsValidEntity( pPlayer ) && pPlayer->pvPrivateData != NULL )
+		if ( !FNullEnt( pPlayer ) && IsValidEntity( pPlayer ) )
 		{
 			Vector vecOrigin = pPlayer->v.origin;
 
-			vecOrigin.x = atof( args[1] );
+			vecOrigin.x = atof( args[ 1 ] );
 
 			if ( args.ArgC() > 2 )
 			{
-				vecOrigin.y = atof( args[2] );
+				vecOrigin.y = atof( args[ 2 ] );
 			}
 
 			if ( args.ArgC() > 3 )
 			{
-				vecOrigin.z = atof( args[3] ) - pPlayer->v.view_ofs.z;
+				vecOrigin.z = atof( args[ 3 ] ) - pPlayer->v.view_ofs.z;
 			}
 
 			pPlayer->v.origin = vecOrigin;
@@ -128,20 +116,20 @@ CON_COMMAND( setvel, "Set local player's position" )
 	{
 		edict_t *pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( Client()->GetPlayerIndex() );
 
-		if ( !FNullEnt( pPlayer ) && IsValidEntity( pPlayer ) && pPlayer->pvPrivateData != NULL )
+		if ( !FNullEnt( pPlayer ) && IsValidEntity( pPlayer ) )
 		{
 			Vector vecVelocity = pPlayer->v.velocity;
 
-			vecVelocity.x = atof( args[1] );
+			vecVelocity.x = atof( args[ 1 ] );
 
 			if ( args.ArgC() > 2 )
 			{
-				vecVelocity.y = atof( args[2] );
+				vecVelocity.y = atof( args[ 2 ] );
 			}
 
 			if ( args.ArgC() > 3 )
 			{
-				vecVelocity.z = atof( args[3] );
+				vecVelocity.z = atof( args[ 3 ] );
 			}
 
 			pPlayer->v.velocity = vecVelocity;
@@ -150,16 +138,100 @@ CON_COMMAND( setvel, "Set local player's position" )
 }
 
 //-----------------------------------------------------------------------------
+// Hooks
+//-----------------------------------------------------------------------------
+
+DECLARE_FUNC( void, __cdecl, HOOKED_Use, edict_t *pUseEntity, edict_t *pOther )
+{
+	ORIG_Use( pUseEntity, pOther );
+
+	g_ScriptCallbacks.OnEntityUse( pUseEntity, pOther );
+}
+
+DECLARE_FUNC( void, __cdecl, HOOKED_Touch, edict_t *pTouchEntity, edict_t *pOther )
+{
+	ORIG_Touch( pTouchEntity, pOther );
+
+	g_ScriptCallbacks.OnEntityTouch( pTouchEntity, pOther );
+}
+
+DECLARE_FUNC( void, __cdecl, HOOKED_PlayerSpawns, edict_t *pSpawnSpot, edict_t *pPlayer )
+{
+	ORIG_PlayerSpawns( pSpawnSpot, pPlayer );
+
+	g_ScriptCallbacks.OnPlayerSpawn( pSpawnSpot, pPlayer );
+}
+
+DECLARE_FUNC( bool, __cdecl, HOOKED_FixPlayerStuck, edict_t *pPlayer )
+{
+	bool bUnstuck = ORIG_FixPlayerStuck( pPlayer );
+
+	if ( bUnstuck )
+		g_ScriptCallbacks.OnPlayerUnstuck( pPlayer );
+
+	return bUnstuck;
+}
+
+DECLARE_FUNC( void, __cdecl, HOOKED_ClientKill, edict_t *pPlayer )
+{
+	ORIG_ClientKill( pPlayer );
+
+	g_ScriptCallbacks.OnClientKill( pPlayer );
+}
+
+DECLARE_FUNC( void, __cdecl, HOOKED_ClientPutInServer, edict_t *pPlayer )
+{
+	ORIG_ClientPutInServer( pPlayer );
+
+	g_ServerClientBridge.OnClientPutInServer( pPlayer );
+	g_ScriptCallbacks.OnClientPutInServer( pPlayer );
+}
+
+DECLARE_CLASS_FUNC( void, HOOKED_CBasePlayer__SpecialSpawn, void *thisptr )
+{
+	ORIG_CBasePlayer__SpecialSpawn( thisptr );
+
+	// Skip vtable and then get player's entvars
+	entvars_t *entvars = *(entvars_t **)( (unsigned long *)thisptr + 1 );
+	edict_t *pPlayer = g_pServerEngineFuncs->pfnFindEntityByVars( entvars );
+
+	if ( pPlayer != NULL )
+		g_ScriptCallbacks.OnSpecialSpawn( pPlayer );
+}
+
+DECLARE_CLASS_FUNC( void, HOOKED_CBasePlayer__BeginRevive, void *thisptr, float flNextThink )
+{
+	ORIG_CBasePlayer__BeginRevive( thisptr, flNextThink );
+
+	entvars_t *entvars = *(entvars_t **)( (unsigned long *)thisptr + 1 );
+	edict_t *pPlayer = g_pServerEngineFuncs->pfnFindEntityByVars( entvars );
+
+	if ( pPlayer != NULL )
+		g_ScriptCallbacks.OnBeginPlayerRevive( pPlayer );
+}
+
+DECLARE_CLASS_FUNC( void, HOOKED_CBasePlayer__EndRevive, void *thisptr, float flNextThink )
+{
+	ORIG_CBasePlayer__EndRevive( thisptr, flNextThink );
+
+	entvars_t *entvars = *(entvars_t **)( (unsigned long *)thisptr + 1 );
+	edict_t *pPlayer = g_pServerEngineFuncs->pfnFindEntityByVars( entvars );
+
+	if ( pPlayer != NULL )
+		g_ScriptCallbacks.OnEndPlayerRevive( pPlayer );
+}
+
+//-----------------------------------------------------------------------------
 // Server functions
 //-----------------------------------------------------------------------------
 
 bool IsSurvivalModeEnabled( void )
 {
-	void *pSurvivalMode = GetSurvivalModeInstance();
+	CSurvivalMode *pSurvivalMode = reinterpret_cast<CSurvivalMode *>( GetSurvivalModeInstance() );
 
 	if ( pSurvivalMode != NULL )
 	{
-		return !!( *(unsigned char *)( (unsigned long *)pSurvivalMode + 3 ) );
+		return pSurvivalMode->m_bEnabled;
 	}
 
 	return false;
@@ -167,15 +239,15 @@ bool IsSurvivalModeEnabled( void )
 
 bool EnableSurvivalMode( void )
 {
-	void *pSurvivalMode = GetSurvivalModeInstance();
+	CSurvivalMode *pSurvivalMode = reinterpret_cast<CSurvivalMode *>( GetSurvivalModeInstance() );
 
 	if ( pSurvivalMode != NULL )
 	{
-		bool bEnabled = !!( *(unsigned char *)( (unsigned long *)pSurvivalMode + 3 ) );
+		bool bEnabled = pSurvivalMode->m_bEnabled;
 
 		if ( !bEnabled )
 		{
-			*(unsigned char *)( (unsigned long *)pSurvivalMode + 1 ) = ( *(unsigned char *)( (unsigned long *)pSurvivalMode + 3 ) == 0 );
+			pSurvivalMode->m_bEnabledNow = ( pSurvivalMode->m_bEnabled == false );
 
 			CSurvivalMode__Toggle( pSurvivalMode );
 			return true;
@@ -187,15 +259,15 @@ bool EnableSurvivalMode( void )
 
 bool DisableSurvivalMode( void )
 {
-	void *pSurvivalMode = GetSurvivalModeInstance();
+	CSurvivalMode *pSurvivalMode = reinterpret_cast<CSurvivalMode *>( GetSurvivalModeInstance() );
 
 	if ( pSurvivalMode != NULL )
 	{
-		bool bEnabled = !!( *(unsigned char *)( (unsigned long *)pSurvivalMode + 3 ) );
+		bool bEnabled = pSurvivalMode->m_bEnabled;
 
 		if ( bEnabled )
 		{
-			*(unsigned char *)( (unsigned long *)pSurvivalMode + 1 ) = ( *(unsigned char *)( (unsigned long *)pSurvivalMode + 3 ) == 0 );
+			pSurvivalMode->m_bEnabledNow = ( pSurvivalMode->m_bEnabled == false );
 
 			CSurvivalMode__Toggle( pSurvivalMode );
 			return true;
@@ -206,17 +278,37 @@ bool DisableSurvivalMode( void )
 }
 
 //-----------------------------------------------------------------------------
+// CServerModule
+//-----------------------------------------------------------------------------
+
+CServerModule::CServerModule()
+{
+	m_hServerDLL = NULL;
+
+	m_pCBasePlayerVMT = NULL;
+	m_pfnPlayerSpawns = NULL;
+
+	m_hUse = DETOUR_INVALID_HANDLE;
+	m_hTouch = DETOUR_INVALID_HANDLE;
+	m_hPlayerSpawns = DETOUR_INVALID_HANDLE;
+	m_hClientKill = DETOUR_INVALID_HANDLE;
+	m_hClientPutInServer = DETOUR_INVALID_HANDLE;
+	m_hCBasePlayer__SpecialSpawn = DETOUR_INVALID_HANDLE;
+}
+
+//-----------------------------------------------------------------------------
 // Initialize server's library
 //-----------------------------------------------------------------------------
 
-bool InitServerDLL()
+bool CServerModule::Init( void )
 {
 	ud_t inst;
+	bool ScanOK = true;
 
-	g_hServerDLL = Sys_GetModuleHandle( "server.dll" );
+	m_hServerDLL = Sys_GetModuleHandle( "server.dll" );
 
 	// Load server library
-	if ( g_hServerDLL == NULL )
+	if ( m_hServerDLL == NULL )
 	{
 		void *pfnSys_InitializeGameDLL = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::Sys_InitializeGameDLL );
 
@@ -228,7 +320,7 @@ bool InitServerDLL()
 
 		( ( void ( * )( void ) )pfnSys_InitializeGameDLL )( );
 
-		if ( ( g_hServerDLL = Sys_GetModuleHandle( "server.dll" ) ) == NULL )
+		if ( ( m_hServerDLL = Sys_GetModuleHandle( "server.dll" ) ) == NULL )
 		{
 			Warning( "Failed to load server's binary\n" );
 			return false;
@@ -240,9 +332,9 @@ bool InitServerDLL()
 	// Get API functions
 	int iNewDllFunctionsVersion = NEW_DLL_FUNCTIONS_VERSION;
 
-	void *GiveFnptrsToDll = Sys_GetProcAddress( g_hServerDLL, "GiveFnptrsToDll" );
-	APIFUNCTION GetEntityAPI = (APIFUNCTION)Sys_GetProcAddress( g_hServerDLL, "GetEntityAPI" );
-	NEW_DLL_FUNCTIONS_FN GetNewDLLFunctions = (NEW_DLL_FUNCTIONS_FN)Sys_GetProcAddress( g_hServerDLL, "GetNewDLLFunctions" );
+	void *GiveFnptrsToDll = Sys_GetProcAddress( m_hServerDLL, "GiveFnptrsToDll" );
+	APIFUNCTION GetEntityAPI = (APIFUNCTION)Sys_GetProcAddress( m_hServerDLL, "GetEntityAPI" );
+	NEW_DLL_FUNCTIONS_FN GetNewDLLFunctions = (NEW_DLL_FUNCTIONS_FN)Sys_GetProcAddress( m_hServerDLL, "GetNewDLLFunctions" );
 
 	if ( GiveFnptrsToDll == NULL )
 	{
@@ -297,15 +389,58 @@ bool InitServerDLL()
 	g_pServerFuncs = &g_ServerFuncs;
 	g_pNewServerFuncs = &g_NewServerFuncs;
 
-	// Get Host_IsServerActive
-	void *pfnCL_ClearState = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::CL_ClearState );
+	// Async patterns scanning
+	void *pfnCL_ClearState, *pgpGlobals, *pCBasePlayer_dtor_vmt;
+	unsigned char *pfntoggle_survival_mode_Callback;
 
-	if ( !pfnCL_ClearState )
+	auto fpfnCL_ClearState = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::CL_ClearState );
+	auto fpgpGlobals = MemoryUtils()->FindPatternAsync( m_hServerDLL, Patterns::Server::gpGlobals );
+	auto fpfntoggle_survival_mode_Callback = MemoryUtils()->FindPatternAsync( m_hServerDLL, Patterns::Server::toggle_survival_mode_Callback );
+	auto fm_pfnCBasePlayer__SpecialSpawn = MemoryUtils()->FindPatternAsync( m_hServerDLL, Patterns::Server::CBasePlayer__SpecialSpawn );
+	auto fm_pfnPlayerSpawns = MemoryUtils()->FindPatternAsync( m_hServerDLL, Patterns::Server::PlayerSpawns );
+	auto fm_pfnFixPlayerStuck = MemoryUtils()->FindPatternAsync( m_hServerDLL, Patterns::Server::FixPlayerStuck );
+	auto fpCBasePlayer_dtor_vmt = MemoryUtils()->FindPatternAsync( m_hServerDLL, Patterns::Server::CBasePlayer__vtable );
+
+	if ( !( pfnCL_ClearState = fpfnCL_ClearState.get() ) )
 	{
 		Warning( "Failed to locate function \"Host_IsServerActive\"\n" );
-		return false;
+		ScanOK = false;
 	}
 
+	if ( !( pgpGlobals = fpgpGlobals.get() ) )
+	{
+		Warning( "Couldn't locate \"gpGlobals\"\n" );
+		ScanOK = false;
+	}
+
+	if ( !( pfntoggle_survival_mode_Callback = (unsigned char *)fpfntoggle_survival_mode_Callback.get() ) )
+	{
+		Warning( "Couldn't locate \"toggle_survival_mode_Callback\"\n" );
+		ScanOK = false;
+	}
+
+	if ( !( m_pfnPlayerSpawns = fm_pfnPlayerSpawns.get() ) )
+	{
+		Warning( "Failed to locate function \"PlayerSpawns\"\n" );
+		ScanOK = false;
+	}
+	
+	if ( !( m_pfnFixPlayerStuck = fm_pfnFixPlayerStuck.get() ) )
+	{
+		Warning( "Failed to locate function \"FixPlayerStuck\"\n" );
+		ScanOK = false;
+	}
+
+	if ( !( pCBasePlayer_dtor_vmt = fpCBasePlayer_dtor_vmt.get() ) )
+	{
+		Warning( "Failed to locate VMT of CBasePlayer class\n" );
+		ScanOK = false;
+	}
+
+	if ( !ScanOK )
+		return false;
+
+	// Get Host_IsServerActive
 	MemoryUtils()->InitDisasm( &inst, pfnCL_ClearState, 32, 16 );
 
 	if ( MemoryUtils()->Disassemble( &inst ) )
@@ -328,14 +463,6 @@ bool InitServerDLL()
 	}
 
 	// Get gpGlobals
-	void *pgpGlobals = MemoryUtils()->FindPattern( g_hServerDLL, Patterns::Server::gpGlobals );
-
-	if ( !pgpGlobals )
-	{
-		Warning( "Couldn't locate \"gpGlobals\"\n" );
-		return false;
-	}
-
 	MemoryUtils()->InitDisasm( &inst, pgpGlobals, 32, 16 );
 
 	if ( MemoryUtils()->Disassemble( &inst ) )
@@ -358,14 +485,6 @@ bool InitServerDLL()
 	}
 
 	// Survival mode functions
-	unsigned char *pfntoggle_survival_mode_Callback = (unsigned char *)MemoryUtils()->FindPattern( g_hServerDLL, Patterns::Server::toggle_survival_mode_Callback );
-
-	if ( !pfntoggle_survival_mode_Callback )
-	{
-		Warning( "Couldn't locate \"toggle_survival_mode_Callback\"\n" );
-		return false;
-	}
-
 	int iDisassembledBytes = 0;
 	MemoryUtils()->InitDisasm( &inst, pfntoggle_survival_mode_Callback, 32, 24 );
 
@@ -396,18 +515,12 @@ bool InitServerDLL()
 		return false;
 	}
 
-	// PlayerSpawns
-	s_pfnPlayerSpawns = MemoryUtils()->FindPattern( g_hServerDLL, Patterns::Server::PlayerSpawns );
-
-	if ( !s_pfnPlayerSpawns )
-	{
-		Warning( "Failed to locate function \"PlayerSpawns\"\n" );
-		return false;
-	}
+	// Get VMT of CBasePlayer
+	m_pCBasePlayerVMT = *(void **)( (unsigned char *)pCBasePlayer_dtor_vmt + 2 );
 
 	// Tertiary attack glitch
 	extern void InitTertiaryAttackGlitch_Server( HMODULE hServerDLL );
-	InitTertiaryAttackGlitch_Server( g_hServerDLL );
+	InitTertiaryAttackGlitch_Server( m_hServerDLL );
 
 	return true;
 }
@@ -416,18 +529,47 @@ bool InitServerDLL()
 // Post initialize server's library
 //-----------------------------------------------------------------------------
 
-void PostInitServerDLL()
+void CServerModule::PostInit( void )
 {
-	hClientKill = DetoursAPI()->DetourFunction( g_pServerFuncs->pfnClientKill, HOOKED_ClientKill, GET_FUNC_PTR( ORIG_ClientKill ) );
-	hPlayerSpawns = DetoursAPI()->DetourFunction( s_pfnPlayerSpawns, HOOKED_PlayerSpawns, GET_FUNC_PTR( ORIG_PlayerSpawns ) );
+	void *dummyBasePlayer = m_pCBasePlayerVMT;
+
+	m_hUse = DetoursAPI()->DetourFunction( g_pServerFuncs->pfnUse, HOOKED_Use, GET_FUNC_PTR( ORIG_Use ) );
+	m_hTouch = DetoursAPI()->DetourFunction( g_pServerFuncs->pfnTouch, HOOKED_Touch, GET_FUNC_PTR( ORIG_Touch ) );
+	m_hClientKill = DetoursAPI()->DetourFunction( g_pServerFuncs->pfnClientKill, HOOKED_ClientKill, GET_FUNC_PTR( ORIG_ClientKill ) );
+	m_hClientPutInServer = DetoursAPI()->DetourFunction( g_pServerFuncs->pfnClientPutInServer, HOOKED_ClientPutInServer, GET_FUNC_PTR( ORIG_ClientPutInServer ) );
+	m_hPlayerSpawns = DetoursAPI()->DetourFunction( m_pfnPlayerSpawns, HOOKED_PlayerSpawns, GET_FUNC_PTR( ORIG_PlayerSpawns ) );
+	m_hFixPlayerStuck = DetoursAPI()->DetourFunction( m_pfnFixPlayerStuck, HOOKED_FixPlayerStuck, GET_FUNC_PTR( ORIG_FixPlayerStuck ) );
+
+	m_hCBasePlayer__SpecialSpawn = DetoursAPI()->DetourVirtualFunction( &dummyBasePlayer,
+																		Offsets::BasePlayer::SpecialSpawn,
+																		HOOKED_CBasePlayer__SpecialSpawn,
+																		GET_FUNC_PTR( ORIG_CBasePlayer__SpecialSpawn ) );
+
+	m_hCBasePlayer__BeginRevive = DetoursAPI()->DetourVirtualFunction( &dummyBasePlayer,
+																		Offsets::BasePlayer::BeginRevive,
+																		HOOKED_CBasePlayer__BeginRevive,
+																		GET_FUNC_PTR( ORIG_CBasePlayer__BeginRevive ) );
+
+	m_hCBasePlayer__EndRevive = DetoursAPI()->DetourVirtualFunction( &dummyBasePlayer,
+																		Offsets::BasePlayer::EndRevive,
+																		HOOKED_CBasePlayer__EndRevive,
+																		GET_FUNC_PTR( ORIG_CBasePlayer__EndRevive ) );
 }
 
 //-----------------------------------------------------------------------------
 // Shutdown server's library
 //-----------------------------------------------------------------------------
 
-void ShutdownServerDLL()
+void CServerModule::Shutdown( void )
 {
-	DetoursAPI()->RemoveDetour( hClientKill );
-	DetoursAPI()->RemoveDetour( hPlayerSpawns );
+	DetoursAPI()->RemoveDetour( m_hUse );
+	DetoursAPI()->RemoveDetour( m_hTouch );
+	DetoursAPI()->RemoveDetour( m_hClientKill );
+	DetoursAPI()->RemoveDetour( m_hClientPutInServer );
+	DetoursAPI()->RemoveDetour( m_hPlayerSpawns );
+	DetoursAPI()->RemoveDetour( m_hFixPlayerStuck );
+
+	DetoursAPI()->RemoveDetour( m_hCBasePlayer__SpecialSpawn );
+	DetoursAPI()->RemoveDetour( m_hCBasePlayer__BeginRevive );
+	DetoursAPI()->RemoveDetour( m_hCBasePlayer__EndRevive );
 }
