@@ -1,4 +1,5 @@
 #include "lua_debug.h"
+#include "scripts.h"
 
 #include <dbg.h>
 
@@ -125,6 +126,9 @@ LUALIB_API int luaopen_print(lua_State *pLuaState)
 
 	lua_pushcfunction(pLuaState, printerrorl);
 	lua_setglobal(pLuaState, "printerrorl");
+
+	// printl wrapper for string formatting
+	g_ScriptVM.RunScript( "function printf( format, ... ) printl( string.format( format, ... ) ) end");
 
 	return 1;
 }
