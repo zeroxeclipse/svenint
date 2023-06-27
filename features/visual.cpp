@@ -57,6 +57,7 @@ bone_s g_Bones[MAXENTS + 1];
 #endif
 
 DECLARE_CLASS_HOOK(void, CClient_SoundEngine__PlayFMODSound, void *thisptr, int a2, int a3, float *pos, int a5, char *name, float a7, float a8, int a9, int a10, int a11, float a12);
+DECLARE_HOOK(int, __cdecl, V_FadeAlpha);
 //DECLARE_HOOK(void, __cdecl, EV_HLDM_PlayTextureSound, int idx, pmtrace_t *trace, float *vecSrc, float *vecEnd, int iBulletType);
 //DECLARE_HOOK(char, __cdecl, HUD_PlayerMoveTexture, const char *name);
 
@@ -340,72 +341,31 @@ void ShowLandPoint()
 	if ( !sc_predict_landing.GetBool() || !g_pPlayerMove->movevars )
 		return;
 
-	auto ApplyGravity = [](Vector &vecVelocity, float frametime)
-	{
-		float ent_gravity;
-
-		if (g_pPlayerMove->gravity)
-			ent_gravity = g_pPlayerMove->gravity;
-		else
-			ent_gravity = 1.f;
-  
-		vecVelocity.z -= (ent_gravity * g_pPlayerMove->movevars->gravity * frametime);
-	};
-	
-	auto AddCorrectGravity = [](Vector &vecVelocity, float frametime)
-	{
-		float ent_gravity;
-
-		if (g_pPlayerMove->gravity)
-			ent_gravity = g_pPlayerMove->gravity;
-		else
-			ent_gravity = 1.f;
-
-		// Add gravity so they'll be in the correct position during movement
-		// yes, this 0.5 looks wrong, but it's not.  
-		vecVelocity.z -= (ent_gravity * g_pPlayerMove->movevars->gravity * 0.5 * frametime);
-	};
-
-	auto FixupGravityVelocity = [](Vector &vecVelocity, float frametime)
-	{
-		float ent_gravity;
-
-		if ( g_pPlayerMove->gravity )
-			ent_gravity = g_pPlayerMove->gravity;
-		else
-			ent_gravity = 1.f;
-
-		vecVelocity.z -= (ent_gravity * g_pPlayerMove->movevars->gravity * frametime * 0.5f);
-	};
-
 	const float flFrametime = 1.f / fps_max->value;
 
 	int it = 0;
 	Vector vecVelocity = g_pPlayerMove->velocity;
 	Vector vecOrigin = g_pPlayerMove->origin;
 
-	//vecVelocity.AsVector2D() *= 0.5f; // wtf why, I don't know
-
 	// PM_Jump
 	if ( Client()->IsOnGround() )
 	{
 		vecVelocity.z += sqrtf(2.f * 800.f * 45.f);
 
-		FixupGravityVelocity(vecVelocity, flFrametime);
+		UTIL_FixupGravityVelocity(vecVelocity, flFrametime);
 	}
 
 	// Loop
 	do
 	{
 		// Apply gravity
-		ApplyGravity(vecVelocity, flFrametime);
-		AddCorrectGravity(vecVelocity, flFrametime);
+		UTIL_AddCorrectGravity(vecVelocity, flFrametime);
 
 		Vector vecMove = vecVelocity * flFrametime;
 
 		// Trace forward
 		const int old_hull = g_pPlayerMove->usehull;
-		g_pPlayerMove->usehull = PM_HULL_PLAYER;
+		g_pPlayerMove->usehull = ( g_pPlayerMove->flags & FL_DUCKING ) ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER;
 
 		pmtrace_t trace = g_pPlayerMove->PM_PlayerTrace( vecOrigin, vecOrigin + vecMove, PM_NORMAL, -1 );
 
@@ -417,11 +377,16 @@ void ShowLandPoint()
 		// Did hit a wall or started in solid
 		if ( ( trace.fraction != 1.f && !trace.allsolid ) || trace.startsolid )
 		{
-			Render()->DrawBox( vecOrigin, Vector(-2, -2, -2), Vector(2, 2, 2), { 255, 255, 255, 150 } );
+			float flHeightShift = ( g_pPlayerMove->usehull == PM_HULL_DUCKED_PLAYER ? VEC_DUCK_HULL_MIN.z : VEC_HULL_MIN.z ) + 2.f;
+
+			Render()->DrawBox( vecOrigin + ( Vector( 0.f, 0.f, flHeightShift ) ),
+							   Vector(-2, -2, -2),
+							   Vector(2, 2, 2),
+							   { 255, 255, 255, 150 } );
 			break;
 		}
 
-		FixupGravityVelocity(vecVelocity, flFrametime);
+		UTIL_FixupGravityVelocity(vecVelocity, flFrametime);
 
 		it++;
 	}
@@ -1116,6 +1081,7 @@ void CVisual::ESP()
 	static Vector vecTop;
 
 	bool bSpectating = Client()->IsSpectating();
+	int iLocalPlayer = g_pPlayerMove->player_index + 1;
 
 	cl_entity_s *pLocal = g_pEngineFuncs->GetLocalPlayer();
 	CEntity *pEnts = g_EntityList.GetList();
@@ -1125,6 +1091,9 @@ void CVisual::ESP()
 		CEntity &ent = pEnts[i];
 
 		if ( !ent.m_bValid )
+			continue;
+
+		if ( iLocalPlayer == i )
 			continue;
 
 		cl_entity_t *pEntity = ent.m_pEntity;
@@ -1157,7 +1126,7 @@ void CVisual::ESP()
 
 		if ( !bPlayer )
 		{
-			if ( ent.m_classInfo.id == CLASS_NONE && g_Config.cvars.esp_ignore_unknown_ents )
+			if ( ent.m_classInfo.id == CLASS_NONE && g_Config.cvars.esp_ignore_unknown_ents || ent.m_classInfo.id == CLASS_DEAD_PLAYER )
 				continue;
 
 			// Don't process if entity isn't an ESP's target
@@ -1894,7 +1863,7 @@ void CVisual::ProcessBones()
 
 	if ( !bPlayer )
 	{
-		if ( ent.m_classInfo.id == CLASS_NONE && g_Config.cvars.esp_ignore_unknown_ents )
+		if ( ent.m_classInfo.id == CLASS_NONE && g_Config.cvars.esp_ignore_unknown_ents || ent.m_classInfo.id == CLASS_DEAD_PLAYER )
 			return;
 	}
 
@@ -2034,6 +2003,14 @@ DECLARE_CLASS_FUNC(void, HOOKED_CClient_SoundEngine__PlayFMODSound, void *thispt
 	}
 }
 
+DECLARE_FUNC(int, __cdecl, HOOKED_V_FadeAlpha)
+{
+	if ( g_Config.cvars.no_fade )
+		return 0;
+
+	return ORIG_V_FadeAlpha();
+}
+
 //static char chTextureType = 0;
 //
 //DECLARE_FUNC(void, __cdecl, HOOKED_EV_HLDM_PlayTextureSound, int idx, pmtrace_t *trace, float *vecSrc, float *vecEnd, int iBulletType)
@@ -2122,7 +2099,9 @@ CVisual::CVisual()
 	m_bOnGround = true;
 
 	m_pfnCClient_SoundEngine__PlayFMODSound = NULL;
+	m_pfnV_FadeAlpha = NULL;
 
+	m_hV_FadeAlpha = 0;
 	//m_hUserMsgHook_StartSound = 0;
 	m_hUserMsgHook_CreateBlood = 0;
 	m_hUserMsgHook_ScreenShake = 0;
@@ -2150,6 +2129,14 @@ bool CVisual::Load()
 	if ( m_pfnCClient_SoundEngine__PlayFMODSound == NULL )
 	{
 		Warning("Failed to find function \"CClient_SoundEngine::PlayFMODSound\"\n");
+		return false;
+	}
+	
+	m_pfnV_FadeAlpha = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::V_FadeAlpha );
+
+	if ( m_pfnV_FadeAlpha == NULL )
+	{
+		Warning("Failed to find function \"V_FadeAlpha\"\n");
 		return false;
 	}
 	
@@ -2186,6 +2173,7 @@ void CVisual::PostLoad()
 	g_pBoneTransform = (bone_matrix3x4_t *)g_pEngineStudio->StudioGetLightTransform();
 
 	m_hCClient_SoundEngine__PlayFMODSound = DetoursAPI()->DetourFunction( m_pfnCClient_SoundEngine__PlayFMODSound, HOOKED_CClient_SoundEngine__PlayFMODSound, GET_FUNC_PTR(ORIG_CClient_SoundEngine__PlayFMODSound) );
+	m_hV_FadeAlpha = DetoursAPI()->DetourFunction( m_pfnV_FadeAlpha, HOOKED_V_FadeAlpha, GET_FUNC_PTR( ORIG_V_FadeAlpha ) );
 	//m_hEV_HLDM_PlayTextureSound = DetoursAPI()->DetourFunction( m_pfnEV_HLDM_PlayTextureSound, HOOKED_EV_HLDM_PlayTextureSound, GET_FUNC_PTR(ORIG_EV_HLDM_PlayTextureSound) );
 	//m_hHUD_PlayerMoveTexture = DetoursAPI()->DetourFunction( pfnHUD_PlayerMoveTexture, HOOKED_HUD_PlayerMoveTexture, GET_FUNC_PTR(ORIG_HUD_PlayerMoveTexture) );
 
@@ -2201,6 +2189,7 @@ void CVisual::Unload()
 		VGUI()->Surface()->DeleteTextureByID( m_hHitMarkerTexture );
 
 	DetoursAPI()->RemoveDetour( m_hCClient_SoundEngine__PlayFMODSound );
+	DetoursAPI()->RemoveDetour( m_hV_FadeAlpha );
 	//DetoursAPI()->RemoveDetour( m_hEV_HLDM_PlayTextureSound );
 	//DetoursAPI()->RemoveDetour( m_hHUD_PlayerMoveTexture );
 	

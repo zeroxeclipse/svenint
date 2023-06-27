@@ -99,9 +99,11 @@ private:
 	bool m_bOnGround;
 
 	void *m_pfnCClient_SoundEngine__PlayFMODSound;
+	void *m_pfnV_FadeAlpha;
 	void *m_pfnEV_HLDM_PlayTextureSound;
 
 	DetourHandle_t m_hCClient_SoundEngine__PlayFMODSound;
+	DetourHandle_t m_hV_FadeAlpha;
 	//DetourHandle_t m_hEV_HLDM_PlayTextureSound;
 	//DetourHandle_t m_hHUD_PlayerMoveTexture;
 	//DetourHandle_t m_hUserMsgHook_StartSound;
