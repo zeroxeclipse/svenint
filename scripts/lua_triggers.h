@@ -16,7 +16,7 @@
 // Triggers
 //-----------------------------------------------------------------------------
 
-struct Lua_ClientTrigger
+struct Lua_Trigger
 {
 	std::string name;
 
@@ -25,20 +25,29 @@ struct Lua_ClientTrigger
 	Vector maxs;
 };
 
-class CClientTriggerManager
+class CLuaTriggerManager
 {
 public:
-	CClientTriggerManager();
+	CLuaTriggerManager();
 
 	void Frame(lua_State *pLuaState);
+
 	void AddTrigger(const char *pszName, const Vector &vecOrigin, const Vector &vecMins, const Vector &vecMaxs);
+	void AddServerTrigger(const char *pszName, const Vector &vecOrigin, const Vector &vecMins, const Vector &vecMaxs);
+
 	void ClearTriggers();
+	void ClearServerTriggers();
 
 private:
-	std::vector<Lua_ClientTrigger> m_vTriggers;
+	void TriggersThink( lua_State *pLuaState );
+	void ServerTriggersThink( lua_State *pLuaState );
+
+private:
+	std::vector<Lua_Trigger> m_vTriggers;
+	std::vector<Lua_Trigger> m_vServerTriggers;
 };
 
 extern int luaopen_triggers(lua_State *L);
-extern CClientTriggerManager g_ClientTriggerManager;
+extern CLuaTriggerManager g_LuaTriggerManager;
 
 #endif // LUA_TRIGGERS_H
