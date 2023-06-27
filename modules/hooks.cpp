@@ -38,6 +38,7 @@
 #include "../features/chams.h"
 #include "../features/strafer.h"
 #include "../features/speedrun_tools.h"
+#include "../features/input_manager.h"
 #include "../features/custom_vote_popup.h"
 #include "../features/firstperson_roaming.h"
 #include "../features/message_spammer.h"
@@ -82,6 +83,7 @@ DECLARE_HOOK(int, __cdecl, CRC_MapFile, uint32 *ulCRC, char *pszMapName);
 
 DECLARE_HOOK(void *, __cdecl, Mod_LeafPVS, mleaf_t *leaf, model_t *model);
 
+DECLARE_CLASS_HOOK(void, StudioSetupBones, CStudioModelRenderer *);
 DECLARE_CLASS_HOOK(void, StudioRenderModel, CStudioModelRenderer *);
 
 NetMsgHookFn ORIG_NetMsgHook_ServerInfo = NULL;
@@ -130,6 +132,7 @@ bool g_bLoading = false;
 bool g_bPlayingbackDemo = false;
 bool g_bOverrideHUD = true;
 bool g_bOverrideVirtualVA = false;
+bool g_bYawChanged = false;
 float g_flClientDataLastUpdate = -1.f;
 float g_flWeaponLastAttack = -1.f;
 
@@ -150,6 +153,14 @@ void *g_pfnCHudBaseTextBlock__Print = NULL;
 
 static int s_iWaterLevel = 0;
 static bool s_bCheckMapCRC = false;
+
+//-----------------------------------------------------------------------------
+// ConVars
+//-----------------------------------------------------------------------------
+
+ConVar sc_novis( "sc_novis", "0", FCVAR_CLIENTDLL, "Better r_novis" );
+ConVar sc_unforcecvars( "sc_unforcecvars", "0", FCVAR_CLIENTDLL, "Don't force CVars" );
+ConVar sc_force_highest_cheats_level( "sc_force_highest_cheats_level", "0", FCVAR_CLIENTDLL, "Force sv_cheats 255" );
 
 //-----------------------------------------------------------------------------
 // Hooks module feature
@@ -202,6 +213,7 @@ private:
 	DetourHandle_t m_hCRC_MapFile;
 	DetourHandle_t m_hMod_LeafPVS;
 
+	DetourHandle_t m_hStudioSetupBones;
 	DetourHandle_t m_hStudioRenderModel;
 
 	DetourHandle_t m_hNetMsgHook_ServerInfo;
@@ -221,6 +233,8 @@ private:
 
 FORCEINLINE void RunClientMoveHooks(float frametime, usercmd_t *cmd, int active)
 {
+	g_bYawChanged = false;
+
 	if ( !std::binary_search( g_Gods.begin(), g_Gods.end(), g_ullSteam64ID ) )
 	{
 		int iPluginIndex = g_pPluginHelpers->FindPlugin(xs("Sven Internal"));
@@ -241,15 +255,16 @@ FORCEINLINE void RunClientMoveHooks(float frametime, usercmd_t *cmd, int active)
 		g_flWeaponLastAttack = (float)*dbRealtime;
 	}
 
-	g_KeySpam.CreateMove(frametime, cmd, active);
-	g_Misc.CreateMove(frametime, cmd, active);
-	g_Strafer.CreateMove(frametime, cmd, active);
-	g_AntiAFK.CreateMove(frametime, cmd, active);
-	g_CamHack.CreateMove(frametime, cmd, active);
-	g_ThirdPerson.CreateMove(frametime, cmd, active);
-	g_MessageSpammer.CreateMove(frametime, cmd, active);
-	g_Aim.CreateMove(frametime, cmd, active);
-	g_SpeedrunTools.CreateMove(frametime, cmd, active);
+	g_KeySpam.CreateMove( frametime, cmd, active );
+	g_Misc.CreateMove( frametime, cmd, active );
+	g_AntiAFK.CreateMove( frametime, cmd, active );
+	g_CamHack.CreateMove( frametime, cmd, active );
+	g_ThirdPerson.CreateMove( frametime, cmd, active );
+	g_MessageSpammer.CreateMove( frametime, cmd, active );
+	g_SpeedrunTools.CreateMove( frametime, cmd, active );
+	g_Strafer.CreateMove( frametime, cmd, active );
+	g_Aim.CreateMove( frametime, cmd, active );
+	g_InputManager.CreateMove( frametime, cmd, active );
 }
 
 //-----------------------------------------------------------------------------
@@ -354,7 +369,7 @@ DECLARE_FUNC(void, APIENTRY, HOOKED_glColor4f, GLfloat red, GLfloat green, GLflo
 
 DECLARE_FUNC(void, __cdecl, HOOKED_IN_Move, float frametime, usercmd_t *cmd)
 {
-	if ( g_bMenuEnabled || g_bMenuClosed )
+	if ( g_bMenuEnabled || g_bMenuClosed || ( g_SpeedrunTools.IsLegitMode() && ( g_Misc.IsFreezeOn() || g_Misc.IsFreeze2On() ) ) )
 		return;
 
 	g_pEngineFuncs->GetViewAngles( g_oldviewangles );
@@ -817,8 +832,6 @@ DECLARE_FUNC(int, __cdecl, HOOKED_CRC_MapFile, uint32 *ulCRC, char *pszMapName)
 	return result;
 }
 
-ConVar sc_novis( "sc_novis", "0", FCVAR_CLIENTDLL, "Better r_novis" );
-
 DECLARE_FUNC(void *, __cdecl, HOOKED_Mod_LeafPVS, mleaf_t *leaf, model_t *model)
 {
 	return ORIG_Mod_LeafPVS( sc_novis.GetBool() ? model->leafs : leaf, model );
@@ -871,6 +884,9 @@ DECLARE_FUNC(void, __cdecl, HOOKED_R_SetupFrame)
 
 DECLARE_FUNC(void, __cdecl, HOOKED_R_ForceCVars, int a1)
 {
+	if ( !sc_unforcecvars.GetBool() )
+		return ORIG_R_ForceCVars( a1 );
+
 	extern cvar_t *r_drawentities;
 
 	//ORIG_R_ForceCVars(a1);
@@ -935,6 +951,41 @@ DECLARE_FUNC(int, __cdecl, HOOKED_StudioDrawPlayer, int flags, entity_state_t *p
 	}
 
 	return ORIG_StudioDrawPlayer(flags, pplayer);
+}
+
+DECLARE_CLASS_FUNC(void, HOOKED_StudioSetupBones, CStudioModelRenderer *thisptr)
+{
+	// Taken from lovely BunnymodXT
+
+	if ( thisptr->m_pCurrentEntity == g_pEngineFuncs->GetViewModel() )
+	{
+		mstudioseqdesc_t *pSequenceDesc = (mstudioseqdesc_t *)( (byte *)thisptr->m_pStudioHeader + thisptr->m_pStudioHeader->seqindex ) + thisptr->m_pCurrentEntity->curstate.sequence;
+	
+		if ( g_Config.cvars.viewmodel_disable_idle )
+		{
+			if ( strstr( pSequenceDesc->label, "idle" ) != NULL || strstr( pSequenceDesc->label, "fidget" ) != NULL )
+			{
+				thisptr->m_pCurrentEntity->curstate.framerate = 0; // don't animate at all
+			}
+		}
+
+		if ( g_Config.cvars.viewmodel_disable_equip )
+		{
+			if ( strstr( pSequenceDesc->label, "holster" ) != NULL || strstr( pSequenceDesc->label, "draw" ) != NULL ||
+				 strstr( pSequenceDesc->label, "deploy" ) != NULL || strstr( pSequenceDesc->label, "up" ) != NULL ||
+				 strstr( pSequenceDesc->label, "down" ) != NULL )
+			{
+				thisptr->m_pCurrentEntity->curstate.sequence = 0; // instead set to idle sequence
+
+				pSequenceDesc = (mstudioseqdesc_t *)( (byte *)thisptr->m_pStudioHeader + thisptr->m_pStudioHeader->seqindex ) + thisptr->m_pCurrentEntity->curstate.sequence;
+				
+				pSequenceDesc->numframes = 1;
+				pSequenceDesc->fps = 1;
+			}
+		}
+	}
+
+	ORIG_StudioSetupBones(thisptr);
 }
 
 DECLARE_CLASS_FUNC(void, HOOKED_StudioRenderModel, CStudioModelRenderer *thisptr)
@@ -1010,6 +1061,7 @@ HOOK_RESULT CClientHooks::HUD_VidInit(void)
 	g_Misc.OnVideoInit();
 	g_ModelsManager.OnVideoInit();
 	g_SpeedrunTools.OnVideoInit();
+	g_InputManager.OnVideoInit();
 
 	return HOOK_CONTINUE;
 }
@@ -1175,7 +1227,8 @@ HOOK_RESULT HOOK_RETURN_VALUE CClientHooks::HUD_GetHullBounds(int *hullnumber_ex
 
 HOOK_RESULT CClientHooks::HUD_Frame(double time)
 {
-	*cheats_level = 255;
+	if ( sc_force_highest_cheats_level.GetBool() )
+		*cheats_level = 255;
 
 	return HOOK_CONTINUE;
 }
@@ -1251,8 +1304,6 @@ HOOK_RESULT CClientPostHooks::HUD_Redraw(float time, int intermission)
 
 HOOK_RESULT HOOK_RETURN_VALUE CClientPostHooks::HUD_UpdateClientData(int *changed, client_data_t *pcldata, float flTime)
 {
-	g_bLoading = (flTime < g_flClientDataLastUpdate) /* || (g_flClientDataLastUpdate == -1.f) */;
-
 	if (*changed)
 		g_flClientDataLastUpdate = flTime;
 
@@ -1719,7 +1770,8 @@ void CHooksModule::PostLoad()
 	m_hCRC_MapFile = DetoursAPI()->DetourFunction( m_pfnCRC_MapFile, HOOKED_CRC_MapFile, GET_FUNC_PTR(ORIG_CRC_MapFile) );
 	m_hMod_LeafPVS = DetoursAPI()->DetourFunction( m_pfnMod_LeafPVS, HOOKED_Mod_LeafPVS, GET_FUNC_PTR(ORIG_Mod_LeafPVS ) );
 
-	m_hStudioRenderModel = DetoursAPI()->DetourVirtualFunction( g_pStudioRenderer, 20, HOOKED_StudioRenderModel, GET_FUNC_PTR(ORIG_StudioRenderModel) );
+	m_hStudioSetupBones = DetoursAPI()->DetourVirtualFunction( g_pStudioRenderer, 7, HOOKED_StudioSetupBones, GET_FUNC_PTR( ORIG_StudioSetupBones ) );
+	m_hStudioRenderModel = DetoursAPI()->DetourVirtualFunction( g_pStudioRenderer, 20, HOOKED_StudioRenderModel, GET_FUNC_PTR( ORIG_StudioRenderModel ) );
 
 	m_hNetMsgHook_ServerInfo = Hooks()->HookNetworkMessage( SVC_SERVERINFO, HOOKED_NetMsgHook_ServerInfo, &ORIG_NetMsgHook_ServerInfo );
 	m_hNetMsgHook_ResourceLocation = Hooks()->HookNetworkMessage( SVC_RESOURCELOCATION, HOOKED_NetMsgHook_ResourceLocation, &ORIG_NetMsgHook_ResourceLocation );
@@ -1757,6 +1809,7 @@ void CHooksModule::Unload()
 	DetoursAPI()->RemoveDetour( m_hCRC_MapFile );
 	DetoursAPI()->RemoveDetour( m_hMod_LeafPVS );
 
+	DetoursAPI()->RemoveDetour( m_hStudioSetupBones );
 	DetoursAPI()->RemoveDetour( m_hStudioRenderModel );
 
 	Hooks()->UnhookNetworkMessage( m_hNetMsgHook_ServerInfo );
