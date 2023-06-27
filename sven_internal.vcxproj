@@ -96,6 +96,7 @@
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>glew\lib\Release\Win32;steam\lib;svenmod\lib\public;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>svenmod.lib;steam_api.lib;OpenGL32.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>D:\GAMES\Steam\steamapps\common\Sven Co-op\svenmod\plugins\$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -115,6 +116,7 @@
     <ClCompile Include="features\dynamic_glow.cpp" />
     <ClCompile Include="features\firstperson_roaming.cpp" />
     <ClCompile Include="features\flashlight.cpp" />
+    <ClCompile Include="features\input_manager.cpp" />
     <ClCompile Include="features\keyspam.cpp" />
     <ClCompile Include="features\message_spammer.cpp" />
     <ClCompile Include="features\misc.cpp" />
@@ -130,6 +132,7 @@
     <ClCompile Include="game\aim_prediction.cpp" />
     <ClCompile Include="game\class_table.cpp" />
     <ClCompile Include="game\drawing.cpp" />
+    <ClCompile Include="game\draw_context.cpp" />
     <ClCompile Include="game\entitylist.cpp" />
     <ClCompile Include="game\utils.cpp" />
     <ClCompile Include="imgui\imgui.cpp" />
@@ -188,9 +191,12 @@
     <ClCompile Include="scripts\lua_debug.cpp" />
     <ClCompile Include="scripts\lua_entity_dictionary.cpp" />
     <ClCompile Include="scripts\lua_entity_vars.cpp" />
+    <ClCompile Include="scripts\lua_input_manager.cpp" />
     <ClCompile Include="scripts\lua_logic.cpp" />
     <ClCompile Include="scripts\lua_mod.cpp" />
+    <ClCompile Include="scripts\lua_player_move.cpp" />
     <ClCompile Include="scripts\lua_triggers.cpp" />
+    <ClCompile Include="scripts\lua_usercmd.cpp" />
     <ClCompile Include="scripts\lua_vector.cpp" />
     <ClCompile Include="scripts\scripts.cpp" />
     <ClCompile Include="strafe\strafe.cpp" />
@@ -250,6 +256,7 @@
     <ClInclude Include="features\dynamic_glow.h" />
     <ClInclude Include="features\firstperson_roaming.h" />
     <ClInclude Include="features\flashlight.h" />
+    <ClInclude Include="features\input_manager.h" />
     <ClInclude Include="features\keyspam.h" />
     <ClInclude Include="features\message_spammer.h" />
     <ClInclude Include="features\misc.h" />
@@ -265,7 +272,9 @@
     <ClInclude Include="game\aim_prediction.h" />
     <ClInclude Include="game\class_table.h" />
     <ClInclude Include="game\drawing.h" />
+    <ClInclude Include="game\draw_context.h" />
     <ClInclude Include="game\entitylist.h" />
+    <ClInclude Include="game\structs.h" />
     <ClInclude Include="game\utils.h" />
     <ClInclude Include="imgui\imconfig.h" />
     <ClInclude Include="imgui\imgui.h" />
@@ -319,9 +328,12 @@
     <ClInclude Include="scripts\lua_debug.h" />
     <ClInclude Include="scripts\lua_entity_dictionary.h" />
     <ClInclude Include="scripts\lua_entity_vars.h" />
+    <ClInclude Include="scripts\lua_input_manager.h" />
     <ClInclude Include="scripts\lua_logic.h" />
     <ClInclude Include="scripts\lua_mod.h" />
+    <ClInclude Include="scripts\lua_player_move.h" />
     <ClInclude Include="scripts\lua_triggers.h" />
+    <ClInclude Include="scripts\lua_usercmd.h" />
     <ClInclude Include="scripts\lua_vector.h" />
     <ClInclude Include="scripts\scripts.h" />
     <ClInclude Include="strafe\strafe.h" />

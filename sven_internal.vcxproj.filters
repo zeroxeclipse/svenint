@@ -410,6 +410,21 @@
     <ClCompile Include="utils\demo_message.cpp">
       <Filter>Sven Internal\Utils</Filter>
     </ClCompile>
+    <ClCompile Include="features\input_manager.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua_input_manager.cpp">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua_usercmd.cpp">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="game\draw_context.cpp">
+      <Filter>Sven Internal\Game Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua_player_move.cpp">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">
@@ -789,6 +804,24 @@
     </ClInclude>
     <ClInclude Include="utils\demo_message.h">
       <Filter>Sven Internal\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="features\input_manager.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua_input_manager.h">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua_usercmd.h">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="game\draw_context.h">
+      <Filter>Sven Internal\Game Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="game\structs.h">
+      <Filter>Sven Internal\Game Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua_player_move.h">
+      <Filter>Sven Internal\Scripts</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
