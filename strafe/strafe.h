@@ -43,7 +43,7 @@ namespace Strafe
 
 	struct StrafeButtons
 	{
-		StrafeButtons() : AirLeft(Button::FORWARD), AirRight(Button::FORWARD), GroundLeft(Button::FORWARD), GroundRight(Button::FORWARD)
+		StrafeButtons() : AirLeft( Button::FORWARD ), AirRight( Button::FORWARD ), GroundLeft( Button::FORWARD ), GroundRight( Button::FORWARD )
 		{
 		}
 
@@ -55,12 +55,12 @@ namespace Strafe
 
 	struct PlayerData
 	{
-		PlayerData() : Origin{ 0.0f, 0.0f, 0.0f }, Velocity{ 0.0f, 0.0f, 0.0f }, SpeedBeforeFriction(0.0)
+		PlayerData() : Origin{ 0.0f, 0.0f, 0.0f }, Velocity{ 0.0f, 0.0f, 0.0f }, SpeedBeforeFriction( 0.0 )
 		{
 		}
 
-		float Origin[3];
-		float Velocity[3];
+		float Origin[ 3 ];
+		float Velocity[ 3 ];
 
 		double SpeedBeforeFriction;
 	};
@@ -81,7 +81,7 @@ namespace Strafe
 
 	struct ProcessedFrame
 	{
-		ProcessedFrame() : Yaw(0.0f), Forward(false), Left(false), Right(false), Back(false), Processed(false), Forwardspeed(0.0f), Sidespeed(0.0f)
+		ProcessedFrame() : Yaw( 0.0f ), Forward( false ), Left( false ), Right( false ), Back( false ), Processed( false ), Forwardspeed( 0.0f ), Sidespeed( 0.0f )
 		{
 		}
 
@@ -101,19 +101,19 @@ namespace Strafe
 	struct Frame
 	{
 		Frame() :
-			Strafe(false),
-			StrafeVectorial(false),
-			StrafeToViewAngles(false),
-			UseGivenButtons(false),
-			IgnoreGround(false),
-			VectorialIncrement(2.5f),
-			VectorialOffset(0.0f),
-			VectorialSnap(170.0f),
-			Type(StrafeType::MAXACCEL),
-			Dir(StrafeDir::YAW),
-			Yaw(0.0),
-			X(0.0),
-			Y(0.0)
+			Strafe( false ),
+			StrafeVectorial( false ),
+			StrafeToViewAngles( false ),
+			UseGivenButtons( false ),
+			IgnoreGround( false ),
+			VectorialIncrement( 2.5f ),
+			VectorialOffset( 0.0f ),
+			VectorialSnap( 170.0f ),
+			Type( StrafeType::MAXACCEL ),
+			Dir( StrafeDir::YAW ),
+			Yaw( 0.0 ),
+			X( 0.0 ),
+			Y( 0.0 )
 		{
 		}
 
@@ -139,16 +139,16 @@ namespace Strafe
 	public:
 		inline StrafeType GetType() const { return Type; }
 		inline StrafeDir GetDir() const { return Dir; }
-		inline void SetType(StrafeType value) { Type = value; }
-		inline void SetDir(StrafeDir value) { Dir = value; }
+		inline void SetType( StrafeType value ) { Type = value; }
+		inline void SetDir( StrafeDir value ) { Dir = value; }
 
 		inline double GetYaw() const { return Yaw; }
 		inline double GetX() const { return X; }
 		inline double GetY() const { return Y; }
 
-		inline void SetYaw(double value) { Yaw = value; }
-		inline void SetX(double value) { X = value; }
-		inline void SetY(double value) { Y = value; }
+		inline void SetYaw( double value ) { Yaw = value; }
+		inline void SetX( double value ) { X = value; }
+		inline void SetY( double value ) { Y = value; }
 	};
 
 	struct StrafeData
@@ -161,124 +161,88 @@ namespace Strafe
 	/*
 		Computes the new velocity given unit acceleration vector and wishspeed
 		and stores the result in player.Velocity.
-
-		Struct requirements:
-			Velocity;
-			Frametime, Accelerate or Airaccelerate, EntFriction.
 	*/
-	void VectorFME(PlayerData &player, MovementVars &vars, double wishspeed, const double a[2]);
+	void VectorFME( PlayerData &player, MovementVars &vars, double wishspeed, const double a[ 2 ] );
 
 	/*
 		Applies the ground friction the same way as PM_Friction would, changing player.Velocity.
 	*/
-	void Friction(StrafeData &strafedata);
+	void Friction( StrafeData &strafedata );
 
 	/*
 		Vectorial strafing function
 	*/
-	void StrafeVectorial(StrafeData &strafedata, ProcessedFrame& out, bool yawChanged);
+	void StrafeVectorial( StrafeData &strafedata, ProcessedFrame &out, bool yawChanged );
 
 	/*
 		Main strafe function
 	*/
-	void Strafe(StrafeData &strafedata, ProcessedFrame& out);
+	void Strafe( StrafeData &strafedata, ProcessedFrame &out );
 
 	/*
 		Returns the angle in radians - [0; Pi] - between velocity and wishdir that will
 		result in maximal speed gain.
-
-		Struct requirements:
-			Velocity;
-			Frametime, Accelerate or Airaccelerate, EntFriction.
 	*/
-	double MaxAccelTheta(StrafeData &strafedata, double wishspeed);
+	double MaxAccelTheta( StrafeData &strafedata, double wishspeed );
 
 	/*
 		Returns the angle between velocity and wishdir in [0, Pi] that will
 		keep the speed constant as far as possible. Under certain conditions
 		the angle from MaxAccelTheta will be returned.
-
-		Struct requirements:
-			Velocity;
-			Frametime, Accelerate or Airaccelerate, EntFriction.
 	*/
-	double ConstSpeedTheta(StrafeData &strafedata, double wishspeed);
+	double ConstSpeedTheta( StrafeData &strafedata, double wishspeed );
 
 	/*
 		Returns the angle in radians - [-Pi; Pi) - between velocity and wishdir that will
 		result in maximal speed gain into the given yaw - [-Pi; Pi). If velocity is zero, vel_yaw will
 		be used in place of velocity angle.
-
-		Struct requirements:
-			Velocity;
-			Frametime, Accelerate or Airaccelerate, EntFriction.
 	*/
-	double MaxAccelIntoYawTheta(StrafeData &strafedata, double wishspeed, double vel_yaw, double yaw);
+	double MaxAccelIntoYawTheta( StrafeData &strafedata, double wishspeed, double vel_yaw, double yaw );
 
 	/*
 		Returns the angle in radians - [0; Pi] - between velocity and wishdir that will
 		result in maximal velocity angle change.
-
-		Struct requirements:
-			Velocity;
-			Frametime, Accelerate or Airaccelerate, EntFriction.
 	*/
-	double MaxAngleTheta(StrafeData &strafedata, double wishspeed);
+	double MaxAngleTheta( StrafeData &strafedata, double wishspeed );
 
 	/*
-	Returns the angle in radians - [0; Pi] - between velocity and wishdir that will
-	result in maximal decceleration.
-
-	Struct requirements:
-	Velocity;
-	Frametime, Accelerate or Airaccelerate, EntFriction.
+		Returns the angle in radians - [0; Pi] - between velocity and wishdir that will
+		result in maximal decceleration.
 	*/
-	double MaxDeccelTheta(StrafeData &strafedata, double wishspeed);
+	double MaxDeccelTheta( StrafeData &strafedata, double wishspeed );
 
 	/*
 		Finds the best yaw to use for the corresponding strafe type taking the anglemod compensation into account, then
 		strafes sideways with that yaw and returns it in radians, given fixed buttons.
 		The resulting velocity is stored in player.Velocity.
 		Uses vel_yaw instead of the Velocity angle if Velocity is zero.
-
-		Struct requirements:
-			Velocity;
-			Frametime, Accelerate or Airaccelerate, EntFriction.
 	*/
-	double SideStrafeMaxAccel(StrafeData &strafedata, double wishspeed, Button& usedButton, double vel_yaw, bool right);
-	double SideStrafeMaxAngle(StrafeData &strafedata, double wishspeed, Button& usedButton, double vel_yaw, bool right);
-	double SideStrafeMaxDeccel(StrafeData &strafedata, double wishspeed, Button& usedButton, double vel_yaw, bool right, bool& strafed);
-	double SideStrafeConstSpeed(StrafeData &strafedata, double wishspeed, Button& usedButton, double vel_yaw, bool right);
+	double SideStrafeMaxAccel( StrafeData &strafedata, double wishspeed, Button &usedButton, double vel_yaw, bool right );
+	double SideStrafeMaxAngle( StrafeData &strafedata, double wishspeed, Button &usedButton, double vel_yaw, bool right );
+	double SideStrafeMaxDeccel( StrafeData &strafedata, double wishspeed, Button &usedButton, double vel_yaw, bool right, bool &strafed );
+	double SideStrafeConstSpeed( StrafeData &strafedata, double wishspeed, Button &usedButton, double vel_yaw, bool right );
 
 	/*
 		Finds the best yaw to use for the corresponding strafe type taking the anglemod compensation into account, then
 		strafes to the best dir with that yaw and returns it in radians, given fixed buttons.
 		The resulting velocity is stored in player.Velocity.
 		Uses vel_yaw instead of the Velocity angle if Velocity is zero.
-
-		Struct requirements:
-			Velocity;
-			Frametime, Accelerate or Airaccelerate, EntFriction.
 	*/
-	double BestStrafeMaxAccel(StrafeData &strafedata, double wishspeed, Button& usedButton, double vel_yaw);
-	double BestStrafeMaxAngle(StrafeData &strafedata, double wishspeed, Button& usedButton, double vel_yaw);
-	double BestStrafeMaxDeccel(StrafeData &strafedata, double wishspeed, Button& usedButton, double vel_yaw, bool& strafed);
-	double BestStrafeConstSpeed(StrafeData &strafedata, double wishspeed, Button& usedButton, double vel_yaw);
+	double BestStrafeMaxAccel( StrafeData &strafedata, double wishspeed, Button &usedButton, double vel_yaw );
+	double BestStrafeMaxAngle( StrafeData &strafedata, double wishspeed, Button &usedButton, double vel_yaw );
+	double BestStrafeMaxDeccel( StrafeData &strafedata, double wishspeed, Button &usedButton, double vel_yaw, bool &strafed );
+	double BestStrafeConstSpeed( StrafeData &strafedata, double wishspeed, Button &usedButton, double vel_yaw );
 
 	/*
 		Finds the best yaw to use for the corresponding strafe type taking the anglemod compensation into account, then
 		strafes to the given yaw with that yaw and returns it in radians, given fixed buttons.
 		The resulting velocity is stored in player.Velocity.
 		Uses vel_yaw instead of the Velocity angle if Velocity is zero.
-
-		Struct requirements:
-			Velocity;
-			Frametime, Accelerate or Airaccelerate, EntFriction.
 	*/
-	double YawStrafeMaxAccel(StrafeData &strafedata, double wishspeed, Button& usedButton, double vel_yaw, double yaw);
-	double YawStrafeMaxAngle(StrafeData &strafedata, double wishspeed, Button& usedButton, double vel_yaw, double yaw);
-	double YawStrafeMaxDeccel(StrafeData &strafedata, double wishspeed, Button& usedButton, double vel_yaw, double yaw, bool &strafed);
-	double YawStrafeConstSpeed(StrafeData &strafedata, double wishspeed, Button& usedButton, double vel_yaw, double yaw);
+	double YawStrafeMaxAccel( StrafeData &strafedata, double wishspeed, Button &usedButton, double vel_yaw, double yaw );
+	double YawStrafeMaxAngle( StrafeData &strafedata, double wishspeed, Button &usedButton, double vel_yaw, double yaw );
+	double YawStrafeMaxDeccel( StrafeData &strafedata, double wishspeed, Button &usedButton, double vel_yaw, double yaw, bool &strafed );
+	double YawStrafeConstSpeed( StrafeData &strafedata, double wishspeed, Button &usedButton, double vel_yaw, double yaw );
 
 	/*
 		Finds the best yaw to use for the given strafe type taking the anglemod compensation into account, then
@@ -286,10 +250,6 @@ namespace Strafe
 		is better, set strafed to false, otherwise - to true.
 		The resulting velocity is stored in player.Velocity.
 		Uses vel_yaw instead of the Velocity angle if Velocity is zero.
-
-		Struct requirements:
-			Velocity, Origin;
-			Frametime, Accelerate or Airaccelerate, EntFriction.
 	*/
-	double PointStrafe(StrafeData &strafedata, double wishspeed, Button& usedButton, double vel_yaw, StrafeType type, double point[2], bool& strafed);
+	double PointStrafe( StrafeData &strafedata, double wishspeed, Button &usedButton, double vel_yaw, StrafeType type, double point[ 2 ], bool &strafed );
 }
