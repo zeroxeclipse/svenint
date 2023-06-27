@@ -107,8 +107,6 @@ static std::string SettingsSubTab[] = { xs("Menu"), xs("Game") };
 
 // Features Strings Vars
 
-static obfuscated_string no_weap_anim_items[] = { xs("0 - Off"), xs("1 - All Animations"), xs("2 - Take Animations") };
-
 static obfuscated_string draw_entities_items[] =
 {
 	xs("0 - Default"),
@@ -151,6 +149,8 @@ static obfuscated_string antiafk_items[] = {
 static obfuscated_string trace_type[] = { xs("0 - Trace Line"), xs("1 - Trace Hull") };
 
 static obfuscated_string radar_type[] = { xs("0 - Round"), xs("1 - Square") };
+
+static obfuscated_string revive_boost_direction_type[] = { xs("0 - Box"), xs("1 - Line") };
 
 static obfuscated_string theme_items[] =
 {
@@ -707,7 +707,8 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGuiCustom.Spacing(4);
 
-		ImGui::Combo(xs("##no_weap_anims"), &g_Config.cvars.no_weapon_anim, (const char**)no_weap_anim_items, IM_ARRAYSIZE(no_weap_anim_items));
+		ImGui::Checkbox( xs( "Disable Idle Anims" ), &g_Config.cvars.viewmodel_disable_idle ); ImGui::SameLine();
+		ImGui::Checkbox( xs( "Disable Equip Anims" ), &g_Config.cvars.viewmodel_disable_equip );
 
 		ImGuiCustom.Spacing(4);
 
@@ -2596,7 +2597,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::SetCursorPosX(332);
 
-		ImGui::BeginChild(xs("player2"), ImVec2(328.5, 500), true);
+		ImGui::BeginChild(xs("player2"), ImVec2(328.5, 525), true);
 
 		ImGui::Text(xs("Strafer"));
 
@@ -2649,6 +2650,10 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::Checkbox(xs("Ignore Glass"), &g_Config.cvars.aimbot_ignore_glass);
 		ImGui::Checkbox(xs("Ignore Studio Models"), &g_Config.cvars.aimbot_ignore_blockers);
+
+		ImGui::Spacing();
+
+		ImGui::Checkbox( xs( "Change Angles Back##aim" ), &g_Config.cvars.aimbot_change_angles_back );
 
 		ImGui::Spacing();
 
@@ -2883,7 +2888,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::SetCursorPosX(332);
 
-		ImGui::BeginChild(xs("speedrun-tools2"), ImVec2(328.5, 285), true);
+		ImGui::BeginChild(xs("speedrun-tools2"), ImVec2(328.5, 350), true);
 
 		ImGui::Text(xs("HUD Info"));
 
@@ -2987,6 +2992,131 @@ void CMenuModule::DrawUtilityTabContent()
 			ImGui::Spacing();
 
 			ImGui::ColorEdit4( xs( "No Ammo Marker Color##stst_revive" ), g_Config.cvars.st_show_revive_info_no_ammo_color );
+
+			ImGui::EndCombo();
+		}
+		
+		ImGui::Spacing();
+
+		if (ImGui::BeginCombo("       ", xs("Revive Boost"), ImGuiComboFlags_HeightLargest ))
+		{
+			ImGui::Checkbox(xs("Show Revive Boost Info##st"), &g_Config.cvars.st_show_revive_boost_info);
+
+			ImGuiCustom.Spacing( 4 );
+
+			ImGui::SliderFloat(xs("Width Fraction##st_revive_boost"), &g_Config.cvars.st_show_revive_boost_info_width_frac, 0.0f, 1.0f);
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat(xs("Height Fraction##st_revive_boost"), &g_Config.cvars.st_show_revive_boost_info_height_frac, 0.0f, 1.0f);
+
+			ImGuiCustom.Spacing( 4 );
+
+			ImGui::Text( xs( "Revive Target Hull" ) );
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox( xs( "Wireframe Hull##st_revive_boost" ), &g_Config.cvars.st_show_revive_boost_info_wireframe_hull );
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat( xs( "Wireframe Hull Width##st_revive_boost" ), &g_Config.cvars.st_show_revive_boost_info_wireframe_hull_width, 0.0f, 10.0f );
+
+			ImGui::Spacing();
+
+			ImGui::ColorEdit4( xs( "Hull Color##st_revive_boost" ), g_Config.cvars.st_show_revive_boost_info_hull_color );
+
+			ImGuiCustom.Spacing( 4 );
+
+			ImGui::Text( xs( "Direction Boost" ) );
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox( xs( "Wireframe Direction Box##st_revive_boost" ), &g_Config.cvars.st_show_revive_boost_info_wireframe_direction_box );
+
+			ImGui::Spacing();
+
+			ImGui::Combo( xs( "Draw Direction Type##st_revive_boost" ),
+						  &g_Config.cvars.st_show_revive_boost_info_direction_type,
+						  (const char **)revive_boost_direction_type,
+						  IM_ARRAYSIZE( revive_boost_direction_type ) );
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat( xs( "Direction Width##st_revive_boost" ), &g_Config.cvars.st_show_revive_boost_info_direction_line_width, 0.0f, 10.0f );
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat( xs( "Direction Length##st_revive_boost" ), &g_Config.cvars.st_show_revive_boost_info_direction_length, 0.0f, 4096.0f );
+			
+			ImGui::Spacing();
+
+			ImGui::SliderFloat( xs( "Direction Box Extent##st_revive_boost" ), &g_Config.cvars.st_show_revive_boost_info_direction_box_extent, 0.0f, 12.0f );
+
+			ImGui::Spacing();
+
+			ImGui::ColorEdit4( xs( "Direction Color##st_revive_boost" ), g_Config.cvars.st_show_revive_boost_info_direction_color );
+
+			ImGui::EndCombo();
+		}
+		
+		ImGui::Spacing();
+
+		if (ImGui::BeginCombo("        ", xs("Revive / Unstuck Area"), ImGuiComboFlags_HeightLargest ))
+		{
+			ImGui::Checkbox(xs("Show Revive / Unstuck Area Info##st"), &g_Config.cvars.st_show_revive_area_info);
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox(xs("Show on Local Player##st_revive_area"), &g_Config.cvars.st_show_revive_area_local_player);
+
+			ImGuiCustom.Spacing( 4 );
+
+			ImGui::Text( xs( "Small Hull" ) );
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox( xs( "Draw##st_revive_area_small" ), &g_Config.cvars.st_show_revive_area_draw_small_hull );
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat( xs( "Hull Width##st_revive_area_small" ), &g_Config.cvars.st_show_revive_area_small_hull_width, 0.0f, 10.0f );
+
+			ImGui::Spacing();
+
+			ImGui::ColorEdit4( xs( "Hull Color##st_revive_area_small" ), g_Config.cvars.st_show_revive_area_small_hull_color );
+			
+			ImGuiCustom.Spacing( 4 );
+
+			ImGui::Text( xs( "Medium Hull" ) );
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox( xs( "Draw##st_revive_area_medium" ), &g_Config.cvars.st_show_revive_area_draw_medium_hull );
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat( xs( "Hull Width##st_revive_area_medium" ), &g_Config.cvars.st_show_revive_area_medium_hull_width, 0.0f, 10.0f );
+
+			ImGui::Spacing();
+
+			ImGui::ColorEdit4( xs( "Hull Color##st_revive_area_medium" ), g_Config.cvars.st_show_revive_area_medium_hull_color );
+			
+			ImGuiCustom.Spacing( 4 );
+
+			ImGui::Text( xs( "Large Hull" ) );
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox( xs( "Draw##st_revive_area_large" ), &g_Config.cvars.st_show_revive_area_draw_large_hull );
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat( xs( "Hull Width##st_revive_area_large" ), &g_Config.cvars.st_show_revive_area_large_hull_width, 0.0f, 10.0f );
+
+			ImGui::Spacing();
+
+			ImGui::ColorEdit4( xs( "Hull Color##st_revive_area_large" ), g_Config.cvars.st_show_revive_area_large_hull_color );
 
 			ImGui::EndCombo();
 		}
