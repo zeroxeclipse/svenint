@@ -12,10 +12,11 @@
 #endif
 
 #include <hl_sdk/common/pmtrace.h>
+#include <platform.h>
 
 #include "../modules/server.h"
 
-struct screen_info_s
+struct screen_info_t
 {
 	int width;
 	int height;
@@ -25,9 +26,10 @@ extern float *g_flNextCmdTime;
 extern double *g_dbGameSpeed;
 extern double *dbRealtime;
 
-extern screen_info_s g_ScreenInfo;
+extern screen_info_t g_ScreenInfo;
 
-inline long FloatToLong32(float val)
+// Data conversion
+FORCEINLINE long FloatToLong32( float val )
 {
 	union
 	{
@@ -40,7 +42,7 @@ inline long FloatToLong32(float val)
 	return un_ul;
 }
 
-inline float Long32ToFloat(long val)
+FORCEINLINE float Long32ToFloat( long val )
 {
 	union
 	{
@@ -53,17 +55,45 @@ inline float Long32ToFloat(long val)
 	return un_fl;
 };
 
-int UTIL_SharedRandomLong(unsigned int seed, int low, int high);
-float UTIL_SharedRandomFloat(unsigned int seed, float low, float high);
-const wchar_t *UTIL_CStringToWideCString(const char *pszString);
+// Intersection tests
+#define UTIL_IsPointInsideAABB(point, mins, maxs) UTIL_IsAABBIntersectingAABB( point, point, mins, maxs )
+
+FORCEINLINE bool UTIL_IsAABBIntersectingAABB( const Vector &vecBoxMins1, const Vector &vecBoxMaxs1, const Vector &vecBoxMins2, const Vector &vecBoxMaxs2 )
+{
+	return ( vecBoxMins1.x <= vecBoxMaxs2.x && vecBoxMaxs1.x >= vecBoxMins2.x ) &&
+		( vecBoxMins1.y <= vecBoxMaxs2.y && vecBoxMaxs1.y >= vecBoxMins2.y ) &&
+		( vecBoxMins1.z <= vecBoxMaxs2.z && vecBoxMaxs1.z >= vecBoxMins2.z );
+}
+
+bool UTIL_IsLineIntersectingAABB( const Vector &p1, const Vector &p2, const Vector &vecBoxMins, const Vector &vecBoxMaxs );
+bool UTIL_IsSphereIntersectingAABB( const Vector &vecCenter, const float flRadiusSqr, const Vector &vecAbsMins, const Vector &vecAbsMaxs, float *pflOutDistance );
+bool UTIL_IsRayIntersectingAABB( const Vector &vecBoxMins, const Vector &vecBoxMaxs, const Vector &vecRayOrigin, const Vector &vecRayDir, float *pflMinIntersection, float *pflMaxIntersection );
+
+// Random
+int UTIL_SharedRandomLong( unsigned int seed, int low, int high );
+float UTIL_SharedRandomFloat( unsigned int seed, float low, float high );
+
+// String conversions
+const wchar_t *UTIL_CStringToWideCString( const char *pszString );
+
+// Player move utilities
+void UTIL_AddCorrectGravity( Vector &vecVelocity, float frametime );
+void UTIL_FixupGravityVelocity( Vector &vecVelocity, float frametime );
+
+// Hulls smh
 void UTIL_FindHullIntersection( const Vector &vecSrc, TraceResult &tr, float *mins, float *maxs, edict_t *pEntity );
 void UTIL_FindHullIntersectionClient( const Vector &vecSrc, pmtrace_t &tr, float *mins, float *maxs, int ignore_ent );
-bool UTIL_WorldToScreen(float *pflOrigin, float *pflVecScreen);
-void UTIL_ScreenToWorld(float *pflNDC, float *pflWorldOrigin);
-void UTIL_SetAnglesSilent(float *angles, struct usercmd_s *cmd);
-bool UTIL_IsFiring(struct usercmd_s *cmd);
 
-void UTIL_SetGameSpeed(double dbSpeed);
-void UTIL_SendPacket(bool bSend);
+// Viewport transformations
+bool UTIL_WorldToScreen( float *pflOrigin, float *pflVecScreen );
+void UTIL_ScreenToWorld( float *pflNDC, float *pflWorldOrigin );
+
+// Aim-related
+void UTIL_SetAnglesSilent( float *angles, struct usercmd_s *cmd );
+bool UTIL_IsFiring( struct usercmd_s *cmd );
+
+// Speedhacking, lag exploit
+void UTIL_SetGameSpeed( double dbSpeed );
+void UTIL_SendPacket( bool bSend );
 
 #endif

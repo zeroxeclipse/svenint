@@ -27,7 +27,7 @@ float *g_flNextCmdTime = NULL;
 double *g_dbGameSpeed = NULL;
 double *dbRealtime = NULL;
 
-screen_info_s g_ScreenInfo;
+screen_info_t g_ScreenInfo;
 
 //-----------------------------------------------------------------------------
 // ConCommands, CVars..
@@ -203,6 +203,139 @@ CON_COMMAND(setang, "Sets view angles")
 }
 
 //-----------------------------------------------------------------------------
+// Intersection tests
+//-----------------------------------------------------------------------------
+
+bool UTIL_IsLineIntersectingAABB( const Vector &p1, const Vector &p2, const Vector &vecBoxMins, const Vector &vecBoxMaxs )
+{
+	Vector vecLineDir = ( p2 - p1 ) * 0.5f;
+	Vector vecBoxMid = ( vecBoxMaxs - vecBoxMins ) * 0.5f;
+	Vector p3 = p1 + vecLineDir - ( vecBoxMins + vecBoxMaxs ) * 0.5f;
+	Vector vecAbsLineMid = Vector( abs( vecLineDir.x ), abs( vecLineDir.y ), abs( vecLineDir.z ) );
+
+	if ( abs( p3.x ) > vecBoxMid.x + vecAbsLineMid.x || abs( p3.y ) > vecBoxMid.y + vecAbsLineMid.y || abs( p3.z ) > vecBoxMid.z + vecAbsLineMid.z )
+		return false;
+
+	if ( abs( vecLineDir.y * p3.z - vecLineDir.z * p3.y ) > vecBoxMid.y * vecAbsLineMid.z + vecBoxMid.z * vecAbsLineMid.y )
+		return false;
+
+	if ( abs( vecLineDir.z * p3.x - vecLineDir.x * p3.z ) > vecBoxMid.z * vecAbsLineMid.x + vecBoxMid.x * vecAbsLineMid.z )
+		return false;
+
+	if ( abs( vecLineDir.x * p3.y - vecLineDir.y * p3.x ) > vecBoxMid.x * vecAbsLineMid.y + vecBoxMid.y * vecAbsLineMid.x )
+		return false;
+
+	return true;
+}
+
+bool UTIL_IsSphereIntersectingAABB( const Vector &vecCenter, const float flRadiusSqr, const Vector &vecAbsMins, const Vector &vecAbsMaxs, float *pflOutDistance )
+{
+	float flDistanceToEdge = 0.f;
+	float flDistanceSqr = 0.f;
+
+	for ( int i = 0; i < 3 /* && flDistanceSqr <= flRadiusSqr */; i++ )
+	{
+		if ( vecCenter[ i ] < vecAbsMins[ i ] )
+		{
+			flDistanceToEdge = vecCenter[ i ] - vecAbsMins[ i ];
+		}
+		else if ( vecCenter[ i ] > vecAbsMaxs[ i ] )
+		{
+			flDistanceToEdge = vecCenter[ i ] - vecAbsMaxs[ i ];
+		}
+		else
+		{
+			flDistanceToEdge = 0.f;
+		}
+
+		flDistanceSqr += flDistanceToEdge * flDistanceToEdge;
+	}
+
+	if ( flDistanceSqr <= flRadiusSqr )
+	{
+		if ( pflOutDistance != NULL )
+			*pflOutDistance = sqrtf( flDistanceSqr );
+
+		return true;
+	}
+
+	if ( pflOutDistance != NULL )
+		*pflOutDistance = -1.f;
+
+	return false;
+}
+
+bool UTIL_IsRayIntersectingAABB( const Vector &vecBoxMins, const Vector &vecBoxMaxs, const Vector &vecRayOrigin, const Vector &vecRayDir, float *pflMinIntersection, float *pflMaxIntersection )
+{
+	float tmin, tmax, tymin, tymax, tzmin, tzmax;
+
+	if ( pflMinIntersection != NULL )
+		*pflMinIntersection = 0.f;
+
+	if ( pflMaxIntersection != NULL )
+		*pflMaxIntersection = 0.f;
+
+	if ( vecRayDir.x >= 0 )
+	{
+		tmin = ( vecBoxMins.x - vecRayOrigin.x ) / vecRayDir.x;
+		tmax = ( vecBoxMaxs.x - vecRayOrigin.x ) / vecRayDir.x;
+	}
+	else
+	{
+		tmin = ( vecBoxMaxs.x - vecRayOrigin.x ) / vecRayDir.x;
+		tmax = ( vecBoxMins.x - vecRayOrigin.x ) / vecRayDir.x;
+	}
+
+	if ( vecRayDir.y >= 0 )
+	{
+		tymin = ( vecBoxMins.y - vecRayOrigin.y ) / vecRayDir.y;
+		tymax = ( vecBoxMaxs.y - vecRayOrigin.y ) / vecRayDir.y;
+	}
+	else
+	{
+		tymin = ( vecBoxMaxs.y - vecRayOrigin.y ) / vecRayDir.y;
+		tymax = ( vecBoxMins.y - vecRayOrigin.y ) / vecRayDir.y;
+	}
+
+	if ( tmin > tymax || tymin > tmax )
+		return false;
+
+	if ( tymin > tmin )
+		tmin = tymin;
+
+	if ( tymax < tmax )
+		tmax = tymax;
+
+	if ( vecRayDir.z >= 0 )
+	{
+		tzmin = ( vecBoxMins.z - vecRayOrigin.z ) / vecRayDir.z;
+		tzmax = ( vecBoxMaxs.z - vecRayOrigin.z ) / vecRayDir.z;
+	}
+	else
+	{
+		tzmin = ( vecBoxMaxs.z - vecRayOrigin.z ) / vecRayDir.z;
+		tzmax = ( vecBoxMins.z - vecRayOrigin.z ) / vecRayDir.z;
+	}
+
+	if ( tmin > tzmax || tzmin > tmax )
+		return false;
+
+	if ( tzmin > tmin )
+		tmin = tzmin;
+
+	if ( tzmax < tmax )
+		tmax = tzmax;
+
+	if ( pflMinIntersection != NULL )
+		*pflMinIntersection = tmin;
+	
+	if ( pflMaxIntersection != NULL )
+		*pflMaxIntersection = tmax;
+
+	return true;
+}
+
+//-----------------------------------------------------------------------------
 // Shared Random
 //-----------------------------------------------------------------------------
 
@@ -297,6 +430,36 @@ const wchar_t *UTIL_CStringToWideCString(const char *pszString)
 	mbstowcs(wcString, pszString, length);
 
 	return wcString;
+}
+
+//-----------------------------------------------------------------------------
+// Player move utilities
+//-----------------------------------------------------------------------------
+
+void UTIL_AddCorrectGravity( Vector &vecVelocity, float frametime )
+{
+	float ent_gravity;
+
+	if ( g_pPlayerMove->gravity )
+		ent_gravity = g_pPlayerMove->gravity;
+	else
+		ent_gravity = 1.f;
+
+	// Add gravity so they'll be in the correct position during movement
+	// yes, this 0.5 looks wrong, but it's not.  
+	vecVelocity.z -= ( ent_gravity * g_pPlayerMove->movevars->gravity * 0.5 * frametime );
+}
+
+void UTIL_FixupGravityVelocity( Vector &vecVelocity, float frametime )
+{
+	float ent_gravity;
+
+	if ( g_pPlayerMove->gravity )
+		ent_gravity = g_pPlayerMove->gravity;
+	else
+		ent_gravity = 1.f;
+
+	vecVelocity.z -= ( ent_gravity * g_pPlayerMove->movevars->gravity * frametime * 0.5f );
 }
 
 //-----------------------------------------------------------------------------
