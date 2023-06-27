@@ -109,12 +109,97 @@ static int ScriptFunc_origin_set( lua_State *pLuaState )
 	return 1;
 }
 
+static int ScriptFunc_velocity_get( lua_State *pLuaState )
+{
+	entvars_t *entvars = lua_getentvars( pLuaState, 1 );
+	
+	lua_newvector( pLuaState, &entvars->velocity );
+
+	return 1;
+}
+
+static int ScriptFunc_velocity_set( lua_State *pLuaState )
+{
+	entvars_t *entvars = lua_getentvars( pLuaState, 1 );
+	Vector *v = lua_getvector( pLuaState, 3 );
+	
+	entvars->velocity.x = v->x;
+	entvars->velocity.y = v->y;
+	entvars->velocity.z = v->z;
+
+	lua_newvector( pLuaState, v );
+
+	return 1;
+}
+
+static int ScriptFunc_classname_get( lua_State *pLuaState )
+{
+	entvars_t *entvars = lua_getentvars( pLuaState, 1 );
+	const char *pszClassname = ( entvars->classname ? gpGlobals->pStringBase + entvars->classname : NULL );
+
+	lua_pushstring( pLuaState, pszClassname );
+
+	return 1;
+}
+
+static int ScriptFunc_targetname_get( lua_State *pLuaState )
+{
+	entvars_t *entvars = lua_getentvars( pLuaState, 1 );
+	const char *pszTargetname = ( entvars->targetname ? gpGlobals->pStringBase + entvars->targetname : NULL );
+
+	lua_pushstring( pLuaState, pszTargetname );
+
+	return 1;
+}
+
+static int ScriptFunc_target_get( lua_State *pLuaState )
+{
+	entvars_t *entvars = lua_getentvars( pLuaState, 1 );
+	const char *pszTarget = ( entvars->target ? gpGlobals->pStringBase + entvars->target : NULL );
+
+	lua_pushstring( pLuaState, pszTarget );
+
+	return 1;
+}
+
 static int ScriptFunc_netname_get( lua_State *pLuaState )
 {
 	entvars_t *entvars = lua_getentvars( pLuaState, 1 );
 	const char *pszNetname = ( entvars->netname ? gpGlobals->pStringBase + entvars->netname : NULL );
 
 	lua_pushstring( pLuaState, pszNetname );
+
+	return 1;
+}
+
+static int ScriptFunc_model_get( lua_State *pLuaState )
+{
+	entvars_t *entvars = lua_getentvars( pLuaState, 1 );
+	const char *pszModel = ( entvars->model ? gpGlobals->pStringBase + entvars->model : NULL );
+
+	lua_pushstring( pLuaState, pszModel );
+
+	return 1;
+}
+
+static int ScriptFunc_flags_get( lua_State *pLuaState )
+{
+	entvars_t *entvars = lua_getentvars( pLuaState, 1 );
+
+	lua_pushinteger( pLuaState, (lua_Integer)entvars->flags );
+
+	return 1;
+}
+
+static int ScriptFunc_flags_set( lua_State *pLuaState )
+{
+	entvars_t *entvars = lua_getentvars( pLuaState, 1 );
+
+	int flags = (int)lua_tointeger( pLuaState, 3 );
+
+	entvars->flags = flags;
+
+	lua_pushinteger( pLuaState, (lua_Integer)flags );
 
 	return 1;
 }
@@ -163,7 +248,13 @@ LUALIB_API int luaopen_entvars( lua_State *pLuaState )
 	luaL_setfuncs( pLuaState, Registrations, NULL );
 
 	EntvarsBindProperty( "origin", ScriptFunc_origin_get, ScriptFunc_origin_set );
+	EntvarsBindProperty( "velocity", ScriptFunc_velocity_get, ScriptFunc_velocity_set );
+	EntvarsBindProperty( "classname", ScriptFunc_classname_get, NULL );
+	EntvarsBindProperty( "targetname", ScriptFunc_targetname_get, NULL );
+	EntvarsBindProperty( "target", ScriptFunc_target_get, NULL );
 	EntvarsBindProperty( "netname", ScriptFunc_netname_get, NULL );
+	EntvarsBindProperty( "model", ScriptFunc_model_get, NULL );
+	EntvarsBindProperty( "flags", ScriptFunc_flags_get, ScriptFunc_flags_set );
 
 	return 1;
 }
