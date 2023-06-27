@@ -8,6 +8,7 @@
 #include <base_feature.h>
 
 #include "../strafe/strafe.h"
+#include "../strafe/strafe_utils.h"
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -33,7 +34,7 @@ public:
 	void CreateMove(float frametime, struct usercmd_s *cmd, int active);
 
 private:
-	void StrafeVectorial(struct usercmd_s *cmd);
+	void Strafe(struct usercmd_s *cmd);
 };
 
 extern CStrafer g_Strafer;
