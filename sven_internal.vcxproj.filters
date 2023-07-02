@@ -425,6 +425,9 @@
     <ClCompile Include="scripts\lua_player_move.cpp">
       <Filter>Sven Internal\Scripts</Filter>
     </ClCompile>
+    <ClCompile Include="scripts\scripts_binding.cpp">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">
@@ -821,6 +824,9 @@
       <Filter>Sven Internal\Game Utils</Filter>
     </ClInclude>
     <ClInclude Include="scripts\lua_player_move.h">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\scripts_binding.h">
       <Filter>Sven Internal\Scripts</Filter>
     </ClInclude>
   </ItemGroup>

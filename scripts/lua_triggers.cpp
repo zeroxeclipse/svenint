@@ -2,6 +2,7 @@
 #include "lua_vector.h"
 #include "lua_entity_dictionary.h"
 #include "scripts.h"
+#include "scripts_binding.h"
 
 #include "../game/utils.h"
 #include "../modules/server.h"
@@ -162,7 +163,9 @@ void CLuaTriggerManager::TriggersThink( lua_State *pLuaState )
 	//VectorAdd( vecMins, g_pPlayerMove->player_mins[ g_pPlayerMove->usehull ], vecMins );
 	//VectorAdd( vecMaxs, g_pPlayerMove->player_maxs[ g_pPlayerMove->usehull ], vecMaxs );
 
-	hCallbackFunction = g_ScriptVM.LookupFunction( "OnTouchTrigger" );
+	// Nothing to do here when we don't have a callback function
+	if ( m_vTriggers.size() == 0 || !( hCallbackFunction = g_ScriptVM.LookupFunction( "OnTouchTrigger" ) ) )
+		return;
 
 	for ( size_t i = 0; i < m_vTriggers.size(); i++ )
 	{
@@ -175,22 +178,25 @@ void CLuaTriggerManager::TriggersThink( lua_State *pLuaState )
 		{
 			if ( hCallbackFunction )
 			{
-				lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hCallbackFunction );
+				lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hCallbackFunction );
+
 				lua_pushstring( pLuaState, trigger.name.c_str() );
 
-				g_ScriptVM.ProtectedCall( pLuaState, 1, 0, 0 );
-			}
+				g_ScriptVM.ProtectedCall( pLuaState, 1, 1, 0 );
 
-			trigger.name.erase();
-			m_vTriggers.erase( m_vTriggers.begin() + i );
-			i--;
+				bool bRemoveTrigger = ( lua_isboolean( pLuaState, -1 ) ? lua_toboolean( pLuaState, -1 ) : false );
+
+				if ( bRemoveTrigger )
+				{
+					trigger.name.erase();
+					m_vTriggers.erase( m_vTriggers.begin() + i );
+					i--;
+				}
+			}
 		}
 	}
 
-	if ( hCallbackFunction )
-	{
-		g_ScriptVM.ReleaseFunction( hCallbackFunction );
-	}
+	g_ScriptVM.ReleaseFunction( hCallbackFunction );
 }
 
 void CLuaTriggerManager::ServerTriggersThink( lua_State *pLuaState )
@@ -227,7 +233,7 @@ void CLuaTriggerManager::ServerTriggersThink( lua_State *pLuaState )
 
 			if ( UTIL_IsAABBIntersectingAABB( vecMins, vecMaxs, vecTriggerMins, vecTriggerMaxs ) )
 			{
-				lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hCallbackFunction );
+				lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hCallbackFunction );
 
 				lua_pushedict( pLuaState, pPlayer );
 				lua_pushstring( pLuaState, trigger.name.c_str() );
@@ -256,7 +262,7 @@ void CLuaTriggerManager::ServerTriggersThink( lua_State *pLuaState )
 // C to Lua
 //-----------------------------------------------------------------------------
 
-static int ScriptFunc_CreateTrigger(lua_State *pLuaState)
+DEFINE_SCRIPTFUNC( CreateTrigger )
 {
 	const char *pszName = lua_tostring(pLuaState, 1);
 	Vector *vecOrigin = lua_getvector(pLuaState, 2);
@@ -265,10 +271,10 @@ static int ScriptFunc_CreateTrigger(lua_State *pLuaState)
 
 	g_LuaTriggerManager.AddTrigger(pszName, *vecOrigin, *vecMins, *vecMaxs);
 
-	return 0;
+	return VLUA_RET_ARGS( 0 );
 }
 
-static int ScriptFunc_CreateServerTrigger(lua_State *pLuaState)
+DEFINE_SCRIPTFUNC( CreateServerTrigger )
 {
 	const char *pszName = lua_tostring(pLuaState, 1);
 	Vector *vecOrigin = lua_getvector(pLuaState, 2);
@@ -277,21 +283,21 @@ static int ScriptFunc_CreateServerTrigger(lua_State *pLuaState)
 
 	g_LuaTriggerManager.AddServerTrigger(pszName, *vecOrigin, *vecMins, *vecMaxs);
 
-	return 0;
+	return VLUA_RET_ARGS( 0 );
 }
 
-static int ScriptFunc_ClearTriggers(lua_State *pLuaState)
+DEFINE_SCRIPTFUNC( ClearTriggers )
 {
 	g_LuaTriggerManager.ClearTriggers();
 
-	return 0;
+	return VLUA_RET_ARGS( 0 );
 }
 
-static int ScriptFunc_ClearServerTriggers(lua_State *pLuaState)
+DEFINE_SCRIPTFUNC( ClearServerTriggers )
 {
 	g_LuaTriggerManager.ClearServerTriggers();
 
-	return 0;
+	return VLUA_RET_ARGS( 0 );
 }
 
 //-----------------------------------------------------------------------------
@@ -300,17 +306,10 @@ static int ScriptFunc_ClearServerTriggers(lua_State *pLuaState)
 
 LUALIB_API int luaopen_triggers(lua_State *pLuaState)
 {
-	lua_pushcfunction(pLuaState, ScriptFunc_CreateTrigger);
-	lua_setglobal(pLuaState, "CreateTrigger");
-	
-	lua_pushcfunction(pLuaState, ScriptFunc_CreateServerTrigger);
-	lua_setglobal(pLuaState, "CreateServerTrigger");
-	
-	lua_pushcfunction(pLuaState, ScriptFunc_ClearTriggers);
-	lua_setglobal(pLuaState, "ClearTriggers");
-	
-	lua_pushcfunction(pLuaState, ScriptFunc_ClearServerTriggers);
-	lua_setglobal(pLuaState, "ClearServerTriggers");
+	VLua::RegisterFunction( "CreateTrigger", SCRIPTFUNC( CreateTrigger ) );
+	VLua::RegisterFunction( "CreateServerTrigger", SCRIPTFUNC( CreateServerTrigger ) );
+	VLua::RegisterFunction( "ClearTriggers", SCRIPTFUNC( ClearTriggers ) );
+	VLua::RegisterFunction( "ClearServerTriggers", SCRIPTFUNC( ClearServerTriggers ) );
 
 	return 1;
 }

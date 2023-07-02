@@ -1,5 +1,6 @@
 #include "lua_debug.h"
 #include "scripts.h"
+#include "scripts_binding.h"
 
 #include <dbg.h>
 
@@ -10,7 +11,7 @@ static const Color clr_error_print(255, 90, 90, 255);
 // Printing
 //-----------------------------------------------------------------------------
 
-static int print(lua_State *pLuaState)
+DEFINE_SCRIPTFUNC( print )
 {
 	//switch ( lua_type(pLuaState, 1) )
 	//{
@@ -37,10 +38,10 @@ static int print(lua_State *pLuaState)
 
 	ConColorMsg( clr_print, luaL_tolstring(pLuaState, -1, NULL) );
 
-	return 0;
+	return VLUA_RET_ARGS( 0 );
 }
 
-static int printl(lua_State *pLuaState)
+DEFINE_SCRIPTFUNC( printl )
 {
 	//try
 	//{
@@ -96,36 +97,29 @@ static int printl(lua_State *pLuaState)
 
 	ConColorMsg( clr_print, "%s\n", luaL_tolstring(pLuaState, -1, NULL) );
 
-	return 0;
+	return VLUA_RET_ARGS( 0 );
 }
 
-static int printerror(lua_State *pLuaState)
+DEFINE_SCRIPTFUNC( printerror )
 {
 	ConColorMsg( clr_error_print, luaL_tolstring(pLuaState, -1, NULL) );
 
-	return 0;
+	return VLUA_RET_ARGS( 0 );
 }
 
-static int printerrorl(lua_State *pLuaState)
+DEFINE_SCRIPTFUNC( printerrorl )
 {
 	ConColorMsg( clr_error_print, "%s\n", luaL_tolstring(pLuaState, -1, NULL) );
 
-	return 0;
+	return VLUA_RET_ARGS( 0 );
 }
 
 LUALIB_API int luaopen_print(lua_State *pLuaState)
 {
-	lua_pushcfunction(pLuaState, print);
-	lua_setglobal(pLuaState, "print");
-
-	lua_pushcfunction(pLuaState, printl);
-	lua_setglobal(pLuaState, "printl");
-	
-	lua_pushcfunction(pLuaState, printerror);
-	lua_setglobal(pLuaState, "printerror");
-
-	lua_pushcfunction(pLuaState, printerrorl);
-	lua_setglobal(pLuaState, "printerrorl");
+	VLua::RegisterFunction( "print", SCRIPTFUNC( print ) );
+	VLua::RegisterFunction( "printl", SCRIPTFUNC( printl ) );
+	VLua::RegisterFunction( "printerror", SCRIPTFUNC( printerror ) );
+	VLua::RegisterFunction( "printerrorl", SCRIPTFUNC( printerrorl ) );
 
 	// printl wrapper for string formatting
 	g_ScriptVM.RunScript( "function printf( format, ... ) printl( string.format( format, ... ) ) end");

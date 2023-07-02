@@ -1,4 +1,5 @@
 #include "scripts.h"
+#include "scripts_binding.h"
 #include "lua_debug.h"
 #include "lua_vector.h"
 #include "lua_cvar.h"
@@ -113,7 +114,7 @@ void CScriptCallbacks::OnGameFrame( client_state_t state, double frametime, bool
 
 		if ( hFunction = g_ScriptVM.LookupFunction( "OnGameFrame" ) )
 		{
-			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
 
 			lua_pushinteger( pLuaState, (lua_Integer)state );
 			lua_pushnumber( pLuaState, (lua_Number)frametime );
@@ -135,7 +136,7 @@ void CScriptCallbacks::OnFirstClientdataReceived( float flTime )
 
 		if ( hFunction = g_ScriptVM.LookupFunction( "OnFirstClientdataReceived" ) )
 		{
-			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
 
 			lua_pushnumber( pLuaState, (lua_Number)flTime );
 
@@ -157,7 +158,7 @@ void CScriptCallbacks::OnBeginLoading( void )
 
 		if ( hFunction = g_ScriptVM.LookupFunction( "OnBeginLoading" ) )
 		{
-			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
 
 			g_ScriptVM.ProtectedCall( pLuaState, 0, 0, 0 );
 			g_ScriptVM.ReleaseFunction( hFunction );
@@ -177,7 +178,7 @@ void CScriptCallbacks::OnEndLoading( void )
 
 		if ( hFunction = g_ScriptVM.LookupFunction( "OnEndLoading" ) )
 		{
-			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
 
 			g_ScriptVM.ProtectedCall( pLuaState, 0, 0, 0 );
 			g_ScriptVM.ReleaseFunction( hFunction );
@@ -195,7 +196,7 @@ void CScriptCallbacks::OnDisconnect( void )
 
 		if ( hFunction = g_ScriptVM.LookupFunction( "OnDisconnect" ) )
 		{
-			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
 
 			g_ScriptVM.ProtectedCall( pLuaState, 0, 0, 0 );
 			g_ScriptVM.ReleaseFunction( hFunction );
@@ -207,22 +208,22 @@ void CScriptCallbacks::OnDisconnect( void )
 
 void CScriptCallbacks::OnRestart( void )
 {
-	//lua_State *pLuaState = g_ScriptVM.GetVM();
+	lua_State *pLuaState = g_ScriptVM.GetVM();
 
-	//if ( pLuaState != NULL )
-	//{
-	//	scriptref_t hFunction;
+	if ( pLuaState != NULL )
+	{
+		scriptref_t hFunction;
 
-	//	g_ScriptVM.ResetStates();
+		//g_ScriptVM.ResetStates();
 
-	//	if ( hFunction = g_ScriptVM.LookupFunction("OnRestart") )
-	//	{
-	//		lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+		if ( hFunction = g_ScriptVM.LookupFunction("OnRestart") )
+		{
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
 
-	//		g_ScriptVM.ProtectedCall( pLuaState, 0, 0, 0 );
-	//		g_ScriptVM.ReleaseFunction( hFunction );
-	//	}
-	//}
+			g_ScriptVM.ProtectedCall( pLuaState, 0, 0, 0 );
+			g_ScriptVM.ReleaseFunction( hFunction );
+		}
+	}
 
 	g_ScriptVM.Shutdown();
 	g_ScriptVM.Init();
@@ -238,7 +239,7 @@ void CScriptCallbacks::OnEntityUse( edict_t *pEntityUseEdict, edict_t *pEntityEd
 
 		if ( hFunction = g_ScriptVM.LookupFunction( "OnEntityUse" ) )
 		{
-			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
 
 			lua_pushedict( pLuaState, pEntityUseEdict );
 			lua_pushedict( pLuaState, pEntityEdict );
@@ -259,7 +260,7 @@ void CScriptCallbacks::OnEntityTouch( edict_t *pEntityTouchEdict, edict_t *pEnti
 
 		if ( hFunction = g_ScriptVM.LookupFunction( "OnEntityTouch" ) )
 		{
-			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
 
 			lua_pushedict( pLuaState, pEntityTouchEdict );
 			lua_pushedict( pLuaState, pEntityEdict );
@@ -280,7 +281,7 @@ void CScriptCallbacks::OnClientPutInServer( edict_t *pPlayerEdict )
 
 		if ( hFunction = g_ScriptVM.LookupFunction( "OnClientPutInServer" ) )
 		{
-			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
 
 			lua_pushedict( pLuaState, pPlayerEdict );
 
@@ -300,7 +301,7 @@ void CScriptCallbacks::OnPlayerSpawn( edict_t *pSpawnSpotEdict, edict_t *pPlayer
 
 		if ( hFunction = g_ScriptVM.LookupFunction( "OnPlayerSpawn" ) )
 		{
-			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
 
 			lua_pushedict( pLuaState, pSpawnSpotEdict );
 			lua_pushedict( pLuaState, pPlayerEdict );
@@ -321,7 +322,7 @@ void CScriptCallbacks::OnPlayerUnstuck( edict_t *pPlayerEdict )
 
 		if ( hFunction = g_ScriptVM.LookupFunction( "OnPlayerUnstuck" ) )
 		{
-			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
 
 			lua_pushedict( pLuaState, pPlayerEdict );
 
@@ -341,7 +342,7 @@ void CScriptCallbacks::OnSpecialSpawn( edict_t *pPlayerEdict )
 
 		if ( hFunction = g_ScriptVM.LookupFunction( "OnSpecialSpawn" ) )
 		{
-			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
 
 			lua_pushedict( pLuaState, pPlayerEdict );
 
@@ -361,7 +362,7 @@ void CScriptCallbacks::OnBeginPlayerRevive( edict_t *pPlayerEdict )
 
 		if ( hFunction = g_ScriptVM.LookupFunction( "OnBeginPlayerRevive" ) )
 		{
-			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
 
 			lua_pushedict( pLuaState, pPlayerEdict );
 
@@ -381,7 +382,7 @@ void CScriptCallbacks::OnEndPlayerRevive( edict_t *pPlayerEdict )
 
 		if ( hFunction = g_ScriptVM.LookupFunction( "OnEndPlayerRevive" ) )
 		{
-			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
 
 			lua_pushedict( pLuaState, pPlayerEdict );
 
@@ -401,7 +402,7 @@ void CScriptCallbacks::OnClientKill( edict_t *pPlayerEdict )
 
 		if ( hFunction = g_ScriptVM.LookupFunction( "OnClientKill" ) )
 		{
-			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
 
 			lua_pushedict( pLuaState, pPlayerEdict );
 
@@ -421,7 +422,7 @@ void CScriptCallbacks::OnServerSignal( int value )
 
 		if ( hFunction = g_ScriptVM.LookupFunction( "OnServerSignal" ) )
 		{
-			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
 
 			lua_pushinteger( pLuaState, value );
 
@@ -443,7 +444,7 @@ void CScriptCallbacks::OnPlayInput( const char *pszFilename, int frame, usercmd_
 
 		if ( hFunction = g_ScriptVM.LookupFunction( "OnPlayInput" ) )
 		{
-			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
 
 			lua_pushstring( pLuaState, pszFilename );
 			lua_pushinteger( pLuaState, (lua_Integer)frame );
@@ -465,7 +466,7 @@ void CScriptCallbacks::OnPlayEnd( const char *pszFilename, int frames )
 
 		if ( hFunction = g_ScriptVM.LookupFunction( "OnPlayEnd" ) )
 		{
-			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, hFunction );
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
 
 			lua_pushstring( pLuaState, pszFilename );
 			lua_pushinteger( pLuaState, (lua_Integer)frames );
@@ -493,19 +494,23 @@ bool CScriptVM::Init( void )
 
 		if ( m_pLuaState != NULL )
 		{
+			VLua::Init( m_pLuaState );
+
 			luaL_openlibs( m_pLuaState );
 
 			luaopen_print( m_pLuaState );
 			luaopen_vector( m_pLuaState );
-			luaopen_cvar( m_pLuaState );
-			luaopen_mod( m_pLuaState );
-			luaopen_logic( m_pLuaState );
-			luaopen_triggers( m_pLuaState );
-			luaopen_edict( m_pLuaState );
-			luaopen_entvars( m_pLuaState );
 			luaopen_playermove( m_pLuaState );
 			luaopen_usercmd( m_pLuaState );
+			luaopen_edict( m_pLuaState );
+			luaopen_entvars( m_pLuaState );
+			luaopen_cvar( m_pLuaState );
+			luaopen_logic( m_pLuaState );
+			luaopen_triggers( m_pLuaState );
 			luaopen_inputmanager( m_pLuaState );
+			luaopen_mod( m_pLuaState );
+
+			VLua::SetupPropertiesInitialization();
 
 			//SetSearchPath("sven_internal\\scripts");
 
@@ -532,7 +537,12 @@ void CScriptVM::Shutdown( void )
 {
 	if ( m_pLuaState != NULL )
 	{
+		ResetStates();
+
 		lua_close( m_pLuaState );
+
+		VLua::Shutdown();
+
 		m_pLuaState = NULL;
 
 		ConColorMsg( clr_print, "Stopped scripts virtual machine\n" );

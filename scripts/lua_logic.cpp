@@ -1,3 +1,4 @@
+#include "scripts_binding.h"
 #include "lua_logic.h"
 #include "lua_vector.h"
 
@@ -30,7 +31,7 @@ void CTimersHandler::Frame(lua_State *pLuaState)
 		{
 			size_t args = timer.args.size();
 
-			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, timer.func_ref );
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)timer.func_ref );
 
 			for (size_t j = 0; j < args; j++)
 			{
@@ -63,7 +64,7 @@ void CTimersHandler::Frame(lua_State *pLuaState)
 				//	break;
 
 				case LUA_TYPE_REFERENCE:
-					lua_rawgeti(pLuaState, LUA_REGISTRYINDEX, scriptType.m_ref);
+					lua_rawgeti(pLuaState, LUA_REGISTRYINDEX, (int)scriptType.m_ref);
 					break;
 
 				default:
@@ -74,7 +75,7 @@ void CTimersHandler::Frame(lua_State *pLuaState)
 
 			int luaResult = lua_pcall(pLuaState, args, 0, 0);
 
-			luaL_unref( pLuaState, LUA_REGISTRYINDEX, timer.func_ref );
+			luaL_unref( pLuaState, LUA_REGISTRYINDEX, (int)timer.func_ref );
 
 			for (size_t j = 0; j < args; j++)
 			{
@@ -87,7 +88,7 @@ void CTimersHandler::Frame(lua_State *pLuaState)
 					break;
 
 				case LUA_TYPE_REFERENCE:
-					luaL_unref( pLuaState, LUA_REGISTRYINDEX, scriptType.m_ref );
+					luaL_unref( pLuaState, LUA_REGISTRYINDEX, (int)scriptType.m_ref );
 					break;
 				}
 			}
@@ -112,7 +113,7 @@ bool CTimersHandler::RemoveTimer(lua_Integer id)
 		if ( m_vTimers[i].id == id )
 		{
 			if ( pLuaState != NULL )
-				luaL_unref( pLuaState, LUA_REGISTRYINDEX, m_vTimers[i].func_ref );
+				luaL_unref( pLuaState, LUA_REGISTRYINDEX, (int)m_vTimers[i].func_ref );
 
 			for (size_t j = 0; j < m_vTimers[i].args.size(); j++)
 			{
@@ -126,7 +127,7 @@ bool CTimersHandler::RemoveTimer(lua_Integer id)
 
 				case LUA_TYPE_REFERENCE:
 					if ( pLuaState != NULL )
-						luaL_unref( pLuaState, LUA_REGISTRYINDEX, scriptType.m_ref );
+						luaL_unref( pLuaState, LUA_REGISTRYINDEX, (int)scriptType.m_ref );
 					break;
 				}
 			}
@@ -146,7 +147,7 @@ void CTimersHandler::ClearTimers()
 	for (size_t i = 0; i < m_vTimers.size(); i++)
 	{
 		if ( pLuaState != NULL )
-			luaL_unref( pLuaState, LUA_REGISTRYINDEX, m_vTimers[i].func_ref );
+			luaL_unref( pLuaState, LUA_REGISTRYINDEX, (int)m_vTimers[i].func_ref );
 
 		for (size_t j = 0; j < m_vTimers[i].args.size(); j++)
 		{
@@ -160,7 +161,7 @@ void CTimersHandler::ClearTimers()
 
 			case LUA_TYPE_REFERENCE:
 				if ( pLuaState != NULL )
-					luaL_unref( pLuaState, LUA_REGISTRYINDEX, scriptType.m_ref );
+					luaL_unref( pLuaState, LUA_REGISTRYINDEX, (int)scriptType.m_ref );
 				break;
 			}
 		}
@@ -173,7 +174,7 @@ void CTimersHandler::ClearTimers()
 // C to Lua
 //-----------------------------------------------------------------------------
 
-static int CreateTimer(lua_State *pLuaState)
+DEFINE_SCRIPTFUNC( CreateTimer )
 {
 	lua_Integer id = 0uLL;
 
@@ -185,7 +186,7 @@ static int CreateTimer(lua_State *pLuaState)
 		lua_error( pLuaState );
 
 		lua_pushinteger(pLuaState, id);
-		return 1;
+		return VLUA_RET_ARGS( 1 );
 	}
 
 	double call_delay = (double)lua_tonumber(pLuaState, 1);
@@ -196,7 +197,7 @@ static int CreateTimer(lua_State *pLuaState)
 		lua_error( pLuaState );
 
 		lua_pushinteger(pLuaState, id);
-		return 1;
+		return VLUA_RET_ARGS( 1 );
 	}
 
 	Lua_TimerContext t;
@@ -212,7 +213,7 @@ static int CreateTimer(lua_State *pLuaState)
 
 	lua_pushvalue(pLuaState, 2);
 
-	scriptref_t func_ref = luaL_ref(pLuaState, LUA_REGISTRYINDEX);
+	scriptref_t func_ref = (scriptref_t)luaL_ref(pLuaState, LUA_REGISTRYINDEX);
 
 	//Msg("luaL_ref(pLuaState, 2): %d\n", func_ref);
 
@@ -260,7 +261,7 @@ static int CreateTimer(lua_State *pLuaState)
 			{
 				lua_pushvalue(pLuaState, i);
 
-				scriptref_t ref = luaL_ref(pLuaState, LUA_REGISTRYINDEX);
+				scriptref_t ref = (scriptref_t)luaL_ref(pLuaState, LUA_REGISTRYINDEX);
 
 				scriptType = ref;
 
@@ -277,24 +278,24 @@ static int CreateTimer(lua_State *pLuaState)
 	//g_TimersHandler.m_vTimers.pop_back();
 
 	lua_pushinteger(pLuaState, id);
-	return 1;
+	return VLUA_RET_ARGS( 1 );
 }
 
-static int RemoveTimer(lua_State *pLuaState)
+DEFINE_SCRIPTFUNC( RemoveTimer )
 {
 	lua_Integer id = lua_tointeger(pLuaState, 1);
 	int removed = (int)g_TimersHandler.RemoveTimer( id );
 
 	lua_pushboolean( pLuaState, removed );
 
-	return 1;
+	return VLUA_RET_ARGS( 1 );
 }
 
-static int RemoveAllTimers(lua_State *pLuaState)
+DEFINE_SCRIPTFUNC( RemoveAllTimers )
 {
 	g_TimersHandler.ClearTimers();
 
-	return 0;
+	return VLUA_RET_ARGS( 0 );
 }
 
 //-----------------------------------------------------------------------------
@@ -303,14 +304,9 @@ static int RemoveAllTimers(lua_State *pLuaState)
 
 LUALIB_API int luaopen_logic(lua_State *pLuaState)
 {
-	lua_pushcfunction(pLuaState, CreateTimer);
-	lua_setglobal(pLuaState, "CreateTimer");
-	
-	lua_pushcfunction(pLuaState, RemoveTimer);
-	lua_setglobal(pLuaState, "RemoveTimer");
-	
-	lua_pushcfunction(pLuaState, RemoveAllTimers);
-	lua_setglobal(pLuaState, "RemoveAllTimers");
+	VLua::RegisterFunction( "CreateTimer", SCRIPTFUNC( CreateTimer ) );
+	VLua::RegisterFunction( "RemoveTimer", SCRIPTFUNC( RemoveTimer ) );
+	VLua::RegisterFunction( "RemoveAllTimers", SCRIPTFUNC( RemoveAllTimers ) );
 
 	return 1;
 }

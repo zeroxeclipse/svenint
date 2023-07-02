@@ -199,6 +199,7 @@
     <ClCompile Include="scripts\lua_usercmd.cpp" />
     <ClCompile Include="scripts\lua_vector.cpp" />
     <ClCompile Include="scripts\scripts.cpp" />
+    <ClCompile Include="scripts\scripts_binding.cpp" />
     <ClCompile Include="strafe\strafe.cpp" />
     <ClCompile Include="SvenMod\public\hl_sdk\cl_dll\interpolation.cpp" />
     <ClCompile Include="svenmod\public\hl_sdk\pm_shared\pm_shared.cpp" />
@@ -336,6 +337,7 @@
     <ClInclude Include="scripts\lua_usercmd.h" />
     <ClInclude Include="scripts\lua_vector.h" />
     <ClInclude Include="scripts\scripts.h" />
+    <ClInclude Include="scripts\scripts_binding.h" />
     <ClInclude Include="strafe\strafe.h" />
     <ClInclude Include="strafe\strafe_utils.h" />
     <ClInclude Include="SvenMod\public\hl_sdk\cl_dll\interpolation.h" />

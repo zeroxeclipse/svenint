@@ -85,13 +85,13 @@ struct Lua_TimerContext
 {
 	lua_Integer id;
 	double time;
-	int func_ref;
+	scriptref_t func_ref;
 	std::vector<ScriptTypeVariant> args;
 };
 
 class CTimersHandler
 {
-	friend static int CreateTimer(lua_State *pLuaState);
+	friend static int ScriptFunc_CreateTimer(lua_State *pLuaState);
 
 public:
 	CTimersHandler();

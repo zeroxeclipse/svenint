@@ -11,7 +11,7 @@
 #include <hl_sdk/common/usercmd.h>
 #include <client_state.h>
 
-typedef int scriptref_t;
+struct scriptref { int unused; }; typedef struct scriptref *scriptref_t;
 
 //-----------------------------------------------------------------------------
 // Scripts Callbacks

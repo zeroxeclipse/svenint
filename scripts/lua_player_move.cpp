@@ -2,49 +2,10 @@
 #include <data_struct/hashdict.h>
 #include <hl_sdk/pm_shared/pm_shared.h>
 
+#include "scripts_binding.h"
 #include "lua_player_move.h"
 
 #define PLAYERMOVE_TYPE "playermove"
-//#define EDICT_NAME "edict"
-
-//-----------------------------------------------------------------------------
-// getters & setters binding
-//-----------------------------------------------------------------------------
-
-typedef int ( _cdecl *PropertyGetterFn )( lua_State * );
-typedef int ( _cdecl *PropertySetterFn )( lua_State * );
-
-static CHashDict<PropertyGetterFn, true, false> edict_getters( 7 );
-static CHashDict<PropertySetterFn, true, false> edict_setters( 7 );
-
-static int PlayerMoveInvokePropertyGetter( lua_State *pLuaState, const char *pszProperty )
-{
-	PropertyGetterFn *pfnPropertyGetter = edict_getters.Find( pszProperty );
-
-	if ( !pfnPropertyGetter || !*pfnPropertyGetter )
-		return 0;
-
-	return ( *pfnPropertyGetter )( pLuaState );
-}
-
-static int PlayerMoveInvokePropertySetter( lua_State *pLuaState, const char *pszProperty )
-{
-	PropertySetterFn *pfnPropertySetter = edict_setters.Find( pszProperty );
-
-	if ( !pfnPropertySetter || !*pfnPropertySetter )
-		return 0;
-
-	return ( *pfnPropertySetter )( pLuaState );
-}
-
-static void PlayerMoveBindProperty( const char *pszProperty, PropertyGetterFn getter, PropertySetterFn setter )
-{
-	if ( getter )
-		edict_getters.Insert( pszProperty, getter );
-	
-	if ( setter )
-		edict_setters.Insert( pszProperty, setter );
-}
 
 //-----------------------------------------------------------------------------
 // Access functions
@@ -85,30 +46,10 @@ void lua_pushplayermove( lua_State *pLuaState, playermove_t *pPlayerMove )
 // Script functions
 //-----------------------------------------------------------------------------
 
-static int ScriptFunc_flags_get( lua_State *pLuaState )
-{
-	playermove_t *pm = lua_getplayermove( pLuaState, 1 );
+DEFINE_GETTER( PLAYERMOVE_TYPE, playermove_t * );
+DEFINE_SETTER( PLAYERMOVE_TYPE, playermove_t * );
 
-	lua_pushinteger( pLuaState, (int)pm->flags );
-
-	return 1;
-}
-
-static int ScriptFunc_MetaMethod_index( lua_State *pLuaState )
-{
-	const char *pszKey = luaL_checkstring( pLuaState, 2 );
-
-	return PlayerMoveInvokePropertyGetter( pLuaState, pszKey );
-}
-
-static int ScriptFunc_MetaMethod_newindex( lua_State *pLuaState )
-{
-	const char *pszKey = luaL_checkstring( pLuaState, 2 );
-
-	return PlayerMoveInvokePropertySetter( pLuaState, pszKey );
-}
-
-static int ScriptFunc_MetaMethod_tostring( lua_State *pLuaState )
+DEFINE_SCRIPTFUNC( MetaMethod_tostring )
 {
 	char s[ 64 ];
 	playermove_t *pm = lua_getplayermove( pLuaState, 1 );
@@ -117,16 +58,14 @@ static int ScriptFunc_MetaMethod_tostring( lua_State *pLuaState )
 
 	lua_pushstring( pLuaState, s );
 
-	return 1;
+	return VLUA_RET_ARGS( 1 );
 }
 
-static const luaL_Reg Registrations[] =
-{
-	{ "__index",	ScriptFunc_MetaMethod_index },
-	{ "__newindex",	ScriptFunc_MetaMethod_newindex	},
-	{ "__tostring",	ScriptFunc_MetaMethod_tostring	},
-	{ NULL,			NULL }
-};
+REG_BEGIN( Registrations )
+	REG_GETTER()
+	REG_SETTER()
+	REG_SCRIPTFUNC( "__tostring", MetaMethod_tostring )
+REG_END();
 
 //-----------------------------------------------------------------------------
 // Initialize
@@ -134,13 +73,68 @@ static const luaL_Reg Registrations[] =
 
 LUALIB_API int luaopen_playermove( lua_State *pLuaState )
 {
-	luaL_newmetatable( pLuaState, PLAYERMOVE_TYPE );
-	luaL_setfuncs( pLuaState, Registrations, NULL );
+	VLua::RegisterMetaTable( PLAYERMOVE_TYPE );
+	VLua::RegisterMetaTableFunctions( PLAYERMOVE_TYPE, Registrations );
 
-	PlayerMoveBindProperty( "flags", ScriptFunc_flags_get, NULL );
+	if ( !VLua::ArePropertiesInitialized() )
+	{
+		VLua::BindProperty( PLAYERMOVE_TYPE, "player_index", VLuaPropertyDesc( playermove_t, player_index ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "server", VLuaPropertyDescFieldtype( playermove_t, server, VLUA_FIELD_TYPE_BOOLEAN ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "multiplayer", VLuaPropertyDescFieldtype( playermove_t, multiplayer, VLUA_FIELD_TYPE_BOOLEAN ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "time", VLuaPropertyDesc( playermove_t, time ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "frametime", VLuaPropertyDesc( playermove_t, frametime ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "forward", VLuaPropertyDesc( playermove_t, forward ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "right", VLuaPropertyDesc( playermove_t, right ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "up", VLuaPropertyDesc( playermove_t, up ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "origin", VLuaPropertyDesc( playermove_t, origin ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "angles", VLuaPropertyDesc( playermove_t, angles ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "oldangles", VLuaPropertyDesc( playermove_t, oldangles ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "velocity", VLuaPropertyDesc( playermove_t, velocity ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "movedir", VLuaPropertyDesc( playermove_t, movedir ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "basevelocity", VLuaPropertyDesc( playermove_t, basevelocity ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "view_ofs", VLuaPropertyDesc( playermove_t, view_ofs ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "flDuckTime", VLuaPropertyDesc( playermove_t, flDuckTime ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "bInDuck", VLuaPropertyDescFieldtype( playermove_t, bInDuck, VLUA_FIELD_TYPE_BOOLEAN ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "flTimeStepSound", VLuaPropertyDesc( playermove_t, flTimeStepSound ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "iStepLeft", VLuaPropertyDesc( playermove_t, iStepLeft ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "flFallVelocity", VLuaPropertyDesc( playermove_t, flFallVelocity ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "punchangle", VLuaPropertyDesc( playermove_t, punchangle ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "flSwimTime", VLuaPropertyDesc( playermove_t, flSwimTime ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "flNextPrimaryAttack", VLuaPropertyDesc( playermove_t, flNextPrimaryAttack ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "effects", VLuaPropertyDesc( playermove_t, effects ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "flags", VLuaPropertyDesc( playermove_t, flags ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "usehull", VLuaPropertyDesc( playermove_t, usehull ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "gravity", VLuaPropertyDesc( playermove_t, gravity ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "friction", VLuaPropertyDesc( playermove_t, friction ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "oldbuttons", VLuaPropertyDesc( playermove_t, oldbuttons ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "waterjumptime", VLuaPropertyDesc( playermove_t, waterjumptime ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "dead", VLuaPropertyDescFieldtype( playermove_t, dead, VLUA_FIELD_TYPE_BOOLEAN ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "deadflag", VLuaPropertyDesc( playermove_t, deadflag ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "spectator", VLuaPropertyDesc( playermove_t, spectator ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "movetype", VLuaPropertyDesc( playermove_t, movetype ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "onground", VLuaPropertyDesc( playermove_t, onground ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "waterlevel", VLuaPropertyDesc( playermove_t, waterlevel ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "watertype", VLuaPropertyDesc( playermove_t, watertype ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "oldwaterlevel", VLuaPropertyDesc( playermove_t, oldwaterlevel ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "sztexturename", VLuaPropertyDescFieldtype( playermove_t, sztexturename, VLUA_FIELD_TYPE_CSTRING ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "chtexturetype", VLuaPropertyDesc( playermove_t, chtexturetype ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "maxspeed", VLuaPropertyDesc( playermove_t, maxspeed ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "clientmaxspeed", VLuaPropertyDesc( playermove_t, clientmaxspeed ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "iuser1", VLuaPropertyDesc( playermove_t, iuser1 ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "iuser2", VLuaPropertyDesc( playermove_t, iuser2 ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "iuser3", VLuaPropertyDesc( playermove_t, iuser3 ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "iuser4", VLuaPropertyDesc( playermove_t, iuser4 ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "fuser1", VLuaPropertyDesc( playermove_t, fuser1 ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "fuser2", VLuaPropertyDesc( playermove_t, fuser2 ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "fuser3", VLuaPropertyDesc( playermove_t, fuser3 ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "fuser4", VLuaPropertyDesc( playermove_t, fuser4 ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "vuser1", VLuaPropertyDesc( playermove_t, vuser1 ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "vuser2", VLuaPropertyDesc( playermove_t, vuser2 ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "vuser3", VLuaPropertyDesc( playermove_t, vuser3 ), true, false );
+		VLua::BindProperty( PLAYERMOVE_TYPE, "vuser4", VLuaPropertyDesc( playermove_t, vuser4 ), true, false );
+	}
 
-	lua_pushplayermove( pLuaState, g_pPlayerMove );
-	lua_setglobal( pLuaState, "PlayerMove" );
+	VLua::RegisterGlobalVariable( "PlayerMove", g_pPlayerMove );
 
 	return 1;
 }
