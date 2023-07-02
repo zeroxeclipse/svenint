@@ -90,6 +90,7 @@ void CDemoMessageHandler::WriteSegmentInfo( float flTime, const char *pszFormatt
 
 void CDemoMessageHandler::WriteVelometerSpeed( float flSpeed )
 {
+/*
 	if ( g_bPlayingbackDemo )
 		return;
 
@@ -102,4 +103,5 @@ void CDemoMessageHandler::WriteVelometerSpeed( float flSpeed )
 	demobuffer[ M_ARRAYSIZE( demobuffer ) - 1 ] = 0;
 
 	g_pDemoAPI->WriteClientDLLMessage( demoMsg.GetBuffer()->cursize, demoMsg.GetBuffer()->data );
+*/
 }
