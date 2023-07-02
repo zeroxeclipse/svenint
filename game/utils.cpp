@@ -13,6 +13,7 @@
 #include <IEngineClient.h>
 #include <IClientWeapon.h>
 #include <IFileSystem.h>
+#include <IRender.h>
 
 #include <hl_sdk/engine/APIProxy.h>
 
@@ -157,6 +158,8 @@ CON_COMMAND(getang, "Prints current view angles")
 	Vector va;
 	g_pEngineFuncs->GetViewAngles(va);
 
+	NormalizeAngles( va );
+
 	Warning("setang %.6f %.6f %.6f\n", VectorExpand(va));
 }
 
@@ -200,6 +203,87 @@ CON_COMMAND(setang, "Sets view angles")
 	{
 		Msg("Usage:  setang <x> <optional: y> <optional: z>\n");
 	}
+}
+
+CON_COMMAND( sc_debug_draw_point, "" )
+{
+	if ( args.ArgC() >= 10 )
+	{
+		Vector vecPoint( atof( args[ 1 ] ), atof( args[ 2 ] ), atof( args[ 3 ] ) );
+
+		unsigned char r = atoi( args[ 4 ] );
+		unsigned char g = atoi( args[ 5 ] );
+		unsigned char b = atoi( args[ 6 ] );
+		unsigned char a = atoi( args[ 7 ] );
+
+		float size = atoi( args[ 8 ] );
+		float duration = atoi( args[ 9 ] );
+
+		Render()->DrawPoint( vecPoint, { r, g, b, a }, size, duration );
+	}
+}
+
+CON_COMMAND( sc_debug_draw_line, "" )
+{
+	if ( args.ArgC() >= 13 )
+	{
+		Vector vecStart( atof( args[ 1 ] ), atof( args[ 2 ] ), atof( args[ 3 ] ) );
+		Vector vecEnd( atof( args[ 4 ] ), atof( args[ 5 ] ), atof( args[ 6 ] ) );
+
+		unsigned char r = atoi( args[ 7 ] );
+		unsigned char g = atoi( args[ 8 ] );
+		unsigned char b = atoi( args[ 9 ] );
+		unsigned char a = atoi( args[ 10 ] );
+
+		float width = atoi( args[ 11 ] );
+		float duration = atoi( args[ 12 ] );
+
+		Render()->DrawLine( vecStart, vecEnd, { r, g, b, a }, width, duration );
+	}
+}
+
+CON_COMMAND( sc_debug_draw_box, "" )
+{
+	if ( args.ArgC() >= 15 )
+	{
+		Vector vOrigin( atof( args[ 1 ] ), atof( args[ 2 ] ), atof( args[ 3 ] ) );
+		Vector vMins( atof( args[ 4 ] ), atof( args[ 5 ] ), atof( args[ 6 ] ) );
+		Vector vMaxs( atof( args[ 7 ] ), atof( args[ 8 ] ), atof( args[ 9 ] ) );
+
+		unsigned char r = atoi( args[ 10 ] );
+		unsigned char g = atoi( args[ 11 ] );
+		unsigned char b = atoi( args[ 12 ] );
+		unsigned char a = atoi( args[ 13 ] );
+
+		float duration = atoi( args[ 14 ] );
+
+		Render()->DrawBox( vOrigin, vMins, vMaxs, { r, g, b, a }, duration );
+	}
+}
+
+CON_COMMAND( sc_debug_draw_box_angles, "" )
+{
+	if ( args.ArgC() >= 18 )
+	{
+		Vector vOrigin( atof( args[ 1 ] ), atof( args[ 2 ] ), atof( args[ 3 ] ) );
+		Vector vMins( atof( args[ 4 ] ), atof( args[ 5 ] ), atof( args[ 6 ] ) );
+		Vector vMaxs( atof( args[ 7 ] ), atof( args[ 8 ] ), atof( args[ 9 ] ) );
+		Vector vAngles( atof( args[ 10 ] ), atof( args[ 11 ] ), atof( args[ 12 ] ) );
+
+		unsigned char r = atoi( args[ 13 ] );
+		unsigned char g = atoi( args[ 14 ] );
+		unsigned char b = atoi( args[ 15 ] );
+		unsigned char a = atoi( args[ 16 ] );
+
+		float duration = atoi( args[ 17 ] );
+
+		Render()->DrawBoxAngles( vOrigin, vMins, vMaxs, vAngles, { r, g, b, a }, duration );
+	}
+}
+
+CON_COMMAND( sc_debug_draw_clear, "" )
+{
+	Render()->DrawClear();
 }
 
 //-----------------------------------------------------------------------------
@@ -436,6 +520,40 @@ const wchar_t *UTIL_CStringToWideCString(const char *pszString)
 // Player move utilities
 //-----------------------------------------------------------------------------
 
+int UTIL_ClipVelocity( const Vector &in, const Vector &normal, Vector &out, float overbounce )
+{
+	float	backoff;
+	float	change;
+	float angle;
+	int		i, blocked;
+
+	const float STOP_EPSILON = 0.1f;
+
+	angle = normal[ 2 ];
+
+	blocked = 0x00;            // Assume unblocked.
+	if ( angle > 0 )      // If the plane that is blocking us has a positive z component, then assume it's a floor.
+		blocked |= 0x01;		// 
+	if ( !angle )         // If the plane has no Z, it is vertical (wall/step)
+		blocked |= 0x02;		// 
+
+	// Determine how far along plane to slide based on incoming direction.
+	// Scale by overbounce factor.
+	backoff = DotProduct( in, normal ) * overbounce;
+
+	for ( i = 0; i < 3; i++ )
+	{
+		change = normal[ i ] * backoff;
+		out[ i ] = in[ i ] - change;
+		// If out velocity is too small, zero it out.
+		if ( out[ i ] > -STOP_EPSILON && out[ i ] < STOP_EPSILON )
+			out[ i ] = 0.f;
+	}
+
+	// Return blocking flags.
+	return blocked;
+}
+
 void UTIL_AddCorrectGravity( Vector &vecVelocity, float frametime )
 {
 	float ent_gravity;
@@ -460,6 +578,32 @@ void UTIL_FixupGravityVelocity( Vector &vecVelocity, float frametime )
 		ent_gravity = 1.f;
 
 	vecVelocity.z -= ( ent_gravity * g_pPlayerMove->movevars->gravity * frametime * 0.5f );
+}
+
+void UTIL_AddCorrectGravity( Vector &vecVelocity, float gravity, float entgravity, float frametime )
+{
+	float ent_gravity;
+
+	if ( entgravity )
+		ent_gravity = entgravity;
+	else
+		ent_gravity = 1.f;
+
+	// Add gravity so they'll be in the correct position during movement
+	// yes, this 0.5 looks wrong, but it's not.  
+	vecVelocity.z -= ( ent_gravity * gravity * 0.5 * frametime );
+}
+
+void UTIL_FixupGravityVelocity( Vector &vecVelocity, float gravity, float entgravity, float frametime )
+{
+	float ent_gravity;
+
+	if ( entgravity )
+		ent_gravity = entgravity;
+	else
+		ent_gravity = 1.f;
+
+	vecVelocity.z -= ( ent_gravity * gravity * frametime * 0.5f );
 }
 
 //-----------------------------------------------------------------------------
