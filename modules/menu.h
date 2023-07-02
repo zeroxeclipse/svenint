@@ -68,6 +68,7 @@ private:
 	// Utilities
 	void LoadTextures();
 	bool LoadTextureFromFile(const char *filename, GLuint *out_texture, int *out_width, int *out_height);
+	void DeleteTextures();
 
 	void SelectCurrentFont();
 	void LoadFonts();

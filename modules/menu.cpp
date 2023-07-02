@@ -221,7 +221,7 @@ bool CMenuModule::LoadTextureFromFile(const char* filename, GLuint* out_texture,
 	unsigned char* image_data = stbi_load(filename, &image_width, &image_height, NULL, 4);
 	if (image_data == NULL)
 		return false;
-
+	
 	// Create a OpenGL texture identifier
 	GLuint image_texture;
 	glGenTextures(1, &image_texture);
@@ -249,7 +249,7 @@ bool CMenuModule::LoadTextureFromFile(const char* filename, GLuint* out_texture,
 
 void CMenuModule::LoadTextures()
 {
-	// This is a mess... but im too stupid to figure out another way
+	// This is a mess... but im too stupid to figure out another way | xd don't worry same for me
 	std::string bPath = SvenModAPI()->GetBaseDirectory();
 
 	std::string sint_logo = "\\sven_internal\\images\\logo.png";
@@ -267,13 +267,39 @@ void CMenuModule::LoadTextures()
 
 	bool bMenuTextureLoaded = LoadTextureFromFile( sint_image_fPath.c_str(), &m_hMenuTex, &m_iMenuTexWidth, &m_iMenuTexHeight );
 
-	if ( (!bMenuTextureLoaded) || !(m_iMenuTexWidth == 130 && m_iMenuTexHeight == 248) )
+	if ( ( !bMenuTextureLoaded ) || !( m_iMenuTexWidth == 130 && m_iMenuTexHeight == 248 ) )
 	{
-		Warning(xs("[SvenInt] Cannot load SvenInt menu image, make sure size is 130x248\n"));
+		if ( bMenuTextureLoaded )
+		{
+			Warning( xs( "[SvenInt] Cannot load SvenInt menu image, make sure size is 130x248\n" ) );
+
+			glDeleteTextures( 1, &m_hLogoTex );
+		}
+		else
+		{
+			Warning( xs( "[SvenInt] Failed to load SvenInt menu image\n" ) );
+		}
+
 		m_bMenuTexLoaded = false;
+		m_hLogoTex = 0;
 	}
 
 	m_bMenuTexLoaded = true;
+}
+
+void CMenuModule::DeleteTextures()
+{
+	if ( m_hLogoTex )
+	{
+		glDeleteTextures( 1, &m_hLogoTex );
+		m_hLogoTex = 0;
+	}
+
+	if ( m_hMenuTex )
+	{
+		glDeleteTextures( 1, &m_hMenuTex );
+		m_hMenuTex = 0;
+	}
 }
 
 void CMenuModule::SelectCurrentFont()
@@ -1249,8 +1275,8 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 
-		ImGui::Checkbox(xs("Wireframe World"), &g_Config.cvars.wallhack_wireframe); ImGui::SameLine();
-		ImGui::Checkbox(xs("Wireframe Models"), &g_Config.cvars.wallhack_wireframe_models);
+		ImGui::Checkbox(xs("Wireframe World##wh"), &g_Config.cvars.wallhack_wireframe); ImGui::SameLine();
+		ImGui::Checkbox(xs("Wireframe Models##wh"), &g_Config.cvars.wallhack_wireframe_models);
 
 		ImGui::Spacing();
 
@@ -1270,7 +1296,7 @@ void CMenuModule::DrawVisualsTabContent()
 	}
 	case 6: // BSP
 	{
-		ImGui::BeginChild(xs("bsp"), ImVec2(328, 160), true);
+		ImGui::BeginChild(xs("bsp"), ImVec2(328, 230), true);
 
 		ImGui::PushItemWidth(250);
 
@@ -1280,15 +1306,24 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 
+		ImGui::Checkbox(xs("Wireframe Mode##bsp"), &g_Config.cvars.bsp_wireframe);
+		
+		ImGui::Spacing();
+		ImGui::Spacing();
+
 		ImGui::Checkbox(xs("Show Spawns"), &g_Config.cvars.show_spawns);
 
 		ImGui::Spacing();
 
-		ImGui::Checkbox(xs("Enable Triggers"), &g_Config.cvars.show_triggers);
+		ImGui::Checkbox(xs("Show Walls"), &g_Config.cvars.show_walls);
+		
+		ImGui::Spacing();
+
+		ImGui::Checkbox(xs("Show Triggers"), &g_Config.cvars.show_triggers);
 
 		ImGui::Spacing();
 
-		ImGui::Checkbox(xs("Enable Triggers Info"), &g_Config.cvars.show_triggers_info);
+		ImGui::Checkbox(xs("Show Triggers Info"), &g_Config.cvars.show_triggers_info);
 
 		ImGui::Spacing();
 		
@@ -2888,9 +2923,9 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::SetCursorPosX(332);
 
-		ImGui::BeginChild(xs("speedrun-tools2"), ImVec2(328.5, 350), true);
+		ImGui::BeginChild(xs("speedrun-tools2"), ImVec2(328.5, 375), true);
 
-		ImGui::Text(xs("HUD Info"));
+		ImGui::Text(xs("Tools"));
 
 		ImGui::Spacing();
 
@@ -3072,7 +3107,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 			ImGuiCustom.Spacing( 4 );
 
-			ImGui::Text( xs( "Small Hull" ) );
+			ImGui::Text( xs( "Small Hull Visualization" ) );
 
 			ImGui::Spacing();
 
@@ -3088,7 +3123,7 @@ void CMenuModule::DrawUtilityTabContent()
 			
 			ImGuiCustom.Spacing( 4 );
 
-			ImGui::Text( xs( "Medium Hull" ) );
+			ImGui::Text( xs( "Medium Hull Visualization" ) );
 
 			ImGui::Spacing();
 
@@ -3104,7 +3139,7 @@ void CMenuModule::DrawUtilityTabContent()
 			
 			ImGuiCustom.Spacing( 4 );
 
-			ImGui::Text( xs( "Large Hull" ) );
+			ImGui::Text( xs( "Large Hull Visualization" ) );
 
 			ImGui::Spacing();
 
@@ -3118,6 +3153,51 @@ void CMenuModule::DrawUtilityTabContent()
 
 			ImGui::ColorEdit4( xs( "Hull Color##st_revive_area_large" ), g_Config.cvars.st_show_revive_area_large_hull_color );
 
+			ImGui::EndCombo();
+		}
+		
+		ImGui::Spacing();
+
+		if (ImGui::BeginCombo("         ", xs("Landing Prediction"), ImGuiComboFlags_HeightLargest ))
+		{
+			ImGui::Checkbox(xs("Show Land Point##st"), &g_Config.cvars.st_show_land_point );
+
+			ImGui::Spacing();
+
+			ImGui::SliderInt( xs( "Max Prediction Landings##st_land_point" ), &g_Config.cvars.st_show_land_point_max_points, 1, 5 );
+
+			ImGuiCustom.Spacing( 4 );
+
+			ImGui::Text( xs( "Hull Visualization" ) );
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox( xs( "Draw##st_land_point" ), &g_Config.cvars.st_show_land_point_draw_hull );
+			
+			ImGui::Spacing();
+
+			ImGui::Checkbox( xs( "Wireframe##st_land_point" ), &g_Config.cvars.st_show_land_point_draw_hull_wireframe );
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat( xs( "Hull Width##st_land_point" ), &g_Config.cvars.st_show_land_point_draw_hull_width, 0.0f, 10.0f );
+
+			ImGui::Spacing();
+
+			ImGui::ColorEdit4( xs( "Hull Color##st_land_point" ), g_Config.cvars.st_show_land_point_draw_hull_color );
+			
+			ImGuiCustom.Spacing( 4 );
+
+			ImGui::Text( xs( "Land Point Visualization" ) );
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox( xs( "Draw##st_land_point_exact" ), &g_Config.cvars.st_show_land_point_draw_exact_point );
+			
+			ImGui::Spacing();
+
+			ImGui::ColorEdit4( xs( "Land Point Color##st_land_point_exact" ), g_Config.cvars.st_show_land_point_draw_exact_point_color );
+			
 			ImGui::EndCombo();
 		}
 
@@ -3470,7 +3550,7 @@ void CMenuModule::DrawSettingsTabContent()
 	{
 	case 0: // Menu
 	{
-		ImGui::BeginChild(xs("menu"), ImVec2(328, 375), true);
+		ImGui::BeginChild(xs("menu"), ImVec2(328, 410), true);
 
 		ImGui::Text(xs("Toggle Key"));
 
@@ -3504,6 +3584,14 @@ void CMenuModule::DrawSettingsTabContent()
 		
 		ImGuiCustom.ToolTip(xs("Displays (?) a tool tip for most uncommon features."), true, 125);
 
+		ImGuiCustom.Spacing(4);
+
+		if ( ImGui::Button( xs( "Reload Textures" ) ) )
+		{
+			DeleteTextures();
+			LoadTextures();
+		}
+		
 		ImGuiCustom.Spacing(4);
 
 		ImGui::PushItemWidth(150);
@@ -3945,15 +4033,7 @@ void CMenuModule::Unload()
 		SetWindowLong(hGameWnd, GWL_WNDPROC, (LONG)hGameWndProc);
 	}
 
-	if ( m_hLogoTex )
-	{
-		glDeleteTextures(1, &m_hLogoTex);
-	}
-	
-	if ( m_hMenuTex )
-	{
-		glDeleteTextures(1, &m_hMenuTex);
-	}
+	DeleteTextures();
 
 	DetoursAPI()->RemoveDetour( m_hwglSwapBuffers );
 	DetoursAPI()->RemoveDetour( m_hSetCursorPos );
