@@ -149,6 +149,8 @@ event_t *g_pEventHooks = NULL;
 cvar_t *default_fov = NULL;
 cvar_t *hud_draw = NULL;
 
+ref_params_t refparams;
+
 void *g_pfnCHudBaseTextBlock__Print = NULL;
 
 static int s_iWaterLevel = 0;
@@ -1372,6 +1374,8 @@ HOOK_RESULT CClientPostHooks::V_CalcRefdef(ref_params_t *pparams)
 	g_Aim.Post_V_CalcRefdef(pparams);
 	g_FirstPersonRoaming.V_CalcRefdef(pparams);
 
+	memcpy( &refparams, pparams, sizeof( ref_params_t ) );
+
 	return HOOK_CONTINUE;
 }
 
@@ -1490,6 +1494,8 @@ CClientPostHooks g_ClientPostHooks;
 
 CHooksModule::CHooksModule()
 {
+	ZeroMemory( &refparams, sizeof( ref_params_t ) );
+
 	m_pfnIN_Move = NULL;
 	m_pfnCHud__Think = NULL;
 	m_pfnCHudBaseTextBlock__Print = NULL;
