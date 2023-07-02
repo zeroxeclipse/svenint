@@ -23,12 +23,14 @@
 
 #include "visual.h"
 #include "camhack.h"
+#include "speedrun_tools.h"
 #include "firstperson_roaming.h"
 
 #include "../game/utils.h"
 #include "../game/drawing.h"
 #include "../game/entitylist.h"
 #include "../game/class_table.h"
+#include "../game/draw_context.h"
 #include "../utils/demo_message.h"
 
 #include "../config.h"
@@ -39,6 +41,8 @@
 extern bool g_bPlayingbackDemo;
 extern bool g_bScreenshot;
 extern bool g_bOverrideHUD;
+
+extern ref_params_t refparams;
 
 //-----------------------------------------------------------------------------
 // Definitions
@@ -334,72 +338,12 @@ void CVisual::OnHUDRedraw(float flTime)
 	ShowGrenadeTimer();
 }
 
-ConVar sc_predict_landing("sc_predict_landing", "0");
-
-void ShowLandPoint()
-{
-	if ( !sc_predict_landing.GetBool() || !g_pPlayerMove->movevars )
-		return;
-
-	const float flFrametime = 1.f / fps_max->value;
-
-	int it = 0;
-	Vector vecVelocity = g_pPlayerMove->velocity;
-	Vector vecOrigin = g_pPlayerMove->origin;
-
-	// PM_Jump
-	if ( Client()->IsOnGround() )
-	{
-		vecVelocity.z += sqrtf(2.f * 800.f * 45.f);
-
-		UTIL_FixupGravityVelocity(vecVelocity, flFrametime);
-	}
-
-	// Loop
-	do
-	{
-		// Apply gravity
-		UTIL_AddCorrectGravity(vecVelocity, flFrametime);
-
-		Vector vecMove = vecVelocity * flFrametime;
-
-		// Trace forward
-		const int old_hull = g_pPlayerMove->usehull;
-		g_pPlayerMove->usehull = ( g_pPlayerMove->flags & FL_DUCKING ) ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER;
-
-		pmtrace_t trace = g_pPlayerMove->PM_PlayerTrace( vecOrigin, vecOrigin + vecMove, PM_NORMAL, -1 );
-
-		g_pPlayerMove->usehull = old_hull;
-
-		// Save trace pos
-		vecOrigin = trace.endpos;
-
-		// Did hit a wall or started in solid
-		if ( ( trace.fraction != 1.f && !trace.allsolid ) || trace.startsolid )
-		{
-			float flHeightShift = ( g_pPlayerMove->usehull == PM_HULL_DUCKED_PLAYER ? VEC_DUCK_HULL_MIN.z : VEC_HULL_MIN.z ) + 2.f;
-
-			Render()->DrawBox( vecOrigin + ( Vector( 0.f, 0.f, flHeightShift ) ),
-							   Vector(-2, -2, -2),
-							   Vector(2, 2, 2),
-							   { 255, 255, 255, 150 } );
-			break;
-		}
-
-		UTIL_FixupGravityVelocity(vecVelocity, flFrametime);
-
-		it++;
-	}
-	while ( it < 3000 );
-}
-
 void CVisual::V_CalcRefdef(struct ref_params_s *pparams)
 {
 	if ( !Client()->IsDead() )
 	{
 		ShowGrenadeTrajectory();
 		ShowARGrenadeTrajectory();
-		ShowLandPoint();
 	}
 }
 
@@ -433,7 +377,7 @@ void CVisual::ResetJumpSpeed()
 
 void CVisual::ShowSpeed()
 {
-	if ( !g_pClient->IsSpectating() && !(g_CamHack.IsEnabled() && g_Config.cvars.camhack_hide_hud) )
+	if ( !g_pClient->IsSpectating() && !( g_CamHack.IsEnabled() && g_Config.cvars.camhack_hide_hud ) )
 	{
 		float flSpeed;
 
@@ -443,7 +387,12 @@ void CVisual::ShowSpeed()
 
 			if ( g_bPlayingbackDemo )
 			{
-				flSpeed = m_flDemoMsgSpeed;
+				//flSpeed = m_flDemoMsgSpeed;
+
+				if ( g_Config.cvars.show_vertical_speed )
+					flSpeed = reinterpret_cast<const Vector *>( refparams.simvel )->Length();
+				else
+					flSpeed = reinterpret_cast<const Vector *>( refparams.simvel )->Length2D();
 			}
 			else
 			{
@@ -540,10 +489,20 @@ void CVisual::ShowSpeed()
 		{
 			float flSpeed;
 
-			if ( g_Config.cvars.show_vertical_speed_legacy )
-				flSpeed = g_pPlayerMove->velocity.Length();
+			if ( g_bPlayingbackDemo )
+			{
+				if ( g_Config.cvars.show_vertical_speed_legacy )
+					flSpeed = reinterpret_cast<const Vector *>( refparams.simvel )->Length();
+				else
+					flSpeed = reinterpret_cast<const Vector *>( refparams.simvel )->Length2D();
+			}
 			else
-				flSpeed = g_pPlayerMove->velocity.Length2D();
+			{
+				if ( g_Config.cvars.show_vertical_speed_legacy )
+					flSpeed = g_pPlayerMove->velocity.Length();
+				else
+					flSpeed = g_pPlayerMove->velocity.Length2D();
+			}
 
 			g_Drawing.DrawStringF(g_hFontSpeedometer,
 								  int(m_iScreenWidth * g_Config.cvars.speed_width_fraction_legacy),

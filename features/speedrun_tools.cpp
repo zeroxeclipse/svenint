@@ -32,6 +32,7 @@
 #include "../config.h"
 
 extern bool g_bPlayingbackDemo;
+extern ref_params_t refparams;
 
 //-----------------------------------------------------------------------------
 // Declare Hooks... and function pointer
@@ -251,7 +252,7 @@ CON_COMMAND( sc_test_revive, "" )
 		return;
 
 	// settings
-	float HULL_STEP = 2.f;
+	float HULL_STEP = 4.f;
 	bool DRAW_VALID_SPOTS_ONLY = false;
 
 	if ( args.ArgC() > 1 )
@@ -879,11 +880,18 @@ void CSpeedrunTools::CreateMove( float frametime, struct usercmd_s *cmd, int act
 
 		auto ChangeAngleBySpeed = []( float &flAngle, float flTargetAngle, float flChangeSpeed ) -> bool
 		{
-			float normalizedDiff = Strafe::NormalizeDeg( static_cast<double>( flTargetAngle - flAngle ) );
+		#ifdef min
+		#undef min
+		#endif
+
+			double adjustedTarget = Strafe::NormalizeDeg( (double)flTargetAngle );
+			double normalizedDiff = Strafe::NormalizeDeg( adjustedTarget - (double)flAngle );
+			double additionAbs = std::min( static_cast<double>( flChangeSpeed ), std::abs( normalizedDiff ) );
+
+			flAngle = static_cast<float>( (double)flAngle + std::copysign( additionAbs, normalizedDiff ) );
 
 			if ( std::abs( normalizedDiff ) > flChangeSpeed )
 			{
-				flAngle += std::copysign( flChangeSpeed, normalizedDiff );
 				return true;
 			}
 
@@ -1009,6 +1017,7 @@ void CSpeedrunTools::V_CalcRefDef( void )
 	DrawPlayerHulls();
 	DrawReviveBoostInfo();
 	DrawReviveUnstuckArea();
+	DrawLandPoint();
 }
 
 //-----------------------------------------------------------------------------
@@ -1454,7 +1463,7 @@ void CSpeedrunTools::DrawPlayerHulls( void )
 				if ( g_Config.cvars.st_player_hulls_color[ 3 ] == 0.f )
 					continue;
 
-				DrawBox( iLocalPlayer == i ? g_pPlayerMove->origin : ent.m_pEntity->origin,
+				DrawBox( iLocalPlayer == i ? ( g_bPlayingbackDemo ? refparams.simorg : g_pPlayerMove->origin ) : ent.m_pEntity->origin,
 						 ent.m_vecMins,
 						 ent.m_vecMaxs,
 						 g_Config.cvars.st_player_hulls_color[ 0 ],
@@ -1497,12 +1506,14 @@ void CSpeedrunTools::DrawReviveBoostInfo( void )
 		Vector vecRevivableTargetCenter;
 		float flMinIntersection, flMaxIntersection;
 
+		bool bDucking = ( g_bPlayingbackDemo ? refparams.viewheight[ 2 ] == VEC_DUCK_VIEW.z : g_pPlayerMove->flags & FL_DUCKING );
+
 		CEntity *pEnts = g_EntityList.GetList();
 
-		Vector vecCenter = g_pPlayerMove->origin;
+		Vector vecCenter = ( g_bPlayingbackDemo ? refparams.simorg : g_pPlayerMove->origin );
 
-		Vector vecMins = vecCenter + ( ( g_pPlayerMove->flags & FL_DUCKING ) ? VEC_DUCK_HULL_MIN : VEC_HULL_MIN );
-		Vector vecMaxs = vecCenter + ( ( g_pPlayerMove->flags & FL_DUCKING ) ? VEC_DUCK_HULL_MAX : VEC_HULL_MAX );
+		Vector vecMins = vecCenter + ( bDucking ? VEC_DUCK_HULL_MIN : VEC_HULL_MIN );
+		Vector vecMaxs = vecCenter + ( bDucking ? VEC_DUCK_HULL_MAX : VEC_HULL_MAX );
 
 		cl_entity_t *pTarget = NULL;
 
@@ -1626,9 +1637,9 @@ void CSpeedrunTools::DrawReviveInfo( void )
 
 		int ignore_ent = -1;
 
-		g_pEngineFuncs->AngleVectors( g_pPlayerMove->angles, vecForward, NULL, NULL );
+		g_pEngineFuncs->AngleVectors( g_bPlayingbackDemo ? refparams.viewangles : g_pPlayerMove->angles, vecForward, NULL, NULL );
 
-		Vector vecSrc = g_pPlayerMove->origin + g_pPlayerMove->view_ofs;
+		Vector vecSrc = ( g_bPlayingbackDemo ? *(Vector *)refparams.simorg + refparams.viewheight : g_pPlayerMove->origin + g_pPlayerMove->view_ofs );
 		Vector vecEnd = vecSrc + vecForward * 16.f;
 
 		// Trace line
@@ -1875,7 +1886,7 @@ void CSpeedrunTools::DrawReviveUnstuckArea( void )
 				continue;
 
 			bDucking = false;
-			vecOrigin = ( iLocalPlayer == i ) ? g_pPlayerMove->origin : ent.m_pEntity->origin;
+			vecOrigin = ( iLocalPlayer == i ) ? ( g_bPlayingbackDemo ? refparams.simorg : g_pPlayerMove->origin ) : ent.m_pEntity->origin;
 
 			if ( ent.m_bPlayer )
 			{
@@ -1948,6 +1959,198 @@ void CSpeedrunTools::DrawReviveUnstuckArea( void )
 			}
 		}
 	}
+}
+
+//-----------------------------------------------------------------------------
+// Draw predicted landing
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::DrawLandPoint( void )
+{
+	if ( !g_Config.cvars.st_show_land_point )
+		return;
+
+	if ( !g_bPlayingbackDemo && ( !g_pPlayerMove->movevars || Client()->IsDead() ) )
+		return;
+
+	const int oldhull = g_pPlayerMove->usehull;
+	const float flFrametime = 1.f / fps_max->value;
+
+	pmtrace_t tr;
+	Vector vecOrigin, vecVelocity;
+	bool bDucking, bOnGround;
+
+	int it = 0;
+	int landings = 0;
+
+	if ( g_bPlayingbackDemo )
+	{
+		vecVelocity = refparams.simvel;
+		vecOrigin = refparams.simorg;
+
+		bDucking = ( refparams.viewheight[ 2 ] == VEC_DUCK_VIEW.z );
+		bOnGround = false;
+
+		// Trace forward
+		tr = g_pPlayerMove->PM_PlayerTrace( vecOrigin, vecOrigin + ( vecVelocity * flFrametime ), PM_NORMAL, -1 );
+
+		// Did hit a wall or started in solid
+		if ( tr.fraction != 1.f && !tr.allsolid && tr.plane.normal.z >= 0.7f )
+		{
+			bOnGround = true;
+		}
+		else
+		{
+			Vector point = vecOrigin;
+			point.z -= 2.f;
+
+			// Trace down
+			tr = g_pPlayerMove->PM_PlayerTrace( vecOrigin, point, PM_NORMAL, -1 );
+
+			if ( tr.plane.normal.z >= 0.7f )
+			{
+				bOnGround = true;
+			}
+		}
+	}
+	else
+	{
+		vecVelocity = g_pPlayerMove->velocity;
+		vecOrigin = g_pPlayerMove->origin;
+
+		bDucking = ( g_pPlayerMove->flags & FL_DUCKING );
+		bOnGround = ( g_pPlayerMove->onground != -1 );
+	}
+
+	// PM_Jump
+	if ( bOnGround )
+	{
+		vecVelocity.z += sqrtf( 2.f * 800.f * 45.f );
+
+		if ( g_bPlayingbackDemo )
+			UTIL_FixupGravityVelocity( vecVelocity,
+									   800.f,
+									   1.f,
+									   flFrametime );
+		else
+			UTIL_FixupGravityVelocity( vecVelocity, flFrametime );
+	}
+
+	// Set trace hull
+	g_pPlayerMove->usehull = bDucking ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER;
+
+	// Loop
+	do
+	{
+		// Apply gravity
+		if ( g_bPlayingbackDemo )
+			UTIL_AddCorrectGravity( vecVelocity,
+									800.f,
+									1.f,
+									flFrametime );
+		else
+			UTIL_AddCorrectGravity( vecVelocity, flFrametime );
+
+		Vector vecMove = vecVelocity * flFrametime;
+
+		// Trace forward
+		tr = g_pPlayerMove->PM_PlayerTrace( vecOrigin, vecOrigin + vecMove, PM_NORMAL, -1 );
+
+		// Save trace pos
+		vecOrigin = tr.endpos;
+
+		// Did hit a wall or started in solid
+		if ( ( tr.fraction != 1.f && !tr.allsolid ) || tr.startsolid )
+		{
+			if ( g_Config.cvars.st_show_land_point_draw_exact_point )
+			{
+				float flHeightShift = ( bDucking ? VEC_DUCK_HULL_MIN.z : VEC_HULL_MIN.z );
+
+				DrawBox( vecOrigin + ( Vector( 0.f, 0.f, flHeightShift ) ),
+						 Vector( -2, -2, 0 ),
+						 Vector( 2, 2, 4 ),
+						 g_Config.cvars.st_show_land_point_draw_exact_point_color[ 0 ],
+						 g_Config.cvars.st_show_land_point_draw_exact_point_color[ 1 ],
+						 g_Config.cvars.st_show_land_point_draw_exact_point_color[ 2 ],
+						 g_Config.cvars.st_show_land_point_draw_exact_point_color[ 3 ],
+						 0.f,
+						 false );
+			}
+
+			if ( g_Config.cvars.st_show_land_point_draw_hull )
+			{
+				DrawBox( vecOrigin,
+						 bDucking ? VEC_DUCK_HULL_MIN : VEC_HULL_MIN,
+						 bDucking ? VEC_DUCK_HULL_MAX : VEC_HULL_MAX,
+						 g_Config.cvars.st_show_land_point_draw_hull_color[ 0 ],
+						 g_Config.cvars.st_show_land_point_draw_hull_color[ 1 ],
+						 g_Config.cvars.st_show_land_point_draw_hull_color[ 2 ],
+						 g_Config.cvars.st_show_land_point_draw_hull_color[ 3 ],
+						 g_Config.cvars.st_show_land_point_draw_hull_width,
+						 g_Config.cvars.st_show_land_point_draw_hull_wireframe );
+			}
+
+			landings++;
+
+			if ( landings >= g_Config.cvars.st_show_land_point_max_points || vecVelocity.Length2DSqr() == 0.f )
+				break;
+
+			bool bPredictedOnGround = false;
+			Vector vecWallNormal = tr.plane.normal;
+
+			// Did hit a wall or started in solid
+			if ( tr.fraction != 1.f && !tr.allsolid && tr.plane.normal.z >= 0.7f )
+			{
+				bPredictedOnGround = true;
+			}
+			else
+			{
+				Vector point = vecOrigin;
+				point.z -= 2.f;
+
+				// Trace down
+				tr = g_pPlayerMove->PM_PlayerTrace( vecOrigin, point, PM_NORMAL, -1 );
+
+				if ( tr.plane.normal.z >= 0.7f )
+				{
+					bPredictedOnGround = true;
+				}
+			}
+
+			if ( bPredictedOnGround )
+			{
+				// PM_Jump
+				vecVelocity.z = sqrtf( 2.f * 800.f * 45.f );
+
+				if ( g_bPlayingbackDemo )
+					UTIL_FixupGravityVelocity( vecVelocity,
+											   800.f,
+											   1.f,
+											   flFrametime );
+				else
+					UTIL_FixupGravityVelocity( vecVelocity, flFrametime );
+
+				continue;
+			}
+			else
+			{
+				UTIL_ClipVelocity( vecVelocity, vecWallNormal, vecVelocity, 1.f );
+			}
+		}
+
+		if ( g_bPlayingbackDemo )
+			UTIL_FixupGravityVelocity( vecVelocity,
+									   800.f,
+									   1.f,
+									   flFrametime );
+		else
+			UTIL_FixupGravityVelocity( vecVelocity, flFrametime );
+
+		it++;
+
+	} while ( it < 3000 );
+
+	g_pPlayerMove->usehull = oldhull;
 }
 
 //-----------------------------------------------------------------------------
@@ -2059,7 +2262,11 @@ void CSpeedrunTools::ShowViewangles( int r, int g, int b )
 		int x = int( g_ScreenInfo.width * g_Config.cvars.st_show_view_angles_width_frac );
 		int y = int( g_ScreenInfo.height * g_Config.cvars.st_show_view_angles_height_frac );
 
-		g_pEngineFuncs->GetViewAngles( va );
+		if ( g_bPlayingbackDemo )
+			va = refparams.viewangles;
+		else
+			g_pEngineFuncs->GetViewAngles( va );
+
 		NormalizeAngles( va );
 
 		g_Drawing.DrawStringEx( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "View angles:" );
@@ -2088,10 +2295,18 @@ void CSpeedrunTools::ShowPosition( int r, int g, int b )
 		int x = int( g_ScreenInfo.width * g_Config.cvars.st_show_pos_width_frac );
 		int y = int( g_ScreenInfo.height * g_Config.cvars.st_show_pos_height_frac );
 
-		origin = g_pPlayerMove->origin;
+		if ( g_bPlayingbackDemo )
+			origin = refparams.simorg;
+		else
+			origin = g_pPlayerMove->origin;
 
 		if ( g_Config.cvars.st_show_pos_view_origin )
-			origin += g_pPlayerMove->view_ofs;
+		{
+			if ( g_bPlayingbackDemo )
+				origin += refparams.viewheight;
+			else
+				origin += g_pPlayerMove->view_ofs;
+		}
 
 		g_Drawing.DrawStringEx( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Origin:" );
 
@@ -2123,7 +2338,10 @@ void CSpeedrunTools::ShowVelocity( int r, int g, int b )
 		int x = int( g_ScreenInfo.width * g_Config.cvars.st_show_velocity_width_frac );
 		int y = int( g_ScreenInfo.height * g_Config.cvars.st_show_velocity_height_frac );
 
-		velocity = g_pPlayerMove->velocity;
+		if ( g_bPlayingbackDemo )
+			velocity = refparams.simvel;
+		else
+			velocity = g_pPlayerMove->velocity;
 
 		g_Drawing.DrawStringEx( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Velocity:" );
 
@@ -2168,12 +2386,13 @@ void CSpeedrunTools::ShowGaussBoostInfo( int r, int g, int b )
 				return;
 		}
 
+		float flYaw;
 		int width, height;
 
 		int x = int( g_ScreenInfo.width * g_Config.cvars.st_show_gauss_boost_info_width_frac );
 		int y = int( g_ScreenInfo.height * g_Config.cvars.st_show_gauss_boost_info_height_frac );
 
-		Vector velocity = g_pPlayerMove->velocity;
+		Vector velocity = ( g_bPlayingbackDemo ? refparams.simvel : g_pPlayerMove->velocity );
 
 		g_Drawing.DrawStringEx( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Gauss boost info:" );
 
@@ -2181,7 +2400,7 @@ void CSpeedrunTools::ShowGaussBoostInfo( int r, int g, int b )
 
 		if ( velocity.Length2DSqr() > 0.f )
 		{
-			float flYaw = atan2f( velocity.y, velocity.x ) * 180.f / static_cast<float>( M_PI );
+			flYaw = atan2f( velocity.y, velocity.x ) * 180.f / static_cast<float>( M_PI );
 
 			if ( flYaw > 180.f )
 				flYaw -= 360.f;
@@ -2192,7 +2411,9 @@ void CSpeedrunTools::ShowGaussBoostInfo( int r, int g, int b )
 		}
 		else
 		{
-			g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Boost with optimal yaw: %.6f", g_pPlayerMove->angles.y );
+			flYaw = ( g_bPlayingbackDemo ? refparams.viewangles[ 1 ] : g_pPlayerMove->angles.y );
+
+			g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Boost with optimal yaw: %.6f", flYaw );
 		}
 
 		y += height;
@@ -2388,7 +2609,7 @@ void CSpeedrunTools::ShowEntityInfo( int r, int g, int b )
 
 		Vector va, forward, start, end;
 
-		start = g_pPlayerMove->origin + g_pPlayerMove->view_ofs;
+		start = ( g_bPlayingbackDemo ? *(Vector *)refparams.simorg + refparams.viewheight : g_pPlayerMove->origin + g_pPlayerMove->view_ofs );
 
 		g_pEngineFuncs->GetViewAngles( va );
 		g_pEngineFuncs->AngleVectors( va, forward, NULL, NULL );
@@ -2528,7 +2749,7 @@ void CSpeedrunTools::ShowEntityInfo( int r, int g, int b )
 			pmtrace_t tr;
 
 			g_pEventAPI->EV_SetTraceHull( PM_HULL_POINT );
-			g_pEventAPI->EV_PlayerTrace( start, end, PM_NORMAL, g_pPlayerMove->player_index + 1, &tr );
+			g_pEventAPI->EV_PlayerTrace( start, end, PM_NORMAL, -1, &tr );
 
 			int ent = g_pEventAPI->EV_IndexFromTrace( &tr );
 
@@ -2796,15 +3017,17 @@ void CSpeedrunTools::ShowReviveBoostInfo( int r, int g, int b )
 			}
 			else
 			{
-				g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Vertical Speed: %.2f", fabs( g_pPlayerMove->velocity.z ) );
+				Vector vecVelocity = ( g_bPlayingbackDemo ? refparams.simvel : g_pPlayerMove->velocity );
+
+				g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Vertical Speed: %.2f", fabs( vecVelocity.z ) );
 
 				y += height;
 
-				g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Horizontal Speed: %.2f", g_pPlayerMove->velocity.Length2D() );
+				g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Horizontal Speed: %.2f", vecVelocity.Length2D() );
 
 				y += height;
 
-				g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Overall Speed: %.2f", g_pPlayerMove->velocity.Length() );
+				g_Drawing.DrawStringExF( m_engineFont, x, y, r, g, b, 255, width, height, FONT_ALIGN_LEFT, "Overall Speed: %.2f", vecVelocity.Length() );
 			}
 		}
 		else

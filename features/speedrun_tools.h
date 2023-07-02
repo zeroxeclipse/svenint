@@ -69,6 +69,7 @@ public:
 	void				DrawReviveBoostInfo( void );
 	void				DrawReviveInfo( void );
 	void				DrawReviveUnstuckArea( void );
+	void				DrawLandPoint( void );
 
 	void				BroadcastTimescale( void );
 	void				SendTimescale( edict_t *pPlayer );
