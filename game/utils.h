@@ -77,8 +77,11 @@ float UTIL_SharedRandomFloat( unsigned int seed, float low, float high );
 const wchar_t *UTIL_CStringToWideCString( const char *pszString );
 
 // Player move utilities
+int UTIL_ClipVelocity( const Vector &in, const Vector &normal, Vector &out, float overbounce );
 void UTIL_AddCorrectGravity( Vector &vecVelocity, float frametime );
 void UTIL_FixupGravityVelocity( Vector &vecVelocity, float frametime );
+void UTIL_AddCorrectGravity( Vector &vecVelocity, float gravity, float entgravity, float frametime );
+void UTIL_FixupGravityVelocity( Vector &vecVelocity, float gravity, float entgravity, float frametime );
 
 // Hulls smh
 void UTIL_FindHullIntersection( const Vector &vecSrc, TraceResult &tr, float *mins, float *maxs, edict_t *pEntity );
