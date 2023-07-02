@@ -19,6 +19,7 @@
 #include <unordered_map>
 #include <algorithm>
 
+#include "../game/draw_context.h"
 #include "../game/drawing.h"
 #include "../game/utils.h"
 #include "../config.h"
@@ -48,91 +49,11 @@ unsigned char *bsp = NULL;
 static std::vector<EntityKeyValues> vEnts;
 static std::vector<TriggerEntity> vTriggers;
 static std::vector<MonsterSpawn> vMonsterSpawns;
+static std::vector<FuncWall> vFuncWalls;
 
 //-----------------------------------------------------------------------------
 // ConVars / ConCommands
 //-----------------------------------------------------------------------------
-
-CON_COMMAND(sc_debug_draw_point, "")
-{
-	if (args.ArgC() >= 10)
-	{
-		Vector vecPoint( atof(args[1]), atof(args[2]), atof(args[3]) );
-
-		unsigned char r = atoi(args[4]);
-		unsigned char g = atoi(args[5]);
-		unsigned char b = atoi(args[6]);
-		unsigned char a = atoi(args[7]);
-
-		float size = atoi(args[8]);
-		float duration = atoi(args[9]);
-
-		Render()->DrawPoint(vecPoint, { r, g, b, a }, size, duration);
-	}
-}
-
-CON_COMMAND(sc_debug_draw_line, "")
-{
-	if (args.ArgC() >= 13)
-	{
-		Vector vecStart( atof(args[1]), atof(args[2]), atof(args[3]) );
-		Vector vecEnd( atof(args[4]), atof(args[5]), atof(args[6]) );
-
-		unsigned char r = atoi(args[7]);
-		unsigned char g = atoi(args[8]);
-		unsigned char b = atoi(args[9]);
-		unsigned char a = atoi(args[10]);
-
-		float width = atoi(args[11]);
-		float duration = atoi(args[12]);
-
-		Render()->DrawLine(vecStart, vecEnd, { r, g, b, a }, width, duration);
-	}
-}
-
-CON_COMMAND(sc_debug_draw_box, "")
-{
-	if (args.ArgC() >= 15)
-	{
-		Vector vOrigin(atof(args[1]), atof(args[2]), atof(args[3]));
-		Vector vMins(atof(args[4]), atof(args[5]), atof(args[6]));
-		Vector vMaxs(atof(args[7]), atof(args[8]), atof(args[9]));
-
-		unsigned char r = atoi(args[10]);
-		unsigned char g = atoi(args[11]);
-		unsigned char b = atoi(args[12]);
-		unsigned char a = atoi(args[13]);
-
-		float duration = atoi(args[14]);
-
-		Render()->DrawBox(vOrigin, vMins, vMaxs, { r, g, b, a }, duration);
-	}
-}
-
-CON_COMMAND(sc_debug_draw_box_angles, "")
-{
-	if (args.ArgC() >= 18)
-	{
-		Vector vOrigin(atof(args[1]), atof(args[2]), atof(args[3]));
-		Vector vMins(atof(args[4]), atof(args[5]), atof(args[6]));
-		Vector vMaxs(atof(args[7]), atof(args[8]), atof(args[9]));
-		Vector vAngles(atof(args[10]), atof(args[11]), atof(args[12]));
-
-		unsigned char r = atoi(args[13]);
-		unsigned char g = atoi(args[14]);
-		unsigned char b = atoi(args[15]);
-		unsigned char a = atoi(args[16]);
-
-		float duration = atoi(args[17]);
-
-		Render()->DrawBoxAngles(vOrigin, vMins, vMaxs, vAngles, { r, g, b, a }, duration);
-	}
-}
-
-CON_COMMAND(sc_debug_draw_clear, "")
-{
-	Render()->DrawClear();
-}
 
 class CDrawTransModel : public IDrawContext
 {
@@ -511,22 +432,22 @@ void CBsp::OnDisconnect()
 void CBsp::V_CalcRefdef()
 {
 	if ( g_Config.cvars.show_triggers )
-	//if ( false )
+		//if ( false )
 	{
-		for (const TriggerEntity &trigger : vTriggers)
+		for ( const TriggerEntity &trigger : vTriggers )
 		{
-			Color clr;
+			float r, g, b, a;
 			bool bDraw = true;
 
-			switch (trigger.iType)
+			switch ( trigger.iType )
 			{
 			case TRIGGER_ONCE:
 				if ( g_Config.cvars.show_trigger_once )
 				{
-					clr.SetColor( g_Config.cvars.trigger_once_color[0],
-								 g_Config.cvars.trigger_once_color[1],
-								 g_Config.cvars.trigger_once_color[2],
-								 g_Config.cvars.trigger_once_color[3] );
+					r = g_Config.cvars.trigger_once_color[ 0 ];
+					g = g_Config.cvars.trigger_once_color[ 1 ];
+					b = g_Config.cvars.trigger_once_color[ 2 ];
+					a = g_Config.cvars.trigger_once_color[ 3 ];
 				}
 				else
 				{
@@ -534,14 +455,14 @@ void CBsp::V_CalcRefdef()
 				}
 
 				break;
-				
+
 			case TRIGGER_MULTIPLE:
 				if ( g_Config.cvars.show_trigger_multiple )
 				{
-					clr.SetColor( g_Config.cvars.trigger_multiple_color[0],
-								 g_Config.cvars.trigger_multiple_color[1],
-								 g_Config.cvars.trigger_multiple_color[2],
-								 g_Config.cvars.trigger_multiple_color[3] );
+					r = g_Config.cvars.trigger_multiple_color[ 0 ];
+					g = g_Config.cvars.trigger_multiple_color[ 1 ];
+					b = g_Config.cvars.trigger_multiple_color[ 2 ];
+					a = g_Config.cvars.trigger_multiple_color[ 3 ];
 				}
 				else
 				{
@@ -553,10 +474,10 @@ void CBsp::V_CalcRefdef()
 			case TRIGGER_HURT:
 				if ( g_Config.cvars.show_trigger_hurt )
 				{
-					clr.SetColor( g_Config.cvars.trigger_hurt_color[0],
-								 g_Config.cvars.trigger_hurt_color[1],
-								 g_Config.cvars.trigger_hurt_color[2],
-								 g_Config.cvars.trigger_hurt_color[3] );
+					r = g_Config.cvars.trigger_hurt_color[ 0 ];
+					g = g_Config.cvars.trigger_hurt_color[ 1 ];
+					b = g_Config.cvars.trigger_hurt_color[ 2 ];
+					a = g_Config.cvars.trigger_hurt_color[ 3 ];
 				}
 				else
 				{
@@ -564,14 +485,14 @@ void CBsp::V_CalcRefdef()
 				}
 
 				break;
-				
+
 			case TRIGGER_HURT_HEAL:
 				if ( g_Config.cvars.show_trigger_hurt_heal )
 				{
-					clr.SetColor( g_Config.cvars.trigger_hurt_heal_color[0],
-								 g_Config.cvars.trigger_hurt_heal_color[1],
-								 g_Config.cvars.trigger_hurt_heal_color[2],
-								 g_Config.cvars.trigger_hurt_heal_color[3] );
+					r = g_Config.cvars.trigger_hurt_heal_color[ 0 ];
+					g = g_Config.cvars.trigger_hurt_heal_color[ 1 ];
+					b = g_Config.cvars.trigger_hurt_heal_color[ 2 ];
+					a = g_Config.cvars.trigger_hurt_heal_color[ 3 ];
 				}
 				else
 				{
@@ -583,10 +504,10 @@ void CBsp::V_CalcRefdef()
 			case TRIGGER_PUSH:
 				if ( g_Config.cvars.show_trigger_push )
 				{
-					clr.SetColor( g_Config.cvars.trigger_push_color[0],
-								 g_Config.cvars.trigger_push_color[1],
-								 g_Config.cvars.trigger_push_color[2],
-								 g_Config.cvars.trigger_push_color[3] );
+					r = g_Config.cvars.trigger_push_color[ 0 ];
+					g = g_Config.cvars.trigger_push_color[ 1 ];
+					b = g_Config.cvars.trigger_push_color[ 2 ];
+					a = g_Config.cvars.trigger_push_color[ 3 ];
 				}
 				else
 				{
@@ -594,14 +515,14 @@ void CBsp::V_CalcRefdef()
 				}
 
 				break;
-				
+
 			case TRIGGER_TELEPORT:
 				if ( g_Config.cvars.show_trigger_teleport )
 				{
-					clr.SetColor( g_Config.cvars.trigger_teleport_color[0],
-								 g_Config.cvars.trigger_teleport_color[1],
-								 g_Config.cvars.trigger_teleport_color[2],
-								 g_Config.cvars.trigger_teleport_color[3] );
+					r = g_Config.cvars.trigger_teleport_color[ 0 ];
+					g = g_Config.cvars.trigger_teleport_color[ 1 ];
+					b = g_Config.cvars.trigger_teleport_color[ 2 ];
+					a = g_Config.cvars.trigger_teleport_color[ 3 ];
 				}
 				else
 				{
@@ -613,10 +534,10 @@ void CBsp::V_CalcRefdef()
 			case TRIGGER_CHANGELEVEL:
 				if ( g_Config.cvars.show_trigger_changelevel )
 				{
-					clr.SetColor( g_Config.cvars.trigger_changelevel_color[0],
-								 g_Config.cvars.trigger_changelevel_color[1],
-								 g_Config.cvars.trigger_changelevel_color[2],
-								 g_Config.cvars.trigger_changelevel_color[3] );
+					r = g_Config.cvars.trigger_changelevel_color[ 0 ];
+					g = g_Config.cvars.trigger_changelevel_color[ 1 ];
+					b = g_Config.cvars.trigger_changelevel_color[ 2 ];
+					a = g_Config.cvars.trigger_changelevel_color[ 3 ];
 				}
 				else
 				{
@@ -628,10 +549,10 @@ void CBsp::V_CalcRefdef()
 			case TRIGGER_ANTIRUSH:
 				if ( g_Config.cvars.show_trigger_antirush )
 				{
-					clr.SetColor( g_Config.cvars.trigger_antirush_color[0],
-								 g_Config.cvars.trigger_antirush_color[1],
-								 g_Config.cvars.trigger_antirush_color[2],
-								 g_Config.cvars.trigger_antirush_color[3] );
+					r = g_Config.cvars.trigger_antirush_color[ 0 ];
+					g = g_Config.cvars.trigger_antirush_color[ 1 ];
+					b = g_Config.cvars.trigger_antirush_color[ 2 ];
+					a = g_Config.cvars.trigger_antirush_color[ 3 ];
 				}
 				else
 				{
@@ -643,18 +564,26 @@ void CBsp::V_CalcRefdef()
 
 			if ( bDraw )
 			{
-				Render()->DrawBox( trigger.vecOrigin, trigger.vecMins, trigger.vecMaxs, clr );
+				DrawBox( trigger.vecOrigin, trigger.vecMins, trigger.vecMaxs, r, g, b, a, 4.f, g_Config.cvars.bsp_wireframe );
 
 				if ( trigger.iType == TRIGGER_PUSH )
 				{
 					Vector vecEnd;
-					float dist = (trigger.vecMaxs - trigger.vecMins).Length();
+					float dist = ( trigger.vecMaxs - trigger.vecMins ).Length();
 
 					VectorMA( trigger.vecMidPoint, dist * 0.75f, trigger.vecDirection, vecEnd );
 
-					Render()->DrawLine( trigger.vecMidPoint, vecEnd, clr, 10.f );
+					Render()->DrawLine( trigger.vecMidPoint, vecEnd, r, g, b, a, 10.f );
 				}
 			}
+		}
+	}
+
+	if ( g_Config.cvars.show_walls )
+	{
+		for ( const FuncWall &funcWall : vFuncWalls )
+		{
+			DrawBox( funcWall.vecOrigin, funcWall.vecMins, funcWall.vecMaxs, 0.f, 1.f, 1.f, 0.25f, 4.f, g_Config.cvars.bsp_wireframe );
 		}
 	}
 }
@@ -1055,7 +984,8 @@ void CBsp::LoadBsp()
 				{
 				#define INVALID_TRIGGER (TriggerType)(-1)
 
-					bool bAnotherEnt = false;
+					bool bEntSpawn = false;
+					bool bFuncWall = false;
 					TriggerType trigger_type = INVALID_TRIGGER;
 
 					const std::string &classname = keyvalues.at(sClassname);
@@ -1072,12 +1002,16 @@ void CBsp::LoadBsp()
 
 						if ( !stringEndsWith(classname, "_dead") )
 						{
-							bAnotherEnt = true;
+							bEntSpawn = true;
 						}
 					}
 					else if ( classname == "monstermaker" || classname == "squadmaker" || classname == "env_xenmaker" || classname == "info_player_deathmatch" )
 					{
-						bAnotherEnt = true;
+						bEntSpawn = true;
+					}
+					else if ( classname == "func_wall" )
+					{
+						bFuncWall = true;
 					}
 					else if ( classname == "trigger_once" )
 					{
@@ -1274,7 +1208,7 @@ void CBsp::LoadBsp()
 
 						vTriggers.push_back( trigger );
 					}
-					else if ( bAnotherEnt )
+					else if ( bEntSpawn )
 					{
 						MonsterSpawn monster;
 						ZeroMemory( &monster, sizeof(MonsterSpawn) );
@@ -1323,6 +1257,58 @@ void CBsp::LoadBsp()
 
 							vMonsterSpawns.push_back( monster );
 						}
+					}
+					else if ( bFuncWall )
+					{
+						FuncWall funcWall;
+						ZeroMemory( &funcWall, sizeof( FuncWall ) );
+
+						auto found_model = keyvalues.find( sModel );
+						auto found_origin = keyvalues.find( sOrigin );
+
+						if ( found_model != keyvalues.end() )
+						{
+							if ( keyvalues.at( sModel )[ 0 ] == '*' )
+							{
+								int iModelIndex = atoi( keyvalues.at( sModel ).c_str() + 1 );
+
+								if ( iModelIndex > 0 && iModelIndex < models_count )
+								{
+									bspmodel_t *model = &models[ iModelIndex ];
+
+									funcWall.vecOrigin = model->origin;
+									funcWall.vecMins = model->mins;
+									funcWall.vecMaxs = model->maxs;
+								}
+							}
+						}
+
+						if ( found_origin != keyvalues.end() )
+						{
+							float x = 0.f;
+							float y = 0.f;
+							float z = 0.f;
+
+							int nParamsRead = sscanf( keyvalues.at( sOrigin ).c_str(), "%f %f %f", &x, &y, &z );
+
+							if ( nParamsRead >= 3 )
+							{
+								funcWall.vecOrigin.x += x;
+								funcWall.vecOrigin.y += y;
+								funcWall.vecOrigin.z += z;
+							}
+							else if ( nParamsRead == 2 )
+							{
+								funcWall.vecOrigin.x += x;
+								funcWall.vecOrigin.y += y;
+							}
+							else if ( nParamsRead == 1 )
+							{
+								funcWall.vecOrigin.x += x;
+							}
+						}
+
+						vFuncWalls.push_back( funcWall );
 					}
 				}
 			}

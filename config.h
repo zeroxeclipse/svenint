@@ -295,7 +295,9 @@ public:
 		// BSP
 		//-----------------------------------------------------------------------------
 		
+		bool bsp_wireframe = false;
 		bool show_spawns = false;
+		bool show_walls = false;
 
 		bool show_triggers = false;
 		bool show_triggers_info = false;
@@ -604,6 +606,15 @@ public:
 		float st_show_revive_area_small_hull_color[ 4 ] = { 1.f, 0.f, 0.f, 0.5f };
 		float st_show_revive_area_medium_hull_color[ 4 ] = { 0.f, 1.f, 0.f, 0.5f };
 		float st_show_revive_area_large_hull_color[ 4 ] = { 0.f, 0.f, 1.f, 0.5f };
+
+		bool st_show_land_point = false;
+		bool st_show_land_point_draw_hull = true;
+		bool st_show_land_point_draw_hull_wireframe = true;
+		bool st_show_land_point_draw_exact_point = true;
+		int st_show_land_point_max_points = 2;
+		float st_show_land_point_draw_hull_width = 4.f;
+		float st_show_land_point_draw_hull_color[ 4 ] = { 1.f, 1.f, 1.f, 0.5f };
+		float st_show_land_point_draw_exact_point_color[ 4 ] = { 1.f, 1.f, 1.f, 0.5f };
 		
 		//-----------------------------------------------------------------------------
 		// Spam inputs

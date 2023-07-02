@@ -596,7 +596,9 @@ bool CConfig::Load()
 
 		if ( ConfigManager()->BeginSectionImport( "BSP" ) )
 		{
+			ConfigManager()->ImportParam( "WireframeMode", cvars.bsp_wireframe );
 			ConfigManager()->ImportParam( "ShowSpawns", cvars.show_spawns );
+			ConfigManager()->ImportParam( "ShowWalls", cvars.show_walls );
 			ConfigManager()->ImportParam( "ShowTriggers", cvars.show_triggers );
 			ConfigManager()->ImportParam( "ShowTriggersInfo", cvars.show_triggers_info );
 			ConfigManager()->ImportParam( "ShowTriggerOnce", cvars.show_trigger_once );
@@ -829,6 +831,21 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam( "ReviveAreaInfoLargeHullColor_G", cvars.st_show_revive_area_large_hull_color[ 1 ] );
 			ConfigManager()->ImportParam( "ReviveAreaInfoLargeHullColor_B", cvars.st_show_revive_area_large_hull_color[ 2 ] );
 			ConfigManager()->ImportParam( "ReviveAreaInfoLargeHullColor_A", cvars.st_show_revive_area_large_hull_color[ 3 ] );
+
+			ConfigManager()->ImportParam( "ShowLandPoint", cvars.st_show_land_point );
+			ConfigManager()->ImportParam( "LandPointDrawHull", cvars.st_show_land_point_draw_hull );
+			ConfigManager()->ImportParam( "LandPointDrawHullWireframe", cvars.st_show_land_point_draw_hull_wireframe );
+			ConfigManager()->ImportParam( "LandPointDrawExactPoint", cvars.st_show_land_point_draw_exact_point );
+			ConfigManager()->ImportParam( "LandPointMaxPoints", cvars.st_show_land_point_max_points );
+			ConfigManager()->ImportParam( "LandPointDrawHullWidth", cvars.st_show_land_point_draw_hull_width );
+			ConfigManager()->ImportParam( "LandPointDrawHullColor_R", cvars.st_show_land_point_draw_hull_color[ 0 ] );
+			ConfigManager()->ImportParam( "LandPointDrawHullColor_G", cvars.st_show_land_point_draw_hull_color[ 1 ] );
+			ConfigManager()->ImportParam( "LandPointDrawHullColor_B", cvars.st_show_land_point_draw_hull_color[ 2 ] );
+			ConfigManager()->ImportParam( "LandPointDrawHullColor_A", cvars.st_show_land_point_draw_hull_color[ 3 ] );
+			ConfigManager()->ImportParam( "LandPointDrawExactPointColor_R", cvars.st_show_land_point_draw_exact_point_color[ 0 ] );
+			ConfigManager()->ImportParam( "LandPointDrawExactPointColor_G", cvars.st_show_land_point_draw_exact_point_color[ 1 ] );
+			ConfigManager()->ImportParam( "LandPointDrawExactPointColor_B", cvars.st_show_land_point_draw_exact_point_color[ 2 ] );
+			ConfigManager()->ImportParam( "LandPointDrawExactPointColor_A", cvars.st_show_land_point_draw_exact_point_color[ 3 ] );
 
 			ConfigManager()->EndSectionImport();
 		}
@@ -1460,7 +1477,9 @@ void CConfig::Save()
 
 		if ( ConfigManager()->BeginSectionExport( "BSP" ) )
 		{
+			ConfigManager()->ExportParam( "WireframeMode", cvars.bsp_wireframe );
 			ConfigManager()->ExportParam( "ShowSpawns", cvars.show_spawns );
+			ConfigManager()->ExportParam( "ShowWalls", cvars.show_walls );
 			ConfigManager()->ExportParam( "ShowTriggers", cvars.show_triggers );
 			ConfigManager()->ExportParam( "ShowTriggersInfo", cvars.show_triggers_info );
 			ConfigManager()->ExportParam( "ShowTriggerOnce", cvars.show_trigger_once );
@@ -1693,6 +1712,21 @@ void CConfig::Save()
 			ConfigManager()->ExportParam( "ReviveAreaInfoLargeHullColor_G", cvars.st_show_revive_area_large_hull_color[ 1 ] );
 			ConfigManager()->ExportParam( "ReviveAreaInfoLargeHullColor_B", cvars.st_show_revive_area_large_hull_color[ 2 ] );
 			ConfigManager()->ExportParam( "ReviveAreaInfoLargeHullColor_A", cvars.st_show_revive_area_large_hull_color[ 3 ] );
+
+			ConfigManager()->ExportParam( "ShowLandPoint", cvars.st_show_land_point );
+			ConfigManager()->ExportParam( "LandPointDrawHull", cvars.st_show_land_point_draw_hull );
+			ConfigManager()->ExportParam( "LandPointDrawHullWireframe", cvars.st_show_land_point_draw_hull_wireframe );
+			ConfigManager()->ExportParam( "LandPointDrawExactPoint", cvars.st_show_land_point_draw_exact_point );
+			ConfigManager()->ExportParam( "LandPointMaxPoints", cvars.st_show_land_point_max_points );
+			ConfigManager()->ExportParam( "LandPointDrawHullWidth", cvars.st_show_land_point_draw_hull_width );
+			ConfigManager()->ExportParam( "LandPointDrawHullColor_R", cvars.st_show_land_point_draw_hull_color[ 0 ] );
+			ConfigManager()->ExportParam( "LandPointDrawHullColor_G", cvars.st_show_land_point_draw_hull_color[ 1 ] );
+			ConfigManager()->ExportParam( "LandPointDrawHullColor_B", cvars.st_show_land_point_draw_hull_color[ 2 ] );
+			ConfigManager()->ExportParam( "LandPointDrawHullColor_A", cvars.st_show_land_point_draw_hull_color[ 3 ] );
+			ConfigManager()->ExportParam( "LandPointDrawExactPointColor_R", cvars.st_show_land_point_draw_exact_point_color[ 0 ] );
+			ConfigManager()->ExportParam( "LandPointDrawExactPointColor_G", cvars.st_show_land_point_draw_exact_point_color[ 1 ] );
+			ConfigManager()->ExportParam( "LandPointDrawExactPointColor_B", cvars.st_show_land_point_draw_exact_point_color[ 2 ] );
+			ConfigManager()->ExportParam( "LandPointDrawExactPointColor_A", cvars.st_show_land_point_draw_exact_point_color[ 3 ] );
 
 			ConfigManager()->EndSectionExport();
 		}

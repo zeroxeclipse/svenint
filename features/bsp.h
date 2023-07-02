@@ -271,6 +271,13 @@ struct MonsterSpawn
 	Vector vecOrigin;
 };
 
+struct FuncWall
+{
+	Vector vecOrigin;
+	Vector vecMins;
+	Vector vecMaxs;
+};
+
 //-----------------------------------------------------------------------------
 // BSP feature
 //-----------------------------------------------------------------------------
