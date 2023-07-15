@@ -24,15 +24,17 @@
 #include "../game/utils.h"
 #include "../game/entitylist.h"
 #include "../game/structs.h"
+#include "../game/demo_message.h"
 
-#include "../utils/demo_message.h"
 #include "../strafe/strafe_utils.h"
+#include "../scripts/scripts.h"
 
 #include "../patterns.h"
 #include "../config.h"
 
 extern bool g_bPlayingbackDemo;
 extern ref_params_t refparams;
+extern movevars_t refparams_movevars;
 
 //-----------------------------------------------------------------------------
 // Declare Hooks... and function pointer
@@ -40,6 +42,8 @@ extern ref_params_t refparams;
 
 DECLARE_FUNC_PTR( vgui::HFont, __cdecl, VGUI2_GetEngineFont );
 
+DECLARE_CLASS_HOOK( void, CBaseEntity_FireBullets, void *thisptr, unsigned int, Vector, Vector, Vector, float, int, int, int, entvars_t *, int );
+DECLARE_CLASS_HOOK( void, CFuncTankGun_Fire, void *thisptr, const Vector &barrelEnd, const Vector &forward, entvars_t *pevAttacker );
 DECLARE_HOOK( void, __cdecl, UTIL_GetCircularGaussianSpread, float *, float * );
 DECLARE_HOOK( qboolean, __cdecl, Host_FilterTime, float );
 
@@ -47,6 +51,8 @@ DECLARE_HOOK( qboolean, __cdecl, Host_FilterTime, float );
 // Vars
 //-----------------------------------------------------------------------------
 
+DEFINE_PATTERN( CBaseEntity_FireBullets_sig, "55 8B EC 6A ? 68 ? ? ? ? 64 A1 ? ? ? ? 50 81 EC ? ? ? ? 53 56 57 A1 ? ? ? ? 33 C5 50 8D 45 F4 64 A3 ? ? ? ? 8B F9 89 7D F0" );
+DEFINE_PATTERN( CFuncTankGun_Fire_sig, "53 55 56 8B F1 57 F3 0F 10 86 A0 01 00 00" );
 DEFINE_PATTERN( UTIL_GetCircularGaussianSpread_sig, "56 8B 74 24 08 57 8B 7C 24 10 66 0F 1F 44 00 00" );
 DEFINE_PATTERN( Host_FilterTime_sig, "E9 ? ? ? ? 90 90 90 8B 0D ? ? ? ? D8" );
 DEFINE_PATTERN( host_framerate_patch_sig, "74 ? DD ? B8" );
@@ -83,6 +89,9 @@ ConVar sc_st_min_frametime( "sc_st_min_frametime", "0", FCVAR_CLIENTDLL, "Min fr
 
 ConVar sc_st_map_start_position( "sc_st_map_start_position", "", FCVAR_CLIENTDLL, "Restart map if player hasn't spawned in the given position\n\"x y\" - 2D position\n\"\" - disabled" );
 ConVar sc_st_disable_spread( "sc_st_disable_spread", "0", FCVAR_CLIENTDLL, "Disables spread" );
+
+ConVar sc_st_legit_mode_ignore_freeze( "sc_st_legit_mode_ignore_freeze", "0", FCVAR_CLIENTDLL, "Don't block freeze of the host when legit mode is on" );
+ConVar sc_st_legit_mode_block_freeze_mouse_input( "sc_st_legit_mode_block_freeze_mouse_input", "1", FCVAR_CLIENTDLL, "When frozen, disabled mouse input" );
 
 static void CvarChangeHook_fps_max( cvar_t *pCvar, const char *pszOldValue, float flOldValue )
 {
@@ -678,6 +687,27 @@ CON_COMMAND( sc_test_revive, "" )
 // Hooks
 //-----------------------------------------------------------------------------
 
+static bool inside_CFuncTankGun_Fire = false;
+
+DECLARE_CLASS_FUNC( void, HOOKED_CBaseEntity_FireBullets, void *thisptr, unsigned int cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFeq, int iDamage, entvars_t *pAttacker, int fDraw )
+{
+	if ( sc_st_disable_spread.GetBool() )
+	{
+		vecSpread.Zero();
+	}
+
+	ORIG_CBaseEntity_FireBullets( thisptr, cShots, vecSrc, vecDirShooting, vecSpread, flDistance, iBulletType, iTracerFeq, iDamage, pAttacker, fDraw );
+}
+
+DECLARE_CLASS_FUNC( void, HOOKED_CFuncTankGun_Fire, void *thisptr, const Vector &barrelEnd, const Vector &forward, entvars_t *pevAttacker )
+{
+	inside_CFuncTankGun_Fire = true;
+
+	ORIG_CFuncTankGun_Fire( thisptr, barrelEnd, forward, pevAttacker );
+
+	inside_CFuncTankGun_Fire = false;
+}
+
 DECLARE_FUNC( void, __cdecl, HOOKED_UTIL_GetCircularGaussianSpread, float *x, float *y )
 {
 	ORIG_UTIL_GetCircularGaussianSpread( x, y );
@@ -685,6 +715,31 @@ DECLARE_FUNC( void, __cdecl, HOOKED_UTIL_GetCircularGaussianSpread, float *x, fl
 	if ( sc_st_disable_spread.GetBool() )
 	{
 		*x = *y = 0.f;
+	}
+	
+	if ( inside_CFuncTankGun_Fire )
+	{
+		scriptref_t hCallbackFunction;
+
+		if ( hCallbackFunction = g_ScriptVM.LookupFunction( "OnTankGunFire" ) )
+		{
+			lua_State *pLuaState = g_ScriptVM.GetVM();
+
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hCallbackFunction);
+
+			lua_pushnumber( pLuaState, (lua_Number)*x );
+			lua_pushnumber( pLuaState, (lua_Number)*y );
+
+			g_ScriptVM.ProtectedCall( pLuaState, 2, 2, 0 );
+
+			if ( lua_isnumber( pLuaState, -2 ) && lua_isnumber( pLuaState, -1 ) )
+			{
+				*x = (float)lua_tonumber( pLuaState, -2 );
+				*y = (float)lua_tonumber( pLuaState, -1 );
+			}
+
+			g_ScriptVM.ReleaseFunction( hCallbackFunction );
+		}
 	}
 }
 
@@ -1590,8 +1645,14 @@ void CSpeedrunTools::DrawReviveBoostInfo( void )
 													g_Config.cvars.st_show_revive_boost_info_direction_line_width );
 							}
 
+							// Predict boost
+							if ( g_Config.cvars.st_show_revive_boost_predict_trajectory || g_Config.cvars.st_show_revive_boost_predict_collision )
+							{
+								DrawPredictedReviveBoost();
+							}
+
 							m_pReviveBoostTarget = pTarget = ent.m_pEntity;
-							// Distance from center of AABB of revivable target minus distance to local player's AABB
+							// Distance from center of AABB of revivable target minus distance of local player's AABB
 							m_flReviveBoostDistance = ( flDistanceToEdge >= flDistance ? ( flDistanceToEdge - flDistance ) : ( flDistance - flDistanceToEdge ) );
 							m_flReviveBoostAngle = vecDir.z;
 						}
@@ -1618,6 +1679,152 @@ void CSpeedrunTools::DrawReviveBoostInfo( void )
 
 		m_bShowReviveBoostInfo = true;
 	}
+}
+
+//-----------------------------------------------------------------------------
+// Predict revive boost
+//-----------------------------------------------------------------------------
+
+void CSpeedrunTools::DrawPredictedReviveBoost( void )
+{
+	if ( !g_bPlayingbackDemo && g_pPlayerMove->movevars == NULL )
+		return;
+
+	const int oldhull = g_pPlayerMove->usehull;
+	const float flFrametime = 1.f / fps_max->value;
+
+	pmtrace_t tr;
+	bool bDucking, bOnGround;
+	Vector vecOrigin, vecVelocity;
+	CDrawTrajectory *pTrajectoryRenderer = NULL;
+
+	int it = 0;
+
+	if ( g_bPlayingbackDemo )
+	{
+		vecVelocity = refparams.simvel;
+		vecOrigin = refparams.simorg;
+
+		bDucking = ( refparams.viewheight[ 2 ] == VEC_DUCK_VIEW.z );
+		bOnGround = false;
+
+		// Trace forward
+		tr = g_pPlayerMove->PM_PlayerTrace( vecOrigin, vecOrigin + ( vecVelocity * flFrametime ), PM_NORMAL, -1 );
+
+		// Did hit a wall or started in solid
+		if ( tr.fraction != 1.f && !tr.allsolid && tr.plane.normal.z >= 0.7f )
+		{
+			bOnGround = true;
+		}
+		else
+		{
+			Vector point = vecOrigin;
+			point.z -= 2.f;
+
+			// Trace down
+			tr = g_pPlayerMove->PM_PlayerTrace( vecOrigin, point, PM_NORMAL, -1 );
+
+			if ( tr.plane.normal.z >= 0.7f )
+			{
+				bOnGround = true;
+			}
+		}
+	}
+	else
+	{
+		if ( Host_IsServerActive() )
+		{
+			edict_t *pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( g_pPlayerMove->player_index + 1 );
+
+			if ( pPlayer == NULL )
+				return;
+
+			vecVelocity = pPlayer->v.velocity;
+		}
+		else
+		{
+			vecVelocity = g_pPlayerMove->velocity;
+		}
+
+		vecOrigin = g_pPlayerMove->origin;
+
+		bDucking = ( g_pPlayerMove->flags & FL_DUCKING );
+		bOnGround = ( g_pPlayerMove->onground != -1 );
+	}
+
+	// Set trace hull
+	g_pPlayerMove->usehull = bDucking ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER;
+
+	if ( g_Config.cvars.st_show_revive_boost_predict_trajectory )
+	{
+		Color clr = {
+			g_Config.cvars.st_show_revive_boost_predict_trajectory_color[ 0 ],
+			g_Config.cvars.st_show_revive_boost_predict_trajectory_color[ 1 ],
+			g_Config.cvars.st_show_revive_boost_predict_trajectory_color[ 2 ],
+			g_Config.cvars.st_show_revive_boost_predict_trajectory_color[ 3 ]
+		};
+
+		pTrajectoryRenderer = new CDrawTrajectory( clr, clr );
+	}
+
+	// Loop
+	do
+	{
+		// Apply gravity
+		if ( g_bPlayingbackDemo )
+			UTIL_AddCorrectGravity( vecVelocity,
+									refparams_movevars.gravity,
+									refparams_movevars.entgravity,
+									flFrametime );
+		else
+			UTIL_AddCorrectGravity( vecVelocity, flFrametime );
+
+		Vector vecMove = vecVelocity * flFrametime;
+
+		// Trace forward
+		tr = g_pPlayerMove->PM_PlayerTrace( vecOrigin, vecOrigin + vecMove, PM_NORMAL, -1 );
+
+		if ( g_Config.cvars.st_show_revive_boost_predict_trajectory )
+			pTrajectoryRenderer->AddLine( vecOrigin, tr.endpos );
+
+		// Save trace pos
+		vecOrigin = tr.endpos;
+
+		// Did hit a wall or started in solid
+		if ( ( tr.fraction != 1.f && !tr.allsolid ) || tr.startsolid )
+		{
+			if ( g_Config.cvars.st_show_revive_boost_predict_collision )
+			{
+				DrawBox( vecOrigin,
+						 bDucking ? VEC_DUCK_HULL_MIN : VEC_HULL_MIN,
+						 bDucking ? VEC_DUCK_HULL_MAX : VEC_HULL_MAX,
+						 g_Config.cvars.st_show_revive_boost_predict_collision_color[ 0 ],
+						 g_Config.cvars.st_show_revive_boost_predict_collision_color[ 1 ],
+						 g_Config.cvars.st_show_revive_boost_predict_collision_color[ 2 ],
+						 g_Config.cvars.st_show_revive_boost_predict_collision_color[ 3 ],
+						 g_Config.cvars.st_show_revive_boost_predict_collision_width,
+						 true );
+			}
+
+			break;
+		}
+
+		if ( g_bPlayingbackDemo )
+			UTIL_FixupGravityVelocity( vecVelocity,
+									   refparams_movevars.gravity,
+									   refparams_movevars.entgravity,
+									   flFrametime );
+		else
+			UTIL_FixupGravityVelocity( vecVelocity, flFrametime );
+
+		it++;
+
+	} while ( it < 3000 );
+
+	if ( g_Config.cvars.st_show_revive_boost_predict_trajectory )
+		Render()->AddDrawContext( pTrajectoryRenderer );
+
+	g_pPlayerMove->usehull = oldhull;
 }
 
 //-----------------------------------------------------------------------------
@@ -2029,8 +2236,8 @@ void CSpeedrunTools::DrawLandPoint( void )
 
 		if ( g_bPlayingbackDemo )
 			UTIL_FixupGravityVelocity( vecVelocity,
-									   800.f,
-									   1.f,
+									   refparams_movevars.gravity,
+									   refparams_movevars.entgravity,
 									   flFrametime );
 		else
 			UTIL_FixupGravityVelocity( vecVelocity, flFrametime );
@@ -2045,8 +2252,8 @@ void CSpeedrunTools::DrawLandPoint( void )
 		// Apply gravity
 		if ( g_bPlayingbackDemo )
 			UTIL_AddCorrectGravity( vecVelocity,
-									800.f,
-									1.f,
+									refparams_movevars.gravity,
+									refparams_movevars.entgravity,
 									flFrametime );
 		else
 			UTIL_AddCorrectGravity( vecVelocity, flFrametime );
@@ -2124,8 +2331,8 @@ void CSpeedrunTools::DrawLandPoint( void )
 
 				if ( g_bPlayingbackDemo )
 					UTIL_FixupGravityVelocity( vecVelocity,
-											   800.f,
-											   1.f,
+											   refparams_movevars.gravity,
+											   refparams_movevars.entgravity,
 											   flFrametime );
 				else
 					UTIL_FixupGravityVelocity( vecVelocity, flFrametime );
@@ -2140,8 +2347,8 @@ void CSpeedrunTools::DrawLandPoint( void )
 
 		if ( g_bPlayingbackDemo )
 			UTIL_FixupGravityVelocity( vecVelocity,
-									   800.f,
-									   1.f,
+									   refparams_movevars.gravity,
+									   refparams_movevars.entgravity,
 									   flFrametime );
 		else
 			UTIL_FixupGravityVelocity( vecVelocity, flFrametime );
@@ -3091,9 +3298,23 @@ bool CSpeedrunTools::Load( void )
 	ud_t inst;
 	bool ScanOK = true;
 
+	auto fpfnCBaseEntity_FireBullets = MemoryUtils()->FindPatternAsync( Sys_GetModuleHandle( "server.dll" ), CBaseEntity_FireBullets_sig );
+	auto fpfnCFuncTankGun_Fire = MemoryUtils()->FindPatternAsync( Sys_GetModuleHandle( "server.dll" ), CFuncTankGun_Fire_sig );
 	auto fpfnUTIL_GetCircularGaussianSpread = MemoryUtils()->FindPatternAsync( Sys_GetModuleHandle( "server.dll" ), UTIL_GetCircularGaussianSpread_sig );
 	auto fpfnHost_FilterTime = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Host_FilterTime_sig );
 
+	if ( !( m_pfnCBaseEntity_FireBullets = fpfnCBaseEntity_FireBullets.get() ) )
+	{
+		Warning( "Couldn't find function \"CBaseEntity::FireBullets\"\n" );
+		ScanOK = false;
+	}
+	
+	if ( !( m_pfnCFuncTankGun_Fire = fpfnCFuncTankGun_Fire.get() ) )
+	{
+		Warning( "Couldn't find function \"CFuncTankGun::Fire\"\n" );
+		ScanOK = false;
+	}
+	
 	if ( !( m_pfnUTIL_GetCircularGaussianSpread = fpfnUTIL_GetCircularGaussianSpread.get() ) )
 	{
 		Warning( "Couldn't find function \"UTIL_GetCircularGaussianSpread\"\n" );
@@ -3175,6 +3396,8 @@ void CSpeedrunTools::PostLoad( void )
 
 	Hooks()->HookCvarChange( fps_max, CvarChangeHook_fps_max );
 
+	m_hCBaseEntity_FireBullets = DetoursAPI()->DetourFunction( m_pfnCBaseEntity_FireBullets, HOOKED_CBaseEntity_FireBullets, GET_FUNC_PTR( ORIG_CBaseEntity_FireBullets ) );
+	m_hCFuncTankGun_Fire = DetoursAPI()->DetourFunction( m_pfnCFuncTankGun_Fire, HOOKED_CFuncTankGun_Fire, GET_FUNC_PTR( ORIG_CFuncTankGun_Fire ) );
 	m_hUTIL_GetCircularGaussianSpread = DetoursAPI()->DetourFunction( m_pfnUTIL_GetCircularGaussianSpread, HOOKED_UTIL_GetCircularGaussianSpread, GET_FUNC_PTR( ORIG_UTIL_GetCircularGaussianSpread ) );
 	m_hHost_FilterTime = DetoursAPI()->DetourFunction( m_pfnHost_FilterTime, HOOKED_Host_FilterTime, GET_FUNC_PTR( ORIG_Host_FilterTime ) );
 
@@ -3191,6 +3414,8 @@ void CSpeedrunTools::Unload( void )
 
 	Hooks()->UnhookCvarChange( fps_max, CvarChangeHook_fps_max );
 
+	DetoursAPI()->RemoveDetour( m_hCBaseEntity_FireBullets );
+	DetoursAPI()->RemoveDetour( m_hCFuncTankGun_Fire );
 	DetoursAPI()->RemoveDetour( m_hUTIL_GetCircularGaussianSpread );
 	DetoursAPI()->RemoveDetour( m_hHost_FilterTime );
 }

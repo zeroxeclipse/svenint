@@ -539,7 +539,7 @@ public:
 		bool st_server_player_hulls = false;
 		bool st_player_hulls_show_local_player = false;
 		bool st_player_hulls_show_wireframe = false;
-		float st_player_hulls_wireframe_width = 2.f;
+		float st_player_hulls_wireframe_width = 4.f;
 		float st_player_hulls_color[4] = { 232.f / 255.f, 0.f / 255.f, 232.f / 255.f, 96.f / 255.f };
 		float st_player_hulls_dead_color[4] = { 189.f / 255.f, 134.f / 255.f, 240.f / 255.f, 96.f / 255.f };
 
@@ -594,6 +594,11 @@ public:
 		float st_show_revive_boost_info_height_frac = 0.31f;
 		float st_show_revive_boost_info_hull_color[ 4 ] = { 0.f, 1.f, 0.f, 0.5f };
 		float st_show_revive_boost_info_direction_color[ 4 ] = { 1.f, 0.f, 0.f, 0.5f };
+		bool st_show_revive_boost_predict_trajectory = true;
+		bool st_show_revive_boost_predict_collision = true;
+		float st_show_revive_boost_predict_collision_width = 4.f;
+		float st_show_revive_boost_predict_trajectory_color[ 4 ] = { 1.f, 1.f, 0.f, 1.f };
+		float st_show_revive_boost_predict_collision_color[ 4 ] = { 0.f, 1.f, 1.f, 0.5f };
 
 		bool st_show_revive_area_info = false;
 		bool st_show_revive_area_local_player = true;

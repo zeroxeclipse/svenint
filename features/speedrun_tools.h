@@ -67,6 +67,7 @@ public:
 
 	void				DrawPlayerHulls( void );
 	void				DrawReviveBoostInfo( void );
+	void				DrawPredictedReviveBoost( void );
 	void				DrawReviveInfo( void );
 	void				DrawReviveUnstuckArea( void );
 	void				DrawLandPoint( void );
@@ -114,11 +115,15 @@ private:
 	unsigned short							*m_pJumpOpCode;
 	unsigned short							m_PatchedJumpOpCode;
 
+	void									*m_pfnCBaseEntity_FireBullets;
+	void									*m_pfnCFuncTankGun_Fire;
 	void									*m_pfnUTIL_GetCircularGaussianSpread;
 	void									*m_pfnHost_FilterTime;
 	void									*m_pfnCbuf_AddText;
 	void									*m_pfnServerCmd;
 
+	DetourHandle_t							m_hCBaseEntity_FireBullets;
+	DetourHandle_t							m_hCFuncTankGun_Fire;
 	DetourHandle_t							m_hUTIL_GetCircularGaussianSpread;
 	DetourHandle_t							m_hHost_FilterTime;
 	DetourHandle_t							m_hCbuf_AddText;

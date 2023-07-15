@@ -810,6 +810,17 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam( "ReviveBoostInfoDirectionColor_G", cvars.st_show_revive_boost_info_direction_color[ 1 ] );
 			ConfigManager()->ImportParam( "ReviveBoostInfoDirectionColor_B", cvars.st_show_revive_boost_info_direction_color[ 2 ] );
 			ConfigManager()->ImportParam( "ReviveBoostInfoDirectionColor_A", cvars.st_show_revive_boost_info_direction_color[ 3 ] );
+			ConfigManager()->ImportParam( "ReviveBoostInfoPredictionTrajectory", cvars.st_show_revive_boost_predict_trajectory );
+			ConfigManager()->ImportParam( "ReviveBoostInfoPredictionCollision", cvars.st_show_revive_boost_predict_collision );
+			ConfigManager()->ImportParam( "ReviveBoostInfoPredictionCollisionWidth", cvars.st_show_revive_boost_predict_collision_width );
+			ConfigManager()->ImportParam( "ReviveBoostInfoPredictionTrajectoryColor_R", cvars.st_show_revive_boost_predict_trajectory_color[ 0 ] );
+			ConfigManager()->ImportParam( "ReviveBoostInfoPredictionTrajectoryColor_G", cvars.st_show_revive_boost_predict_trajectory_color[ 1 ] );
+			ConfigManager()->ImportParam( "ReviveBoostInfoPredictionTrajectoryColor_B", cvars.st_show_revive_boost_predict_trajectory_color[ 2 ] );
+			ConfigManager()->ImportParam( "ReviveBoostInfoPredictionTrajectoryColor_A", cvars.st_show_revive_boost_predict_trajectory_color[ 3 ] );
+			ConfigManager()->ImportParam( "ReviveBoostInfoPredictionCollisionColor_R", cvars.st_show_revive_boost_predict_collision_color[ 0 ] );
+			ConfigManager()->ImportParam( "ReviveBoostInfoPredictionCollisionColor_G", cvars.st_show_revive_boost_predict_collision_color[ 1 ] );
+			ConfigManager()->ImportParam( "ReviveBoostInfoPredictionCollisionColor_B", cvars.st_show_revive_boost_predict_collision_color[ 2 ] );
+			ConfigManager()->ImportParam( "ReviveBoostInfoPredictionCollisionColor_A", cvars.st_show_revive_boost_predict_collision_color[ 3 ] );
 
 			ConfigManager()->ImportParam( "ShowReviveAreaInfo", cvars.st_show_revive_area_info );
 			ConfigManager()->ImportParam( "ReviveAreaShowLocalPlayer", cvars.st_show_revive_area_local_player );
@@ -1691,6 +1702,17 @@ void CConfig::Save()
 			ConfigManager()->ExportParam( "ReviveBoostInfoDirectionColor_G", cvars.st_show_revive_boost_info_direction_color[ 1 ] );
 			ConfigManager()->ExportParam( "ReviveBoostInfoDirectionColor_B", cvars.st_show_revive_boost_info_direction_color[ 2 ] );
 			ConfigManager()->ExportParam( "ReviveBoostInfoDirectionColor_A", cvars.st_show_revive_boost_info_direction_color[ 3 ] );
+			ConfigManager()->ExportParam( "ReviveBoostInfoPredictionTrajectory", cvars.st_show_revive_boost_predict_trajectory );
+			ConfigManager()->ExportParam( "ReviveBoostInfoPredictionCollision", cvars.st_show_revive_boost_predict_collision );
+			ConfigManager()->ExportParam( "ReviveBoostInfoPredictionCollisionWidth", cvars.st_show_revive_boost_predict_collision_width );
+			ConfigManager()->ExportParam( "ReviveBoostInfoPredictionTrajectoryColor_R", cvars.st_show_revive_boost_predict_trajectory_color[ 0 ] );
+			ConfigManager()->ExportParam( "ReviveBoostInfoPredictionTrajectoryColor_G", cvars.st_show_revive_boost_predict_trajectory_color[ 1 ] );
+			ConfigManager()->ExportParam( "ReviveBoostInfoPredictionTrajectoryColor_B", cvars.st_show_revive_boost_predict_trajectory_color[ 2 ] );
+			ConfigManager()->ExportParam( "ReviveBoostInfoPredictionTrajectoryColor_A", cvars.st_show_revive_boost_predict_trajectory_color[ 3 ] );
+			ConfigManager()->ExportParam( "ReviveBoostInfoPredictionCollisionColor_R", cvars.st_show_revive_boost_predict_collision_color[ 0 ] );
+			ConfigManager()->ExportParam( "ReviveBoostInfoPredictionCollisionColor_G", cvars.st_show_revive_boost_predict_collision_color[ 1 ] );
+			ConfigManager()->ExportParam( "ReviveBoostInfoPredictionCollisionColor_B", cvars.st_show_revive_boost_predict_collision_color[ 2 ] );
+			ConfigManager()->ExportParam( "ReviveBoostInfoPredictionCollisionColor_A", cvars.st_show_revive_boost_predict_collision_color[ 3 ] );
 
 			ConfigManager()->ExportParam( "ShowReviveAreaInfo", cvars.st_show_revive_area_info );
 			ConfigManager()->ExportParam( "ReviveAreaShowLocalPlayer", cvars.st_show_revive_area_local_player );

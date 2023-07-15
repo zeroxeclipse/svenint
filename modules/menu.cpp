@@ -272,16 +272,15 @@ void CMenuModule::LoadTextures()
 		if ( bMenuTextureLoaded )
 		{
 			Warning( xs( "[SvenInt] Cannot load SvenInt menu image, make sure size is 130x248\n" ) );
-
-			glDeleteTextures( 1, &m_hLogoTex );
 		}
 		else
 		{
 			Warning( xs( "[SvenInt] Failed to load SvenInt menu image\n" ) );
 		}
 
+		DeleteTextures();
+
 		m_bMenuTexLoaded = false;
-		m_hLogoTex = 0;
 	}
 
 	m_bMenuTexLoaded = true;
@@ -524,7 +523,13 @@ void CMenuModule::DrawLogo()
 	ImGui::SetCursorPosY(10);
 	ImGui::SetCursorPosX(9);
 
-	ImGui::Image((void*)(intptr_t)m_hLogoTex, ImVec2(m_iLogoWidth, m_iLogoWidth), ImVec2(0, 0), ImVec2(1, 1), g_Config.cvars.menu_rainbow[0] ? ImVec4(g_MenuColors.m_flRainbowColor[0], g_MenuColors.m_flRainbowColor[1], g_MenuColors.m_flRainbowColor[2], 255) : ImVec4(g_Config.cvars.logo_color[0], g_Config.cvars.logo_color[1], g_Config.cvars.logo_color[2], 255));
+	ImGui::Image( (void *)(intptr_t)m_hLogoTex,
+				  ImVec2( m_iLogoWidth, m_iLogoWidth ),
+				  ImVec2( 0, 0 ),
+				  ImVec2( 1, 1 ),
+				  g_Config.cvars.menu_rainbow[ 0 ] ?
+				  ImVec4( g_MenuColors.m_flRainbowColor[ 0 ], g_MenuColors.m_flRainbowColor[ 1 ], g_MenuColors.m_flRainbowColor[ 2 ], 1.f * g_Config.cvars.menu_opacity ) :
+				  ImVec4( g_Config.cvars.logo_color[ 0 ], g_Config.cvars.logo_color[ 1 ], g_Config.cvars.logo_color[ 2 ], 1.f * g_Config.cvars.menu_opacity ) );
 
 	ImGui::SameLine();
 
@@ -573,7 +578,7 @@ void CMenuModule::DrawMenuImage()
 	if ( m_bMenuTexLoaded )
 	{
 		ImGui::SetCursorPosX(0);
-		ImGui::Image((void*)(intptr_t)m_hMenuTex, ImVec2(m_iMenuTexWidth, m_iMenuTexHeight), ImVec2(0, 0), ImVec2(1, 1));
+		ImGui::Image((void*)(intptr_t)m_hMenuTex, ImVec2(m_iMenuTexWidth, m_iMenuTexHeight), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1.f, 1.f, 1.f, 1.f * g_Config.cvars.menu_opacity));
 	}
 	else
 	{
@@ -3091,6 +3096,33 @@ void CMenuModule::DrawUtilityTabContent()
 			ImGui::Spacing();
 
 			ImGui::ColorEdit4( xs( "Direction Color##st_revive_boost" ), g_Config.cvars.st_show_revive_boost_info_direction_color );
+
+			ImGui::Spacing();
+
+			ImGuiCustom.Spacing( 4 );
+
+			ImGui::Text( xs( "Prediction" ) );
+
+			ImGui::Spacing();
+
+			ImGui::Checkbox( xs( "Predict Trajectory##st_revive_boost" ), &g_Config.cvars.st_show_revive_boost_predict_trajectory );
+
+			ImGui::Spacing();
+
+			ImGui::ColorEdit4( xs( "Trajectory Color##st_revive_boost" ), g_Config.cvars.st_show_revive_boost_predict_trajectory_color );
+
+			ImGui::Spacing();
+			ImGui::Spacing();
+
+			ImGui::Checkbox( xs( "Predict Collision##st_revive_boost" ), &g_Config.cvars.st_show_revive_boost_predict_collision );
+
+			ImGui::Spacing();
+
+			ImGui::SliderFloat( xs( "Collision Hull Width##st_revive_boost" ), &g_Config.cvars.st_show_revive_boost_predict_collision_width, 0.0f, 10.0f );
+
+			ImGui::Spacing();
+
+			ImGui::ColorEdit4( xs( "Collision Hull Color##st_revive_boost" ), g_Config.cvars.st_show_revive_boost_predict_collision_color );
 
 			ImGui::EndCombo();
 		}
