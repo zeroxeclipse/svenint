@@ -22,9 +22,10 @@
 #include "../config.h"
 #include "../scripts/scripts.h"
 #include "../utils/xorstr.h"
-#include "../utils/demo_message.h"
 
+#include "../game/demo_message.h"
 #include "../game/utils.h"
+#include "../game/structs.h"
 #include "../game/drawing.h"
 #include "../game/entitylist.h"
 
@@ -83,6 +84,8 @@ DECLARE_HOOK(int, __cdecl, CRC_MapFile, uint32 *ulCRC, char *pszMapName);
 
 DECLARE_HOOK(void *, __cdecl, Mod_LeafPVS, mleaf_t *leaf, model_t *model);
 
+DECLARE_CLASS_HOOK( void, CGame__SleepUntilInput, void *thisptr, int unk );
+
 DECLARE_CLASS_HOOK(void, StudioSetupBones, CStudioModelRenderer *);
 DECLARE_CLASS_HOOK(void, StudioRenderModel, CStudioModelRenderer *);
 
@@ -118,6 +121,8 @@ extern float g_flOverrideColor_R;
 extern float g_flOverrideColor_G;
 extern float g_flOverrideColor_B;
 
+extern ConVar sc_st_legit_mode_block_freeze_mouse_input;
+
 //-----------------------------------------------------------------------------
 // Vars
 //-----------------------------------------------------------------------------
@@ -142,6 +147,8 @@ Vector g_vecLastVirtualVA(0.f, 0.f, 0.f);
 
 uint32 g_ulMapCRC = -1;
 
+CEngine *g_pEngine = NULL;
+
 CHud *g_pHUD = NULL;
 CHudBaseTextBlock *g_pHudText = NULL;
 
@@ -150,6 +157,7 @@ cvar_t *default_fov = NULL;
 cvar_t *hud_draw = NULL;
 
 ref_params_t refparams;
+movevars_t refparams_movevars;
 
 void *g_pfnCHudBaseTextBlock__Print = NULL;
 
@@ -163,6 +171,7 @@ static bool s_bCheckMapCRC = false;
 ConVar sc_novis( "sc_novis", "0", FCVAR_CLIENTDLL, "Better r_novis" );
 ConVar sc_unforcecvars( "sc_unforcecvars", "0", FCVAR_CLIENTDLL, "Don't force CVars" );
 ConVar sc_force_highest_cheats_level( "sc_force_highest_cheats_level", "0", FCVAR_CLIENTDLL, "Force sv_cheats 255" );
+ConVar sc_disable_nofocus_sleep( "sc_disable_nofocus_sleep", "0", FCVAR_CLIENTDLL, "Disable longer sleep time when the game's window is not active" );
 
 //-----------------------------------------------------------------------------
 // Hooks module feature
@@ -196,6 +205,7 @@ private:
 	void *m_pfnR_ForceCVars;
 	void *m_pfnCRC_MapFile;
 	void *m_pfnMod_LeafPVS;
+	void *m_pfnCGame__SleepUntilInput;
 
 	DetourHandle_t m_hIN_Move;
 	DetourHandle_t m_hCHud__Think;
@@ -214,6 +224,7 @@ private:
 	DetourHandle_t m_hR_ForceCVars;
 	DetourHandle_t m_hCRC_MapFile;
 	DetourHandle_t m_hMod_LeafPVS;
+	DetourHandle_t m_hCGame__SleepUntilInput;
 
 	DetourHandle_t m_hStudioSetupBones;
 	DetourHandle_t m_hStudioRenderModel;
@@ -371,7 +382,7 @@ DECLARE_FUNC(void, APIENTRY, HOOKED_glColor4f, GLfloat red, GLfloat green, GLflo
 
 DECLARE_FUNC(void, __cdecl, HOOKED_IN_Move, float frametime, usercmd_t *cmd)
 {
-	if ( g_bMenuEnabled || g_bMenuClosed || ( g_SpeedrunTools.IsLegitMode() && ( g_Misc.IsFreezeOn() || g_Misc.IsFreeze2On() ) ) )
+	if ( g_bMenuEnabled || g_bMenuClosed || ( g_SpeedrunTools.IsLegitMode() && sc_st_legit_mode_block_freeze_mouse_input.GetBool() && ( g_Misc.IsFreezeOn() || g_Misc.IsFreeze2On() ) ) )
 		return;
 
 	g_pEngineFuncs->GetViewAngles( g_oldviewangles );
@@ -839,6 +850,18 @@ DECLARE_FUNC(void *, __cdecl, HOOKED_Mod_LeafPVS, mleaf_t *leaf, model_t *model)
 	return ORIG_Mod_LeafPVS( sc_novis.GetBool() ? model->leafs : leaf, model );
 }
 
+DECLARE_CLASS_FUNC( void, HOOKED_CGame__SleepUntilInput, void *thisptr, int unk )
+{
+	ORIG_CGame__SleepUntilInput( thisptr, unk );
+
+	if ( sc_disable_nofocus_sleep.GetBool() )
+	{
+		// Force app being active
+		*( (unsigned char *)thisptr + 4 ) = 1;
+		g_pEngine->gameactive = 1;
+	}
+}
+
 //-----------------------------------------------------------------------------
 // Renderer hooks
 //-----------------------------------------------------------------------------
@@ -1023,6 +1046,9 @@ DECLARE_CLASS_FUNC(void, HOOKED_StudioRenderModel, CStudioModelRenderer *thisptr
 
 DECLARE_FUNC(void, __cdecl, HOOKED_restart)
 {
+	if ( !Host_IsServerActive() )
+		return;
+
 	g_ScriptCallbacks.OnRestart();
 
 	ORIG_restart();
@@ -1376,6 +1402,16 @@ HOOK_RESULT CClientPostHooks::V_CalcRefdef(ref_params_t *pparams)
 
 	memcpy( &refparams, pparams, sizeof( ref_params_t ) );
 
+	if ( pparams->movevars != NULL )
+	{
+		memcpy( &refparams_movevars, pparams->movevars, sizeof( movevars_t ) );
+	}
+	else
+	{
+		refparams_movevars.gravity = 800.f;
+		refparams_movevars.entgravity = 1.f;
+	}
+
 	return HOOK_CONTINUE;
 }
 
@@ -1513,6 +1549,7 @@ CHooksModule::CHooksModule()
 	m_pfnR_ForceCVars = NULL;
 	m_pfnCRC_MapFile = NULL;
 	m_pfnMod_LeafPVS = NULL;
+	m_pfnCGame__SleepUntilInput = NULL;
 
 	m_hNetchan_CanPacket = 0;
 	m_hglBegin = 0;
@@ -1586,10 +1623,12 @@ bool CHooksModule::Load()
 	auto fpfnR_ForceCVars = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::R_ForceCVars );
 	auto fpfnCRC_MapFile = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::CRC_MapFile );
 	auto fpfnMod_LeafPVS = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::Mod_LeafPVS );
+	auto fpfnCGame__SleepUntilInput = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::CGame__SleepUntilInput );
 	auto fpfnScaleColors = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::ScaleColors );
 	auto fpfnScaleColors_RGBA = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::ScaleColors_RGBA );
 	auto fpclc_buffer = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::clc_buffer );
 	auto fcheats_level = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::cheats_level );
+	auto fg_pEngine = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::g_pEngine );
 
 	if ( !( m_pfnIN_Move = fpfnIN_Move.get() ) )
 	{
@@ -1650,6 +1689,12 @@ bool CHooksModule::Load()
 		Warning( "Couldn't find function \"Mod_LeafPVS\"\n" );
 		ScanOK = false;
 	}
+	
+	if ( !( m_pfnCGame__SleepUntilInput = fpfnCGame__SleepUntilInput.get() ) )
+	{
+		Warning( "Couldn't find function \"CGame::SleepUntilInput\"\n" );
+		ScanOK = false;
+	}
 
 	if ( !( m_pfnScaleColors = fpfnScaleColors.get() ) )
 	{
@@ -1676,12 +1721,20 @@ bool CHooksModule::Load()
 		Warning( "Failed to locate \"cheats_level\"\n" );
 		ScanOK = false;
 	}
+	
+	void *pfnEngine;
+	if ( ( pfnEngine = fg_pEngine.get() ) == NULL )
+	{
+		Warning( "Failed to locate \"g_pEngine\"\n" );
+		ScanOK = false;
+	}
 
 	if ( !ScanOK )
 		return false;
 
-	clc_buffer = *reinterpret_cast<sizebuf_t **>((unsigned char *)pclc_buffer + 1);
-	cheats_level = *reinterpret_cast<int **>((unsigned char *)pcheats_level + 2);
+	clc_buffer = *reinterpret_cast<sizebuf_t **>( (unsigned char *)pclc_buffer + 1 );
+	cheats_level = *reinterpret_cast<int **>( (unsigned char *)pcheats_level + 2 );
+	g_pEngine = **reinterpret_cast<CEngine ***>( (unsigned char *)pfnEngine + 2 );
 	
 	//MemoryUtils()->InitDisasm( &inst, g_pEngineFuncs->GetCvarPointer, 32, 17 );
 
@@ -1775,6 +1828,7 @@ void CHooksModule::PostLoad()
 	m_hR_ForceCVars = DetoursAPI()->DetourFunction( m_pfnR_ForceCVars, HOOKED_R_ForceCVars, GET_FUNC_PTR(ORIG_R_ForceCVars ) );
 	m_hCRC_MapFile = DetoursAPI()->DetourFunction( m_pfnCRC_MapFile, HOOKED_CRC_MapFile, GET_FUNC_PTR(ORIG_CRC_MapFile) );
 	m_hMod_LeafPVS = DetoursAPI()->DetourFunction( m_pfnMod_LeafPVS, HOOKED_Mod_LeafPVS, GET_FUNC_PTR(ORIG_Mod_LeafPVS ) );
+	m_hCGame__SleepUntilInput = DetoursAPI()->DetourFunction( m_pfnCGame__SleepUntilInput, HOOKED_CGame__SleepUntilInput, GET_FUNC_PTR( ORIG_CGame__SleepUntilInput ) );
 
 	m_hStudioSetupBones = DetoursAPI()->DetourVirtualFunction( g_pStudioRenderer, 7, HOOKED_StudioSetupBones, GET_FUNC_PTR( ORIG_StudioSetupBones ) );
 	m_hStudioRenderModel = DetoursAPI()->DetourVirtualFunction( g_pStudioRenderer, 20, HOOKED_StudioRenderModel, GET_FUNC_PTR( ORIG_StudioRenderModel ) );
@@ -1814,6 +1868,7 @@ void CHooksModule::Unload()
 	DetoursAPI()->RemoveDetour( m_hR_ForceCVars );
 	DetoursAPI()->RemoveDetour( m_hCRC_MapFile );
 	DetoursAPI()->RemoveDetour( m_hMod_LeafPVS );
+	DetoursAPI()->RemoveDetour( m_hCGame__SleepUntilInput );
 
 	DetoursAPI()->RemoveDetour( m_hStudioSetupBones );
 	DetoursAPI()->RemoveDetour( m_hStudioRenderModel );
