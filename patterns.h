@@ -17,6 +17,7 @@ namespace Patterns
 		EXTERN_PATTERN( Netchan_Transmit );
 
 		EXTERN_PATTERN( Sys_InitializeGameDLL );
+		EXTERN_PATTERN( CGame__SleepUntilInput );
 
 		EXTERN_PATTERN( GL_Bind );
 
@@ -49,6 +50,7 @@ namespace Patterns
 		EXTERN_PATTERN( clc_buffer );
 
 		EXTERN_PATTERN( cheats_level );
+		EXTERN_PATTERN( g_pEngine );
 		EXTERN_PATTERN( sv_player );
 		EXTERN_PATTERN( SV_RunCmd );
 	}
@@ -99,6 +101,8 @@ namespace Patterns
 		EXTERN_PATTERN( FixPlayerStuck );
 		EXTERN_PATTERN( CBasePlayer__SpecialSpawn );
 		EXTERN_PATTERN( CBasePlayer__vtable );
+
+		EXTERN_PATTERN( CopyPEntityVars );
 	}
 
 	namespace GameOverlay

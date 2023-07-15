@@ -3,6 +3,7 @@
 
 #include "../patterns.h"
 #include "../game/structs.h"
+#include "../game/utils.h"
 #include "../scripts/scripts.h"
 
 #include <dbg.h>
@@ -23,6 +24,7 @@ DECLARE_HOOK( void, __cdecl, ClientPutInServer, edict_t * );
 DECLARE_CLASS_HOOK( void, CBasePlayer__SpecialSpawn, void * );
 DECLARE_CLASS_HOOK( void, CBasePlayer__BeginRevive, void *, float );
 DECLARE_CLASS_HOOK( void, CBasePlayer__EndRevive, void *, float );
+DECLARE_CLASS_HOOK( entvars_t *, CopyPEntityVars, entvars_t *pev_dst, entvars_t *pev_src );
 
 DECLARE_HOOK( void, __cdecl, RunPlayerMove, edict_t *, const float *, float, float, float, unsigned short, byte, byte );
 
@@ -51,6 +53,9 @@ Host_IsServerActiveFn Host_IsServerActive = NULL;
 static enginefuncs_t g_ServerEngineFuncs;
 static DLL_FUNCTIONS g_ServerFuncs;
 static NEW_DLL_FUNCTIONS g_NewServerFuncs;
+
+static bool bRevivePreUnstuck = false;
+static Vector vecRevivePreUnstuckOrigin;
 
 //-----------------------------------------------------------------------------
 // ConCommands
@@ -167,7 +172,19 @@ DECLARE_FUNC( bool, __cdecl, HOOKED_FixPlayerStuck, edict_t *pPlayer )
 	bool bUnstuck = ORIG_FixPlayerStuck( pPlayer );
 
 	if ( bUnstuck )
+	{
+		Vector unstuckBoundsMin = pPlayer->v.origin + Vector( -48.f, -48.f, -48.f );
+		Vector unstuckBoundsMax = pPlayer->v.origin + Vector( 48.f, 48.f, 48.f );
+
 		g_ScriptCallbacks.OnPlayerUnstuck( pPlayer );
+
+		// Outside of the largest test hull !!
+		if ( !UTIL_IsPointInsideAABB( pPlayer->v.origin, unstuckBoundsMin, unstuckBoundsMax ) )
+		{
+			g_pEngineFuncs->ClientCmd( "say \"FixPlayerStuck: NOT LEGIT UNSTUCK DETECTED.\"" );
+			g_pEngineFuncs->ClientCmd( "say \"FixPlayerStuck: the unstuck position is outside the largest test hull.\"" );
+		}
+	}
 
 	return bUnstuck;
 }
@@ -196,7 +213,24 @@ DECLARE_CLASS_FUNC( void, HOOKED_CBasePlayer__SpecialSpawn, void *thisptr )
 	edict_t *pPlayer = g_pServerEngineFuncs->pfnFindEntityByVars( entvars );
 
 	if ( pPlayer != NULL )
+	{
 		g_ScriptCallbacks.OnSpecialSpawn( pPlayer );
+
+		if ( bRevivePreUnstuck )
+		{
+			Vector unstuckBoundsMin = vecRevivePreUnstuckOrigin + Vector( -48.f, -48.f, -48.f );
+			Vector unstuckBoundsMax = vecRevivePreUnstuckOrigin + Vector( 48.f, 48.f, 48.f );
+
+			// Outside of the largest test hull !!
+			if ( !UTIL_IsPointInsideAABB( pPlayer->v.origin, unstuckBoundsMin, unstuckBoundsMax ) )
+			{
+				g_pEngineFuncs->ClientCmd( "say \"CBasePlayer::SpecialSpawn -> FixPlayerStuck: NOT LEGIT REVIVE DETECTED.\"" );
+				g_pEngineFuncs->ClientCmd( "say \"CBasePlayer::SpecialSpawn -> FixPlayerStuck: the revive position is outside the largest test hull.\"" );
+			}
+		}
+	}
+
+	bRevivePreUnstuck = false;
 }
 
 DECLARE_CLASS_FUNC( void, HOOKED_CBasePlayer__BeginRevive, void *thisptr, float flNextThink )
@@ -219,6 +253,16 @@ DECLARE_CLASS_FUNC( void, HOOKED_CBasePlayer__EndRevive, void *thisptr, float fl
 
 	if ( pPlayer != NULL )
 		g_ScriptCallbacks.OnEndPlayerRevive( pPlayer );
+}
+
+DECLARE_CLASS_FUNC( entvars_t *, HOOKED_CopyPEntityVars, entvars_t *pev_dst, entvars_t *pev_src )
+{
+	//Render()->DrawBox( pev_src->origin, Vector( -16, -16, -32 ), Vector( 16, 16, 32 ), { 255, 0, 0, 190 }, 30 );
+
+	bRevivePreUnstuck = true;
+	vecRevivePreUnstuckOrigin = pev_src->origin;
+
+	return ORIG_CopyPEntityVars( pev_dst, pev_src );
 }
 
 //-----------------------------------------------------------------------------
@@ -287,13 +331,17 @@ CServerModule::CServerModule()
 
 	m_pCBasePlayerVMT = NULL;
 	m_pfnPlayerSpawns = NULL;
+	m_pfnFixPlayerStuck = NULL;
+	m_pfnCopyPEntityVars = NULL;
 
 	m_hUse = DETOUR_INVALID_HANDLE;
 	m_hTouch = DETOUR_INVALID_HANDLE;
 	m_hPlayerSpawns = DETOUR_INVALID_HANDLE;
+	m_hFixPlayerStuck = DETOUR_INVALID_HANDLE;
 	m_hClientKill = DETOUR_INVALID_HANDLE;
 	m_hClientPutInServer = DETOUR_INVALID_HANDLE;
 	m_hCBasePlayer__SpecialSpawn = DETOUR_INVALID_HANDLE;
+	m_hCopyPEntityVars = DETOUR_INVALID_HANDLE;
 }
 
 //-----------------------------------------------------------------------------
@@ -400,6 +448,7 @@ bool CServerModule::Init( void )
 	auto fm_pfnPlayerSpawns = MemoryUtils()->FindPatternAsync( m_hServerDLL, Patterns::Server::PlayerSpawns );
 	auto fm_pfnFixPlayerStuck = MemoryUtils()->FindPatternAsync( m_hServerDLL, Patterns::Server::FixPlayerStuck );
 	auto fpCBasePlayer_dtor_vmt = MemoryUtils()->FindPatternAsync( m_hServerDLL, Patterns::Server::CBasePlayer__vtable );
+	auto fm_pfnCopyPEntityVars = MemoryUtils()->FindPatternAsync( m_hServerDLL, Patterns::Server::CopyPEntityVars );
 
 	if ( !( pfnCL_ClearState = fpfnCL_ClearState.get() ) )
 	{
@@ -434,6 +483,12 @@ bool CServerModule::Init( void )
 	if ( !( pCBasePlayer_dtor_vmt = fpCBasePlayer_dtor_vmt.get() ) )
 	{
 		Warning( "Failed to locate VMT of CBasePlayer class\n" );
+		ScanOK = false;
+	}
+	
+	if ( !( m_pfnCopyPEntityVars = fm_pfnCopyPEntityVars.get() ) )
+	{
+		Warning( "Failed to locate function call \"CopyPEntityVars\"\n" );
 		ScanOK = false;
 	}
 
@@ -554,6 +609,8 @@ void CServerModule::PostInit( void )
 																		Offsets::BasePlayer::EndRevive,
 																		HOOKED_CBasePlayer__EndRevive,
 																		GET_FUNC_PTR( ORIG_CBasePlayer__EndRevive ) );
+
+	m_hCopyPEntityVars = DetoursAPI()->DetourFunction( MemoryUtils()->CalcAbsoluteAddress( m_pfnCopyPEntityVars ), HOOKED_CopyPEntityVars, GET_FUNC_PTR( ORIG_CopyPEntityVars ) );
 }
 
 //-----------------------------------------------------------------------------
@@ -572,4 +629,6 @@ void CServerModule::Shutdown( void )
 	DetoursAPI()->RemoveDetour( m_hCBasePlayer__SpecialSpawn );
 	DetoursAPI()->RemoveDetour( m_hCBasePlayer__BeginRevive );
 	DetoursAPI()->RemoveDetour( m_hCBasePlayer__EndRevive );
+
+	DetoursAPI()->RemoveDetour( m_hCopyPEntityVars );
 }

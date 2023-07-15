@@ -74,6 +74,7 @@ private:
 	void *m_pCBasePlayerVMT;
 	void *m_pfnPlayerSpawns;
 	void *m_pfnFixPlayerStuck;
+	void *m_pfnCopyPEntityVars;
 
 	DetourHandle_t m_hUse;
 	DetourHandle_t m_hTouch;
@@ -84,6 +85,7 @@ private:
 	DetourHandle_t m_hCBasePlayer__SpecialSpawn;
 	DetourHandle_t m_hCBasePlayer__BeginRevive;
 	DetourHandle_t m_hCBasePlayer__EndRevive;
+	DetourHandle_t m_hCopyPEntityVars;
 };
 
 extern CServerModule g_ServerModule;

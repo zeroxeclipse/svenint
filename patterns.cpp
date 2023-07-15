@@ -10,6 +10,7 @@ namespace Patterns
 		DEFINE_PATTERN( Netchan_Transmit, "B8 ? ? ? ? E8 ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 ? ? ? ? 8B 84 24 ? ? ? ? 53 55" );
 
 		DEFINE_PATTERN( Sys_InitializeGameDLL, "E8 ? ? ? ? 33 C0 83 3D ? ? ? ? ? 0F 9F C0 50 E8 ? ? ? ? 83 C4" );
+		DEFINE_PATTERN( CGame__SleepUntilInput, "83 EC ? A1 ? ? ? ? 33 C4 89 44 24 40 53 56" );
 
 		DEFINE_PATTERN( GL_Bind, "8B 44 24 04 39 05 ? ? ? ? 74 11 50 68" );
 
@@ -42,7 +43,7 @@ namespace Patterns
 		DEFINE_PATTERN( clc_buffer, "68 ? ? ? ? 85 F6 74 ? 0F AE E8" );
 
 		DEFINE_PATTERN( cheats_level, "83 3D ? ? ? ? ? 75 ? FF 36 68" );
-
+		DEFINE_PATTERN( g_pEngine, "8B 0D ? ? ? ? 83 C4 ? 8B 01 6A ? FF 50 40 8B 0D ? ? ? ? 8B 01 FF 10 E8" );
 		DEFINE_PATTERN( sv_player, "8B 2D ? ? ? ? 56 8B 74 24 50" );
 		DEFINE_PATTERN( SV_RunCmd, "55 8D 6C 24 90 81 EC ? ? ? ? A1 ? ? ? ? 33 C5 89 45 6C 56" );
 	}
@@ -93,6 +94,8 @@ namespace Patterns
 		DEFINE_PATTERN( FixPlayerStuck, "81 EC ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 FC 02 00 00" );
 		DEFINE_PATTERN( CBasePlayer__SpecialSpawn, "81 EC ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 38 03 00 00" );
 		DEFINE_PATTERN( CBasePlayer__vtable, "C7 06 ? ? ? ? 8D 9E 74 08 00 00 C7 86 00 06 00 00 FF FF FF FF" );
+
+		DEFINE_PATTERN( CopyPEntityVars, "E8 ? ? ? ? F3 0F 10 84 24 8C 01 00 00" );
 	}
 
 	namespace GameOverlay
