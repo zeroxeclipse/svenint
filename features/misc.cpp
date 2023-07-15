@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <string>
 
 #include "../features/strafer.h"
 #include "../modules/patches.h"
@@ -178,7 +179,7 @@ static float GetWeaponOffset(cl_entity_s *pViewModel)
 // Commands, CVars..
 //-----------------------------------------------------------------------------
 
-ConVar sc_st_legit_mode_ignore_freeze( "sc_st_legit_mode_ignore_freeze", "0", FCVAR_CLIENTDLL, "Don't block freeze of the host when legit mode is on" );
+extern ConVar sc_st_legit_mode_ignore_freeze;
 
 ConVar sc_ducktap_adjust_fps( "sc_ducktap_adjust_fps", "0", FCVAR_CLIENTDLL, "Change fps to the given value when ducktapping" );
 ConVar sc_jumpbug_adjust_fps( "sc_jumpbug_adjust_fps", "1000", FCVAR_CLIENTDLL, "Change fps to the given value to perform jumpbug in legit mode" );
@@ -1844,7 +1845,7 @@ void CMisc::Ducktap(struct usercmd_s *cmd)
 	//	}
 	//}
 
-	static char fps_buffer[ 32 ];
+	static char fps_buffer[ 64 ];
 	static int onground_prev = 0;
 	static int fps_prev = 200;
 	static bool must_return_fps = false;
@@ -1857,8 +1858,28 @@ void CMisc::Ducktap(struct usercmd_s *cmd)
 		// Record fps change
 		if ( g_InputManager.IsRecording() )
 		{
-			snprintf( fps_buffer, M_ARRAYSIZE( fps_buffer ), "fps_max %d", fps_prev );
-			g_InputManager.RecordCommand( fps_buffer );
+			// shit hack
+			if ( g_InputManager.GetInputContext().FrameCounter() - 1 >= 0 )
+			{
+				snprintf( fps_buffer, M_ARRAYSIZE( fps_buffer ), "fps_max %d\n", fps_prev );
+
+				std::vector<im_frame_t> &frames = g_InputManager.GetInputContext().Frames();
+				int prevframe = g_InputManager.GetInputContext().FrameCounter() - 1;
+
+				if ( frames[ prevframe ].commands != NULL )
+				{
+					std::string sCommandsBuffer = frames[ prevframe ].commands;
+					sCommandsBuffer += fps_buffer;
+
+					free( (void *)( frames[ prevframe ].commands ) );
+
+					frames[ prevframe ].commands = strdup( sCommandsBuffer.c_str() );
+				}
+				else
+				{
+					frames[ prevframe ].commands = strdup( fps_buffer );
+				}
+			}
 		}
 
 		must_return_fps = false;
@@ -1927,8 +1948,28 @@ void CMisc::Ducktap(struct usercmd_s *cmd)
 					// Record fps change
 					if ( g_InputManager.IsRecording() )
 					{
-						snprintf( fps_buffer, M_ARRAYSIZE( fps_buffer ), "fps_max %d", sc_ducktap_adjust_fps.GetInt() );
-						g_InputManager.RecordCommand( fps_buffer );
+						// shit hack
+						if ( g_InputManager.GetInputContext().FrameCounter() - 1 >= 0 )
+						{
+							snprintf( fps_buffer, M_ARRAYSIZE( fps_buffer ), "fps_max %d\n", sc_ducktap_adjust_fps.GetInt() );
+
+							std::vector<im_frame_t> &frames = g_InputManager.GetInputContext().Frames();
+							int prevframe = g_InputManager.GetInputContext().FrameCounter() - 1;
+
+							if ( frames[ prevframe ].commands != NULL )
+							{
+								std::string sCommandsBuffer = frames[ prevframe ].commands;
+								sCommandsBuffer += fps_buffer;
+
+								free( (void *)( frames[ prevframe ].commands ) );
+
+								frames[ prevframe ].commands = strdup( sCommandsBuffer.c_str() );
+							}
+							else
+							{
+								frames[ prevframe ].commands = strdup( fps_buffer );
+							}
+						}
 					}
 
 					must_return_fps = true;
