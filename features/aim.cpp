@@ -17,6 +17,8 @@
 #include "aim.h"
 #include "misc.h"
 
+#include "../scripts/scripts.h"
+
 #include "../game/entitylist.h"
 #include "../game/utils.h"
 
@@ -73,6 +75,8 @@ EventHookFn ORIG_EventHook_DisplacerSpin = NULL;
 //-----------------------------------------------------------------------------
 // ConCommands/CVars
 //-----------------------------------------------------------------------------
+
+ConVar sc_aimbot_scripts_filter_targets( "sc_aimbot_scripts_filter_targets", "0", FCVAR_ARCHIVE, "Enable scripts callback to filter valid aimbot targets" );
 
 CON_COMMAND( sc_aimbot, "Toggle aimbot" )
 {
@@ -746,6 +750,9 @@ CEntity *CAim::FindBestTarget()
 			{
 				if ( IsCanSeeTarget( &ent, vecEyes, vecTargetPoint ) )
 				{
+					if ( sc_aimbot_scripts_filter_targets.GetBool() && !g_ScriptCallbacks.OnFilterAimbotTarget( i ) )
+						continue;
+
 					pTarget = &ent;
 					flDistanceSqr = dist_sqr;
 					m_vecTargetPoint = vecTargetPoint;
@@ -753,12 +760,15 @@ CEntity *CAim::FindBestTarget()
 			}
 			else
 			{
-				for ( unsigned int i = 0; i < vHitboxes.size(); i++ )
+				for ( size_t j = 0; j < vHitboxes.size(); j++ )
 				{
-					vecTargetPoint = ent.m_rgHitboxes[ vHitboxes[ i ] ];
+					vecTargetPoint = ent.m_rgHitboxes[ vHitboxes[ j ] ];
 
 					if ( IsCanSeeTarget( &ent, vecEyes, vecTargetPoint ) )
 					{
+						if ( sc_aimbot_scripts_filter_targets.GetBool() && !g_ScriptCallbacks.OnFilterAimbotTarget( i ) )
+							break;
+
 						pTarget = &ent;
 						flDistanceSqr = dist_sqr;
 						m_vecTargetPoint = vecTargetPoint;

@@ -43,6 +43,7 @@ public:
 	void OnClientKill( edict_t *pPlayerEdict );
 
 	void OnServerSignal( int value );
+	bool OnFilterAimbotTarget( int entindex );
 
 	// Input Manager
 	void OnPlayInput( const char *pszFilename, int frame, usercmd_t *cmd );

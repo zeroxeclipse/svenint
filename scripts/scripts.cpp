@@ -4,6 +4,7 @@
 #include "lua_vector.h"
 #include "lua_cvar.h"
 #include "lua_mod.h"
+#include "lua_random.h"
 #include "lua_logic.h"
 #include "lua_triggers.h"
 #include "lua_entity_dictionary.h"
@@ -24,8 +25,10 @@ extern bool g_bPlayingbackDemo;
 static const Color clr_print( 80, 186, 255, 255 );
 
 //-----------------------------------------------------------------------------
-// ConCommands
+// ConVars, ConCommands
 //-----------------------------------------------------------------------------
+
+ConVar sc_enable_scripts( "sc_enable_scripts", "1", FCVAR_CLIENTDLL, "Enable scripts virtual machine" );
 
 CON_COMMAND( sc_script, "Execute a script line" )
 {
@@ -108,7 +111,7 @@ void CScriptCallbacks::OnGameFrame( client_state_t state, double frametime, bool
 {
 	lua_State *pLuaState = g_ScriptVM.GetVM();
 
-	if ( pLuaState != NULL )
+	if ( pLuaState != NULL && !g_bPlayingbackDemo )
 	{
 		scriptref_t hFunction;
 
@@ -130,7 +133,7 @@ void CScriptCallbacks::OnFirstClientdataReceived( float flTime )
 {
 	lua_State *pLuaState = g_ScriptVM.GetVM();
 
-	if ( pLuaState != NULL )
+	if ( pLuaState != NULL && !g_bPlayingbackDemo )
 	{
 		scriptref_t hFunction;
 
@@ -150,7 +153,7 @@ void CScriptCallbacks::OnBeginLoading( void )
 {
 	lua_State *pLuaState = g_ScriptVM.GetVM();
 
-	if ( pLuaState != NULL )
+	if ( pLuaState != NULL && !g_bPlayingbackDemo )
 	{
 		scriptref_t hFunction;
 
@@ -170,7 +173,7 @@ void CScriptCallbacks::OnEndLoading( void )
 {
 	lua_State *pLuaState = g_ScriptVM.GetVM();
 
-	if ( pLuaState != NULL )
+	if ( pLuaState != NULL && !g_bPlayingbackDemo )
 	{
 		scriptref_t hFunction;
 
@@ -190,7 +193,7 @@ void CScriptCallbacks::OnDisconnect( void )
 {
 	lua_State *pLuaState = g_ScriptVM.GetVM();
 
-	if ( pLuaState != NULL )
+	if ( pLuaState != NULL && !g_bPlayingbackDemo )
 	{
 		scriptref_t hFunction;
 
@@ -210,7 +213,7 @@ void CScriptCallbacks::OnRestart( void )
 {
 	lua_State *pLuaState = g_ScriptVM.GetVM();
 
-	if ( pLuaState != NULL )
+	if ( pLuaState != NULL && !g_bPlayingbackDemo )
 	{
 		scriptref_t hFunction;
 
@@ -432,6 +435,32 @@ void CScriptCallbacks::OnServerSignal( int value )
 	}
 }
 
+bool CScriptCallbacks::OnFilterAimbotTarget( int entindex )
+{
+	lua_State *pLuaState = g_ScriptVM.GetVM();
+
+	if ( pLuaState != NULL )
+	{
+		scriptref_t hFunction;
+
+		if ( hFunction = g_ScriptVM.LookupFunction( "OnFilterAimbotTarget" ) )
+		{
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
+
+			lua_pushinteger( pLuaState, entindex );
+
+			g_ScriptVM.ProtectedCall( pLuaState, 1, 1, 0 );
+
+			bool result = ( lua_isboolean( pLuaState, -1 ) ? lua_toboolean( pLuaState, -1 ) : true );
+
+			g_ScriptVM.ReleaseFunction( hFunction );
+			return result;
+		}
+	}
+
+	return true;
+}
+
 // Input Manager callbacks
 
 void CScriptCallbacks::OnPlayInput( const char *pszFilename, int frame, usercmd_t *cmd )
@@ -485,7 +514,7 @@ CScriptCallbacks g_ScriptCallbacks;
 
 bool CScriptVM::Init( void )
 {
-	if ( g_bPlayingbackDemo )
+	if ( !sc_enable_scripts.GetBool() || g_bPlayingbackDemo )
 		return false;
 
 	if ( m_pLuaState == NULL )
@@ -500,6 +529,7 @@ bool CScriptVM::Init( void )
 
 			luaopen_print( m_pLuaState );
 			luaopen_vector( m_pLuaState );
+			luaopen_random( m_pLuaState );
 			luaopen_playermove( m_pLuaState );
 			luaopen_usercmd( m_pLuaState );
 			luaopen_edict( m_pLuaState );
