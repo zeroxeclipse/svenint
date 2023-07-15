@@ -175,6 +175,9 @@ public:
 	void			OnCbuf_AddText( const char *pszCommand );
 	void			OnServerCmd( const char *pszCommand );
 
+public:
+	inline CInputContext &GetInputContext( void ) { return m_InputContext; };
+
 private:
 	int					m_state;
 	bool				m_bSavedInputs;

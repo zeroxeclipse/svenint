@@ -983,6 +983,14 @@ void CInputManager::GameFrame( bool bPostRunCmd )
 				m_sQueuedCommands.clear();
 			}
 		}
+		else if ( m_state == IM_PLAYINGBACK )
+		{
+			// Command buffer
+			if ( m_InputContext.Frames().size() > 0 && m_InputContext.CurrentFrame().commands != NULL )
+			{
+				g_pEngineFuncs->ClientCmd( m_InputContext.CurrentFrame().commands );
+			}
+		}
 	}
 	else
 	{
@@ -1003,29 +1011,28 @@ void CInputManager::GameFrame( bool bPostRunCmd )
 					memset( &m_InputContext.FrameBuffer().info, 0, IM_FRAME_INFO_SIZE );
 				}
 			}
-			else if ( sc_im_exact.GetBool() )
+			else
 			{
-				// Set origin & velocity
-				edict_t *pPlayer;
-
-				if ( Host_IsServerActive() && ( pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( g_pPlayerMove->player_index + 1 ) ) != NULL )
+				if ( sc_im_exact.GetBool() )
 				{
-					VectorCopy( *reinterpret_cast<Vector *>( m_InputContext.CurrentFrame().info.origin ), pPlayer->v.origin );
-					VectorCopy( *reinterpret_cast<Vector *>( m_InputContext.CurrentFrame().info.velocity ), pPlayer->v.velocity );
+					// Set origin & velocity
+					edict_t *pPlayer;
+
+					if ( Host_IsServerActive() && ( pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( g_pPlayerMove->player_index + 1 ) ) != NULL )
+					{
+						VectorCopy( *reinterpret_cast<Vector *>( m_InputContext.CurrentFrame().info.origin ), pPlayer->v.origin );
+						VectorCopy( *reinterpret_cast<Vector *>( m_InputContext.CurrentFrame().info.velocity ), pPlayer->v.velocity );
+					}
 				}
+
+				// Command buffer
+				//if ( m_InputContext.FrameCounter() < (int)m_InputContext.Frames().size() && m_InputContext.CurrentFrame().commands != NULL )
+				//{
+				//	g_pEngineFuncs->ClientCmd( m_InputContext.CurrentFrame().commands );
+				//}
 			}
 
 			m_InputContext.IncrementFramesCounter();
-			
-			// ya blyat ne znayu che i skazat'
-			if ( m_state == IM_PLAYINGBACK )
-			{
-				// Command buffer
-				if ( m_InputContext.FrameCounter() < (int)m_InputContext.Frames().size() && m_InputContext.CurrentFrame().commands != NULL )
-				{
-					g_pEngineFuncs->ClientCmd( m_InputContext.CurrentFrame().commands );
-				}
-			}
 		}
 
 		m_bSavedInputs = false;
