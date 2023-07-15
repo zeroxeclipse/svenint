@@ -78,4 +78,51 @@ public:
 	bool		m_bEnabled;
 };
 
+class CEngine
+{
+public:
+	//void *vptr;
+	virtual ~CEngine() {}
+
+	virtual unsigned char Load( bool bDedicatedServer, char *pszBaseDir, char *pszCommandLine );
+	virtual void Unload( void );
+
+	virtual void SetState( int state );
+	virtual int GetState( void );
+
+	virtual void SetSubState( int state );
+	virtual int GetSubState( void );
+
+	virtual int Frame( void );
+
+	virtual double GetFrameTime( void );
+	virtual double GetCurTime( void );
+
+	virtual void TrapKey_Event( int keyevent, bool down );
+	virtual void TrapMouse_Event( int mouseevent, bool down );
+
+	virtual void StartTrapMode( void );
+	virtual int IsTrapping( void );
+	virtual void CheckDoneTrapping( int *gameactive, int *unk_2_out );
+
+	virtual int GetQuitting( void );
+	virtual void SetQuitting( int state );
+
+public:
+	int quitting;
+	int state;
+
+	double curtime;
+	double frametime;
+	double oldtime;
+
+	bool trapping;
+	bool trapping_unk_appointment;
+	char unk_1[ 2 ];
+
+	int unk_2;
+
+	int gameactive;
+};
+
 #endif // GAMESTRUCTS_H
