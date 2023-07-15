@@ -407,9 +407,6 @@
     <ClCompile Include="scripts\lua_entity_vars.cpp">
       <Filter>Sven Internal\Scripts</Filter>
     </ClCompile>
-    <ClCompile Include="utils\demo_message.cpp">
-      <Filter>Sven Internal\Utils</Filter>
-    </ClCompile>
     <ClCompile Include="features\input_manager.cpp">
       <Filter>Sven Internal\Features</Filter>
     </ClCompile>
@@ -426,6 +423,15 @@
       <Filter>Sven Internal\Scripts</Filter>
     </ClCompile>
     <ClCompile Include="scripts\scripts_binding.cpp">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\random.cpp">
+      <Filter>Sven Internal\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="game\demo_message.cpp">
+      <Filter>Sven Internal\Game Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="scripts\lua_random.cpp">
       <Filter>Sven Internal\Scripts</Filter>
     </ClCompile>
   </ItemGroup>
@@ -805,9 +811,6 @@
     <ClInclude Include="scripts\lua_entity_vars.h">
       <Filter>Sven Internal\Scripts</Filter>
     </ClInclude>
-    <ClInclude Include="utils\demo_message.h">
-      <Filter>Sven Internal\Utils</Filter>
-    </ClInclude>
     <ClInclude Include="features\input_manager.h">
       <Filter>Sven Internal\Features</Filter>
     </ClInclude>
@@ -827,6 +830,15 @@
       <Filter>Sven Internal\Scripts</Filter>
     </ClInclude>
     <ClInclude Include="scripts\scripts_binding.h">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\random.h">
+      <Filter>Sven Internal\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="game\demo_message.h">
+      <Filter>Sven Internal\Game Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua_random.h">
       <Filter>Sven Internal\Scripts</Filter>
     </ClInclude>
   </ItemGroup>

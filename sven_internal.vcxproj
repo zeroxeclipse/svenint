@@ -131,6 +131,7 @@
     <ClCompile Include="friends.cpp" />
     <ClCompile Include="game\aim_prediction.cpp" />
     <ClCompile Include="game\class_table.cpp" />
+    <ClCompile Include="game\demo_message.cpp" />
     <ClCompile Include="game\drawing.cpp" />
     <ClCompile Include="game\draw_context.cpp" />
     <ClCompile Include="game\entitylist.cpp" />
@@ -195,6 +196,7 @@
     <ClCompile Include="scripts\lua_logic.cpp" />
     <ClCompile Include="scripts\lua_mod.cpp" />
     <ClCompile Include="scripts\lua_player_move.cpp" />
+    <ClCompile Include="scripts\lua_random.cpp" />
     <ClCompile Include="scripts\lua_triggers.cpp" />
     <ClCompile Include="scripts\lua_usercmd.cpp" />
     <ClCompile Include="scripts\lua_vector.cpp" />
@@ -211,9 +213,9 @@
     <ClCompile Include="svenmod\shared\messagebuffer.cpp" />
     <ClCompile Include="svenmod\shared\sys.cpp" />
     <ClCompile Include="utils\antidebug.cpp" />
-    <ClCompile Include="utils\demo_message.cpp" />
     <ClCompile Include="utils\menu_styles.cpp" />
     <ClCompile Include="utils\patcher.cpp" />
+    <ClCompile Include="utils\random.cpp" />
     <ClCompile Include="utils\shaders\bloom_raw.c" />
     <ClCompile Include="utils\shaders\bokeh_raw.c" />
     <ClCompile Include="utils\shaders\chromatic_aberration_raw.c" />
@@ -272,6 +274,7 @@
     <ClInclude Include="friends.h" />
     <ClInclude Include="game\aim_prediction.h" />
     <ClInclude Include="game\class_table.h" />
+    <ClInclude Include="game\demo_message.h" />
     <ClInclude Include="game\drawing.h" />
     <ClInclude Include="game\draw_context.h" />
     <ClInclude Include="game\entitylist.h" />
@@ -333,6 +336,7 @@
     <ClInclude Include="scripts\lua_logic.h" />
     <ClInclude Include="scripts\lua_mod.h" />
     <ClInclude Include="scripts\lua_player_move.h" />
+    <ClInclude Include="scripts\lua_random.h" />
     <ClInclude Include="scripts\lua_triggers.h" />
     <ClInclude Include="scripts\lua_usercmd.h" />
     <ClInclude Include="scripts\lua_vector.h" />
@@ -342,10 +346,10 @@
     <ClInclude Include="strafe\strafe_utils.h" />
     <ClInclude Include="SvenMod\public\hl_sdk\cl_dll\interpolation.h" />
     <ClInclude Include="utils\antidebug.h" />
-    <ClInclude Include="utils\demo_message.h" />
     <ClInclude Include="utils\menu_fonts.hpp" />
     <ClInclude Include="utils\menu_styles.h" />
     <ClInclude Include="utils\patcher.h" />
+    <ClInclude Include="utils\random.h" />
     <ClInclude Include="utils\shaders\bloom_raw.h" />
     <ClInclude Include="utils\shaders\bokeh_raw.h" />
     <ClInclude Include="utils\shaders\chromatic_aberration_raw.h" />
