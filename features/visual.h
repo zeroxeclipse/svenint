@@ -104,7 +104,7 @@ private:
 
 	DetourHandle_t m_hCClient_SoundEngine__PlayFMODSound;
 	DetourHandle_t m_hV_FadeAlpha;
-	//DetourHandle_t m_hEV_HLDM_PlayTextureSound;
+	DetourHandle_t m_hEV_HLDM_PlayTextureSound;
 	//DetourHandle_t m_hHUD_PlayerMoveTexture;
 	//DetourHandle_t m_hUserMsgHook_StartSound;
 	DetourHandle_t m_hUserMsgHook_CreateBlood;
