@@ -166,7 +166,7 @@ void EV_FirePython(event_args_t *args)
 
 	BulletAccuracy( vecBulletSpread, vecConeMoving, vecConeStanding, vecConeCrouched, args );
 
-	vecBulletSpread = Vector(0.1f, 0.1f, 0.1f);
+	//vecBulletSpread = Vector(0.1f, 0.1f, 0.1f);
 
 	EV_HLDM_FireBullets(
 		entindex,
