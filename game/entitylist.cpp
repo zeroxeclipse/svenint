@@ -31,7 +31,16 @@ CEntityList::CEntityList()
 
 void CEntityList::Update()
 {
-	if ( !g_Config.cvars.esp && !g_Config.cvars.radar && !g_Config.cvars.aimbot && !g_Config.cvars.silent_aimbot && !g_Config.cvars.ragebot )
+	if ( !g_Config.cvars.esp &&
+		 !g_Config.cvars.radar &&
+		 !g_Config.cvars.aimbot &&
+		 !g_Config.cvars.silent_aimbot &&
+		 !g_Config.cvars.ragebot &&
+		 !g_Config.cvars.st_show_entity_info &&
+		 !g_Config.cvars.st_show_revive_area_info &&
+		 !g_Config.cvars.st_show_revive_info &&
+		 !g_Config.cvars.st_show_revive_boost_info &&
+		 !g_Config.cvars.st_player_hulls )
 		return;
 
 	static float vScreen[ 2 ];
