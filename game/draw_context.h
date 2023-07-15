@@ -11,6 +11,8 @@
 #include <math/vector.h>
 #include <IRender.h>
 
+#include <vector>
+
 //-----------------------------------------------------------------------------
 // Draw box, no depth buffer
 //-----------------------------------------------------------------------------
@@ -91,6 +93,35 @@ private:
 
 	float m_flWidth;
 	bool m_bIgnoreDepthBuffer;
+};
+
+//-----------------------------------------------------------------------------
+// Draw linear trajectory
+//-----------------------------------------------------------------------------
+
+class CDrawTrajectory : public IDrawContext
+{
+public:
+	CDrawTrajectory( const Color &lineColor, const Color &impactColor, float flWidth = 2.f );
+	virtual ~CDrawTrajectory();
+
+	virtual void Draw() override;
+	virtual bool ShouldStopDraw() override;
+
+	virtual const Vector &GetDrawOrigin() const override;
+
+public:
+	void AddLine( const Vector &start, const Vector &end );
+	void AddImpact( const Vector &impact );
+
+private:
+	std::vector<Vector> m_trajectoryLines;
+	std::vector<Vector> m_impacts;
+
+	Color m_lineColor;
+	Color m_impactColor;
+
+	float m_flWidth;
 };
 
 //-----------------------------------------------------------------------------
