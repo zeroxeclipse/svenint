@@ -192,6 +192,7 @@
     <ClCompile Include="scripts\lua_debug.cpp" />
     <ClCompile Include="scripts\lua_entity_dictionary.cpp" />
     <ClCompile Include="scripts\lua_entity_vars.cpp" />
+    <ClCompile Include="scripts\lua_global_vars.cpp" />
     <ClCompile Include="scripts\lua_input_manager.cpp" />
     <ClCompile Include="scripts\lua_logic.cpp" />
     <ClCompile Include="scripts\lua_mod.cpp" />
@@ -332,6 +333,7 @@
     <ClInclude Include="scripts\lua_debug.h" />
     <ClInclude Include="scripts\lua_entity_dictionary.h" />
     <ClInclude Include="scripts\lua_entity_vars.h" />
+    <ClInclude Include="scripts\lua_global_vars.h" />
     <ClInclude Include="scripts\lua_input_manager.h" />
     <ClInclude Include="scripts\lua_logic.h" />
     <ClInclude Include="scripts\lua_mod.h" />

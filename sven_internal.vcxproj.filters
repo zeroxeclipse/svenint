@@ -434,6 +434,9 @@
     <ClCompile Include="scripts\lua_random.cpp">
       <Filter>Sven Internal\Scripts</Filter>
     </ClCompile>
+    <ClCompile Include="scripts\lua_global_vars.cpp">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">
@@ -839,6 +842,9 @@
       <Filter>Sven Internal\Game Utils</Filter>
     </ClInclude>
     <ClInclude Include="scripts\lua_random.h">
+      <Filter>Sven Internal\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\lua_global_vars.h">
       <Filter>Sven Internal\Scripts</Filter>
     </ClInclude>
   </ItemGroup>
