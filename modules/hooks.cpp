@@ -168,10 +168,14 @@ static bool s_bCheckMapCRC = false;
 // ConVars
 //-----------------------------------------------------------------------------
 
+ConVar cl_lefthand( "cl_lefthand", "0", FCVAR_CLIENTDLL, "Left-handed viewmodels" );
+ConVar viewmodel_fov( "viewmodel_fov", "0", FCVAR_CLIENTDLL, "Viewmodel FOV" );
+
 ConVar sc_novis( "sc_novis", "0", FCVAR_CLIENTDLL, "Better r_novis" );
 ConVar sc_unforcecvars( "sc_unforcecvars", "0", FCVAR_CLIENTDLL, "Don't force CVars" );
 ConVar sc_force_highest_cheats_level( "sc_force_highest_cheats_level", "0", FCVAR_CLIENTDLL, "Force sv_cheats 255" );
 ConVar sc_disable_nofocus_sleep( "sc_disable_nofocus_sleep", "0", FCVAR_CLIENTDLL, "Disable longer sleep time when the game's window is not active" );
+ConVar sc_viewmodel_semitransparent( "sc_viewmodel_semitransparent", "0", FCVAR_CLIENTDLL, "Semi-transparent viewmodel" );
 
 //-----------------------------------------------------------------------------
 // Hooks module feature
@@ -984,8 +988,28 @@ DECLARE_CLASS_FUNC(void, HOOKED_StudioSetupBones, CStudioModelRenderer *thisptr)
 
 	if ( thisptr->m_pCurrentEntity == g_pEngineFuncs->GetViewModel() )
 	{
+		float( *rotationmatrix )[ 3 ][ 4 ] = thisptr->m_protationmatrix;
 		mstudioseqdesc_t *pSequenceDesc = (mstudioseqdesc_t *)( (byte *)thisptr->m_pStudioHeader + thisptr->m_pStudioHeader->seqindex ) + thisptr->m_pCurrentEntity->curstate.sequence;
 	
+		if ( cl_lefthand.GetBool() )
+		{
+			g_pTriangleAPI->CullFace( TRI_NONE );
+
+			( *rotationmatrix )[ 0 ][ 1 ] *= -1.f;
+			( *rotationmatrix )[ 1 ][ 1 ] *= -1.f;
+			( *rotationmatrix )[ 2 ][ 1 ] *= -1.f;
+		}
+
+		if ( viewmodel_fov.GetBool() )
+		{
+			float fov = viewmodel_fov.GetFloat();
+
+			for ( int i = 0; i < 3; i++ )
+			{
+				( *rotationmatrix )[ i ][ 3 ] += thisptr->m_vNormal[ i ] * fov;
+			}
+		}
+
 		if ( g_Config.cvars.viewmodel_disable_idle )
 		{
 			if ( strstr( pSequenceDesc->label, "idle" ) != NULL || strstr( pSequenceDesc->label, "fidget" ) != NULL )
@@ -1026,6 +1050,22 @@ DECLARE_CLASS_FUNC(void, HOOKED_StudioRenderModel, CStudioModelRenderer *thisptr
 
 		g_Visual.ProcessBones();
 		g_EntityList.UpdateHitboxes(nEntityIndex);
+	}
+
+	if ( thisptr->m_pCurrentEntity == g_pEngineFuncs->GetViewModel() )
+	{
+		int old_rendermode = thisptr->m_pCurrentEntity->curstate.rendermode;
+
+		if ( sc_viewmodel_semitransparent.GetBool() )
+		{
+			g_pTriangleAPI->RenderMode( kRenderTransAdd );
+			g_pTriangleAPI->Brightness( 2 );
+		}
+		else
+		{
+			g_pTriangleAPI->RenderMode( old_rendermode );
+		}
+		
 	}
 
 	// Calling many functions will take down our performance
@@ -1626,6 +1666,7 @@ bool CHooksModule::Load()
 	auto fpfnCGame__SleepUntilInput = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::CGame__SleepUntilInput );
 	auto fpfnScaleColors = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::ScaleColors );
 	auto fpfnScaleColors_RGBA = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::ScaleColors_RGBA );
+	auto fpfnPM_PlayerTrace = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::PM_PlayerTrace );
 	auto fpclc_buffer = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::clc_buffer );
 	auto fcheats_level = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::cheats_level );
 	auto fg_pEngine = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::g_pEngine );
@@ -1708,6 +1749,13 @@ bool CHooksModule::Load()
 		ScanOK = false;
 	}
 
+	void *pfnPM_PlayerTrace;
+	if ( !( pfnPM_PlayerTrace = fpfnPM_PlayerTrace.get() ) )
+	{
+		Warning( "Couldn't find function \"_PM_PlayerTrace\"\n" );
+		ScanOK = false;
+	}
+
 	void *pclc_buffer;
 	if ( ( pclc_buffer = fpclc_buffer.get() ) == NULL )
 	{
@@ -1731,6 +1779,8 @@ bool CHooksModule::Load()
 
 	if ( !ScanOK )
 		return false;
+
+	PM_PlayerTrace = (PM_PlayerTraceFn)pfnPM_PlayerTrace;
 
 	clc_buffer = *reinterpret_cast<sizebuf_t **>( (unsigned char *)pclc_buffer + 1 );
 	cheats_level = *reinterpret_cast<int **>( (unsigned char *)pcheats_level + 2 );
