@@ -5,6 +5,8 @@
 #include "scripts.h"
 #include "scripts_binding.h"
 
+#include "../game/utils.h"
+
 #include "../modules/server.h"
 #include "../modules/server_client_bridge.h"
 
@@ -141,6 +143,41 @@ DEFINE_SCRIPTFUNC( GetPEntityFromEntityIndex )
 	if ( pEdict != NULL )
 	{
 		lua_pushedict( pLuaState, pEdict );
+	}
+	else
+	{
+		lua_pushnil( pLuaState );
+	}
+
+	return VLUA_RET_ARGS( 1 );
+}
+
+DEFINE_SCRIPTFUNC( GetPEntityFromPlayerName )
+{
+	if ( !Host_IsServerActive() )
+	{
+		lua_pushnil( pLuaState );
+		return VLUA_RET_ARGS( 1 );
+	}
+
+	const char *pszPlayerName = lua_tostring( pLuaState, 1 );
+
+	edict_t *pPlayer = NULL;
+
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		edict_t *pEdict = g_pServerEngineFuncs->pfnPEntityOfEntIndex( i );
+
+		if ( IsValidEntity( pEdict ) && !strcmp(pszPlayerName, gpGlobals->pStringBase + pEdict->v.netname) )
+		{
+			pPlayer = pEdict;
+			break;
+		}
+	}
+
+	if ( pPlayer != NULL )
+	{
+		lua_pushedict( pLuaState, pPlayer );
 	}
 	else
 	{
@@ -293,6 +330,72 @@ DEFINE_SCRIPTFUNC( GetViewAngles )
 	return VLUA_RET_ARGS( 1 );
 }
 
+DEFINE_SCRIPTFUNC( TraceHull )
+{
+	luaL_checktype( pLuaState, 1, LUA_TTABLE );
+	
+	Vector *vecStart = lua_getvector( pLuaState, 2 );
+	Vector *vecEnd = lua_getvector( pLuaState, 3 );
+	int traceFlags = lua_tointeger( pLuaState, 4 );
+	int hullType = lua_tointeger( pLuaState, 5 );
+	int ignoreEnt = lua_tointeger( pLuaState, 6 );
+
+	int oldhull = g_pPlayerMove->usehull;
+
+	g_pPlayerMove->usehull = hullType;
+
+	//pmtrace_t tr = g_pPlayerMove->PM_PlayerTrace( (float *)vecStart, (float *)vecEnd, traceFlags, ignoreEnt );
+
+	//pmtrace_t *tr = g_pPlayerMove->PM_TraceLine( (float *)vecStart, (float *)vecEnd, traceFlags, hullType, ignoreEnt );
+	//pmtrace_t *tr = g_pEngineFuncs->PM_TraceLine( (float *)vecStart, (float *)vecEnd, traceFlags, hullType, ignoreEnt );
+
+	pmtrace_t tr;
+	tr = PM_PlayerTrace( (float *)vecStart, (float *)vecEnd, traceFlags, g_pPlayerMove->numphysent, g_pPlayerMove->physents, ignoreEnt, NULL );
+
+	//g_pEventAPI->EV_SetTraceHull( hullType );
+	//g_pEventAPI->EV_PlayerTrace( (float *)vecStart, (float *)vecEnd, traceFlags, ignoreEnt, &tr );
+
+	g_pPlayerMove->usehull = oldhull;
+
+	lua_pushboolean( pLuaState, tr.allsolid );
+	lua_setfield( pLuaState, 1, "allsolid" );
+	
+	lua_pushboolean( pLuaState, tr.startsolid );
+	lua_setfield( pLuaState, 1, "startsolid" );
+	
+	lua_pushboolean( pLuaState, tr.inopen );
+	lua_setfield( pLuaState, 1, "inopen" );
+	
+	lua_pushboolean( pLuaState, tr.inwater );
+	lua_setfield( pLuaState, 1, "inwater" );
+	
+	lua_pushnumber( pLuaState, tr.fraction );
+	lua_setfield( pLuaState, 1, "fraction" );
+	
+	lua_newvector( pLuaState, &tr.endpos );
+	lua_setfield( pLuaState, 1, "endpos" );
+	
+	lua_newtable( pLuaState );
+	lua_newvector( pLuaState, &tr.plane.normal );
+	lua_setfield( pLuaState, -2, "normal" );
+	lua_pushnumber( pLuaState, tr.plane.dist );
+	lua_setfield( pLuaState, -2, "dist" );
+	lua_setfield( pLuaState, 1, "plane" );
+
+	lua_pushinteger( pLuaState, tr.ent );
+	lua_setfield( pLuaState, 1, "ent" );
+	
+	lua_pushinteger( pLuaState, tr.hitgroup );
+	lua_setfield( pLuaState, 1, "hitgroup" );
+	
+	lua_newvector( pLuaState, &tr.deltavelocity );
+	lua_setfield( pLuaState, 1, "deltavelocity" );
+
+	//lua_pop( pLuaState, 1 );
+	
+	return VLUA_RET_ARGS( 0 );
+}
+
 DEFINE_SCRIPTFUNC( Aimbot )
 {
 	usercmd_t *cmd = lua_getusercmd( pLuaState, 1 );
@@ -333,6 +436,7 @@ LUALIB_API int luaopen_mod( lua_State *pLuaState )
 	VLua::RegisterFunction( "ClientCmd", SCRIPTFUNC( ClientCmd ) );
 	VLua::RegisterFunction( "PrintChatText", SCRIPTFUNC( PrintChatText ) );
 	VLua::RegisterFunction( "GetPEntityFromEntityIndex", SCRIPTFUNC( GetPEntityFromEntityIndex ) );
+	VLua::RegisterFunction( "GetPEntityFromPlayerName", SCRIPTFUNC( GetPEntityFromPlayerName ) );
 	VLua::RegisterFunction( "GetEntityIndexFromEdict", SCRIPTFUNC( GetEntityIndexFromEdict ) );
 	VLua::RegisterFunction( "SendCommandToClient", SCRIPTFUNC( SendCommandToClient ) );
 	VLua::RegisterFunction( "SendSignalToClient", SCRIPTFUNC( SendSignalToClient ) );
@@ -347,6 +451,7 @@ LUALIB_API int luaopen_mod( lua_State *pLuaState )
 	VLua::RegisterFunction( "LookAt", SCRIPTFUNC( LookAt ) );
 	VLua::RegisterFunction( "SetViewAngles", SCRIPTFUNC( SetViewAngles ) );
 	VLua::RegisterFunction( "GetViewAngles", SCRIPTFUNC( GetViewAngles ) );
+	VLua::RegisterFunction( "TraceHull", SCRIPTFUNC( TraceHull ) );
 	VLua::RegisterFunction( "Aimbot", SCRIPTFUNC( Aimbot ) );
 
 	// Max clients
@@ -432,7 +537,17 @@ LUALIB_API int luaopen_mod( lua_State *pLuaState )
 	VLua::RegisterGlobalVariable( "MOVETYPE_FOLLOW", MOVETYPE_FOLLOW );
 	VLua::RegisterGlobalVariable( "MOVETYPE_PUSHSTEP", MOVETYPE_PUSHSTEP );
 	
-	// Observe
+	// Player Move Defs
+	VLua::RegisterGlobalVariable( "PM_NORMAL", PM_NORMAL );
+	VLua::RegisterGlobalVariable( "PM_STUDIO_IGNORE", PM_STUDIO_IGNORE );
+	VLua::RegisterGlobalVariable( "PM_STUDIO_BOX", PM_STUDIO_BOX );
+	VLua::RegisterGlobalVariable( "PM_GLASS_IGNORE", PM_GLASS_IGNORE );
+	VLua::RegisterGlobalVariable( "PM_WORLD_ONLY", PM_WORLD_ONLY );
+	VLua::RegisterGlobalVariable( "PM_HULL_PLAYER", PM_HULL_PLAYER );
+	VLua::RegisterGlobalVariable( "PM_HULL_DUCKED_PLAYER", PM_HULL_DUCKED_PLAYER );
+	VLua::RegisterGlobalVariable( "PM_HULL_POINT", PM_HULL_POINT );
+	
+	// Observer
 	VLua::RegisterGlobalVariable( "OBS_NONE", OBS_NONE );
 	VLua::RegisterGlobalVariable( "OBS_CHASE_LOCKED", OBS_CHASE_LOCKED );
 	VLua::RegisterGlobalVariable( "OBS_CHASE_FREE", OBS_CHASE_FREE );

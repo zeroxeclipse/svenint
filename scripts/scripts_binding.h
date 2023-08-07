@@ -12,6 +12,7 @@
 #include "lua_player_move.h"
 #include "lua_entity_dictionary.h"
 #include "lua_entity_vars.h"
+#include "lua_global_vars.h"
 
 #include <math/mathlib.h>
 #include <steamtypes.h>
@@ -106,6 +107,7 @@ typedef enum vlua_fieldtypes_t
 	VLUA_FIELD_TYPE_PLAYERMOVE,		// playermove_t
 	VLUA_FIELD_TYPE_EDICT,			// edict_t
 	VLUA_FIELD_TYPE_ENTVARS,		// entvars_t
+	VLUA_FIELD_TYPE_GLOBALVARS,		// globalvars_t
 
 	VLUA_FIELD_TYPE_TYPECOUNT,		// MUST BE LAST
 	VLUA_FIELD_TYPE_TYPEUNKNOWN = VLUA_FIELD_TYPE_TYPECOUNT
@@ -147,6 +149,7 @@ VLUA_DECLARE_DEDUCE_FIELDTYPE( VLUA_FIELD_TYPE_USERCMD, usercmd_t * );
 VLUA_DECLARE_DEDUCE_FIELDTYPE( VLUA_FIELD_TYPE_PLAYERMOVE, playermove_t * );
 VLUA_DECLARE_DEDUCE_FIELDTYPE( VLUA_FIELD_TYPE_EDICT, edict_t * );
 VLUA_DECLARE_DEDUCE_FIELDTYPE( VLUA_FIELD_TYPE_ENTVARS, entvars_t * );
+VLUA_DECLARE_DEDUCE_FIELDTYPE( VLUA_FIELD_TYPE_GLOBALVARS, globalvars_t * );
 
 //-----------------------------------------------------------------------------
 // Structures
@@ -197,6 +200,7 @@ struct VLuaScriptVariant
 		playermove_t *m_playermove;
 		edict_t *m_edict;
 		entvars_t *m_entvars;
+		globalvars_t *m_globalvars;
 	};
 };
 

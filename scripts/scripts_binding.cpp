@@ -321,6 +321,9 @@ namespace VLua
 		case VLUA_FIELD_TYPE_ENTVARS:
 			lua_pushentvars( pLuaState, pointer ? (entvars_t *)pVariable : *(entvars_t **)pVariable );
 			break;
+		case VLUA_FIELD_TYPE_GLOBALVARS:
+			lua_pushglobalvars( pLuaState, *(globalvars_t **)pVariable );
+			break;
 		default:
 			Sys_Error( "Passing VLUA_FIELD_TYPE_TYPEUNKNOWN!" );
 			break;
@@ -411,6 +414,9 @@ namespace VLua
 			break;
 		case VLUA_FIELD_TYPE_ENTVARS:
 			*(entvars_t **)pVariable = lua_getentvars( pLuaState, idx );
+			break;
+		case VLUA_FIELD_TYPE_GLOBALVARS:
+			*(globalvars_t **)pVariable = lua_getglobalvars( pLuaState, idx );
 			break;
 		default:
 			Sys_Error( "Passing VLUA_FIELD_TYPE_TYPEUNKNOWN!" );
