@@ -2,7 +2,7 @@
 #error "RTTI enabled"
 #endif
 
-#define ANTIDEBUG 0
+#define ANTIDEBUG -1
 
 #include <string>
 #include <vector>
@@ -135,9 +135,14 @@ IClientPlugin *g_pClientPlugin = &g_SvenInternal;
 #if ANTIDEBUG
 FORCEINLINE void CheckDebug()
 {
-	if ( AntiDebug::Check() )
+	// Testing 
+
+	if (security::check_security() != security::internal::debug_results::none) {
+		Warning("Security check was not successful.\n");
+	}
+	else
 	{
-		PostQuitMessage( 0 );
+		Msg("All good.\n");
 	}
 }
 #endif
