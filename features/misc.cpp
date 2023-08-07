@@ -29,6 +29,7 @@
 #include "../features/strafer.h"
 #include "../modules/patches.h"
 #include "../game/utils.h"
+#include "../game/draw_context.h"
 
 #include "../config.h"
 #include "../patterns.h"
@@ -231,6 +232,41 @@ CON_COMMAND(sc_test, "Retrieve an entity's info")
 	{
 		ConMsg("Usage:  sc_test <entindex>\n");
 	}
+}
+
+CON_COMMAND(sc_trace_test, "")
+{
+	bool bDucked = ( Client()->GetFlags() & FL_DUCKING );
+
+	pmtrace_t *tr = g_pEngineFuncs->PM_TraceLine( g_pPlayerMove->origin,
+												  g_pPlayerMove->origin - Vector( 0, 0, 72 ),
+												  PM_TRACELINE_PHYSENTSONLY,
+												  bDucked ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER,
+												  -1 );
+
+	DrawBox( g_pPlayerMove->origin,
+			 bDucked ? VEC_DUCK_HULL_MIN : VEC_HULL_MIN,
+			 bDucked ? VEC_DUCK_HULL_MAX : VEC_HULL_MAX,
+			 1.f,
+			 1.f,
+			 1.f,
+			 0.5f,
+			 4.f,
+			 true,
+			 10.f );
+
+	DrawBox( tr->endpos,
+			 bDucked ? VEC_DUCK_HULL_MIN : VEC_HULL_MIN,
+			 bDucked ? VEC_DUCK_HULL_MAX : VEC_HULL_MAX,
+			 0.f,
+			 1.f,
+			 0.f,
+			 0.5f,
+			 4.f,
+			 true,
+			 10.f );
+
+	Msg( "frac: %f\n", tr->fraction );
 }
 
 CON_COMMAND(sc_autojump, "Toggle autojump")
@@ -1481,11 +1517,11 @@ void CMisc::JumpBug(float frametime, struct usercmd_s *cmd)
 
 		vBottomOrigin.z -= 8192.0f;
 
-		pmtrace_t *pTrace = g_pEngineFuncs->PM_TraceLine(vecPredictOrigin,
-														 vBottomOrigin,
-														 PM_NORMAL,
-														 (Client()->GetFlags() & FL_DUCKING) ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER /* g_pPlayerMove->usehull */,
-														 -1);
+		pmtrace_t *pTrace = g_pEngineFuncs->PM_TraceLine( vecPredictOrigin,
+														  vBottomOrigin,
+														  PM_TRACELINE_PHYSENTSONLY,
+														  ( Client()->GetFlags() & FL_DUCKING ) ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER /* g_pPlayerMove->usehull */,
+														  -1);
 
 		float flHeight = fabsf(pTrace->endpos.z - vecPredictOrigin.z);
 		float flGroundNormalAngle = acos(pTrace->plane.normal.z);
@@ -2249,6 +2285,8 @@ void CMisc::TriggerPushExploit( struct usercmd_s *cmd )
 // Auto Wallstrafing
 //-----------------------------------------------------------------------------
 
+ConVar sc_auto_wallstrafing_angle( "sc_auto_wallstrafing_angle", "", FCVAR_CLIENTDLL, "Yaw angle to wall strafe" );
+
 void CMisc::AutoWallstrafing(struct usercmd_s *cmd)
 {
 	if ( g_Config.cvars.auto_wallstrafing && !Client()->IsDead() && Client()->GetWaterLevel() == WL_NOT_IN_WATER && Client()->IsOnGround() )
@@ -2268,7 +2306,10 @@ void CMisc::AutoWallstrafing(struct usercmd_s *cmd)
 		bool bWallStrafe = false;
 		bool bRight = false;
 
-		g_pEngineFuncs->GetViewAngles( va );
+		if ( sc_auto_wallstrafing_angle.GetString()[ 0 ] == '\0' )
+			g_pEngineFuncs->GetViewAngles( va );
+		else
+			va.y = sc_auto_wallstrafing_angle.GetFloat();
 
 		vecForward.x = cosf(va.y * static_cast<float>(M_PI) / 180.f);
 		vecForward.y = sinf(va.y * static_cast<float>(M_PI) / 180.f);
