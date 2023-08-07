@@ -13,6 +13,8 @@
 #include "../config.h"
 #include "../features/visual.h"
 
+extern bool g_bPlayingbackDemo;
+
 //-----------------------------------------------------------------------------
 // Vars
 //-----------------------------------------------------------------------------
@@ -31,7 +33,8 @@ CEntityList::CEntityList()
 
 void CEntityList::Update()
 {
-	if ( !g_Config.cvars.esp &&
+	if ( !g_bPlayingbackDemo &&
+		 !g_Config.cvars.esp &&
 		 !g_Config.cvars.radar &&
 		 !g_Config.cvars.aimbot &&
 		 !g_Config.cvars.silent_aimbot &&

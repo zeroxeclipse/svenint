@@ -1,6 +1,7 @@
 // Game Utils
 
 #include "utils.h"
+#include "draw_context.h"
 
 #include <regex>
 
@@ -16,6 +17,11 @@
 #include <IRender.h>
 
 #include <hl_sdk/engine/APIProxy.h>
+#include <hl_sdk/cl_dll/hud.h>
+
+extern CHud *g_pHUD;
+extern ref_params_t refparams;
+extern bool g_bPlayingbackDemo;
 
 //-----------------------------------------------------------------------------
 // Vars
@@ -145,12 +151,16 @@ CON_COMMAND(sc_find_model_starts_with, "Find a model that starts with given name
 
 CON_COMMAND(getpos, "Prints current origin")
 {
-	Warning("setpos %.6f %.6f %.6f\n", VectorExpand(g_pPlayerMove->origin));
+	Vector vecOrigin = ( g_bPlayingbackDemo ? refparams.simorg : g_pPlayerMove->origin );
+
+	Warning( "setpos %.6f %.6f %.6f\n", VectorExpand( vecOrigin ) );
 }
 
 CON_COMMAND(getpos_exact, "Prints current origin from view angles")
 {
-	Warning("setpos_exact %.6f %.6f %.6f\n", VectorExpand(g_pPlayerMove->origin + g_pPlayerMove->view_ofs));
+	Vector vecEyes = ( g_bPlayingbackDemo ? *(Vector *)refparams.simorg + refparams.viewheight : g_pPlayerMove->origin + g_pPlayerMove->view_ofs );
+
+	Warning( "setpos_exact %.6f %.6f %.6f\n", VectorExpand( vecEyes ) );
 }
 
 CON_COMMAND(getang, "Prints current view angles")
@@ -244,20 +254,32 @@ CON_COMMAND( sc_debug_draw_line, "" )
 
 CON_COMMAND( sc_debug_draw_box, "" )
 {
-	if ( args.ArgC() >= 15 )
+	if ( args.ArgC() >= 16 )
 	{
 		Vector vOrigin( atof( args[ 1 ] ), atof( args[ 2 ] ), atof( args[ 3 ] ) );
 		Vector vMins( atof( args[ 4 ] ), atof( args[ 5 ] ), atof( args[ 6 ] ) );
 		Vector vMaxs( atof( args[ 7 ] ), atof( args[ 8 ] ), atof( args[ 9 ] ) );
 
-		unsigned char r = atoi( args[ 10 ] );
-		unsigned char g = atoi( args[ 11 ] );
-		unsigned char b = atoi( args[ 12 ] );
-		unsigned char a = atoi( args[ 13 ] );
+		//unsigned char r = atoi( args[ 10 ] );
+		//unsigned char g = atoi( args[ 11 ] );
+		//unsigned char b = atoi( args[ 12 ] );
+		//unsigned char a = atoi( args[ 13 ] );
 
-		float duration = atoi( args[ 14 ] );
+		bool wireframe = !!atoi( args[ 14 ] );
+		float duration = atoi( args[ 15 ] );
 
-		Render()->DrawBox( vOrigin, vMins, vMaxs, { r, g, b, a }, duration );
+		DrawBox( vOrigin,
+				 vMins,
+				 vMaxs,
+				 atof( args[ 10 ] ) / 255.f,
+				 atof( args[ 11 ] ) / 255.f,
+				 atof( args[ 12 ] ) / 255.f,
+				 atof( args[ 13 ] ) / 255.f,
+				 4.f,
+				 wireframe,
+				 duration );
+
+		//Render()->DrawBox( vOrigin, vMins, vMaxs, { r, g, b, a }, duration );
 	}
 }
 
@@ -270,20 +292,57 @@ CON_COMMAND( sc_debug_draw_box_angles, "" )
 		Vector vMaxs( atof( args[ 7 ] ), atof( args[ 8 ] ), atof( args[ 9 ] ) );
 		Vector vAngles( atof( args[ 10 ] ), atof( args[ 11 ] ), atof( args[ 12 ] ) );
 
-		unsigned char r = atoi( args[ 13 ] );
-		unsigned char g = atoi( args[ 14 ] );
-		unsigned char b = atoi( args[ 15 ] );
-		unsigned char a = atoi( args[ 16 ] );
+		//unsigned char r = atoi( args[ 13 ] );
+		//unsigned char g = atoi( args[ 14 ] );
+		//unsigned char b = atoi( args[ 15 ] );
+		//unsigned char a = atoi( args[ 16 ] );
 
-		float duration = atoi( args[ 17 ] );
+		bool wireframe = !!atoi( args[ 17 ] );
+		float duration = atoi( args[ 18 ] );
 
-		Render()->DrawBoxAngles( vOrigin, vMins, vMaxs, vAngles, { r, g, b, a }, duration );
+		DrawBoxAngles( vOrigin,
+					   vMins,
+					   vMaxs,
+					   vAngles,
+					   atof( args[ 13 ] ) / 255.f,
+					   atof( args[ 14 ] ) / 255.f,
+					   atof( args[ 15 ] ) / 255.f,
+					   atof( args[ 16 ] ) / 255.f,
+					   4.f,
+					   wireframe,
+					   duration );
+
+		//Render()->DrawBoxAngles( vOrigin, vMins, vMaxs, vAngles, { r, g, b, a }, duration );
 	}
 }
 
 CON_COMMAND( sc_debug_draw_clear, "" )
 {
 	Render()->DrawClear();
+}
+
+//-----------------------------------------------------------------------------
+// Client utilities
+//-----------------------------------------------------------------------------
+
+PM_PlayerTraceFn PM_PlayerTrace = NULL;
+
+bool UTIL_IsDead( void )
+{
+	// Dead or spectating
+	return g_bPlayingbackDemo ?
+		( refparams.health == 0 ) || ( g_pHUD != NULL && ( *( (int *)g_pHUD + 21 ) & HIDEHUD_HEALTH ) ) :
+		( g_pPlayerMove->iuser1 != 0 || g_pPlayerMove->dead );
+}
+
+bool UTIL_IsSpectating( void )
+{
+	return g_bPlayingbackDemo ? ( g_pHUD != NULL && ( *( (int *)g_pHUD + 21 ) & HIDEHUD_HEALTH ) ) : ( g_pPlayerMove->iuser1 != 0 );
+}
+
+int UTIL_GetLocalPlayerIndex( void )
+{
+	return g_bPlayingbackDemo ? g_pEngineFuncs->GetLocalPlayer()->index : g_pPlayerMove->player_index + 1;
 }
 
 //-----------------------------------------------------------------------------

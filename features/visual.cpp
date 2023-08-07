@@ -168,7 +168,7 @@ void CVisual::OnHUDRedraw(float flTime)
 
 void CVisual::V_CalcRefdef(struct ref_params_s *pparams)
 {
-	if ( !Client()->IsDead() )
+	if ( !UTIL_IsDead() )
 	{
 		ShowGrenadeTrajectory();
 		ShowARGrenadeTrajectory();
@@ -205,115 +205,106 @@ void CVisual::ResetJumpSpeed()
 
 void CVisual::ShowSpeed()
 {
-	if ( !g_pClient->IsSpectating() && !( g_CamHack.IsEnabled() && g_Config.cvars.camhack_hide_hud ) )
+	static Vector vecVelocity, vecPrevVelocity;
+
+	if ( g_bPlayingbackDemo )
+	{
+		vecVelocity = refparams.simvel;
+	}
+	else
+	{
+		vecVelocity = g_pPlayerMove->velocity;
+	}
+
+	if ( !UTIL_IsSpectating() && !( g_CamHack.IsEnabled() && g_Config.cvars.camhack_hide_hud ) )
 	{
 		float flSpeed;
 
-		if (g_Config.cvars.show_speed)
+		if ( g_Config.cvars.show_speed )
 		{
 			g_bOverrideHUD = false;
 
-			if ( g_bPlayingbackDemo )
-			{
-				//flSpeed = m_flDemoMsgSpeed;
-
-				if ( g_Config.cvars.show_vertical_speed )
-					flSpeed = reinterpret_cast<const Vector *>( refparams.simvel )->Length();
-				else
-					flSpeed = reinterpret_cast<const Vector *>( refparams.simvel )->Length2D();
-			}
+			if ( g_Config.cvars.show_vertical_speed )
+				flSpeed = vecVelocity.Length();
 			else
-			{
-				if ( g_Config.cvars.show_vertical_speed )
-					flSpeed = g_pPlayerMove->velocity.Length();
-				else
-					flSpeed = g_pPlayerMove->velocity.Length2D();
+				flSpeed = vecVelocity.Length2D();
 
+			if ( !g_bPlayingbackDemo )
 				g_DemoMessage.WriteVelometerSpeed( flSpeed );
-			}
 
-			g_Drawing.DrawNumber(flSpeed > 0.f ? int(floor(flSpeed)) : int(ceil(flSpeed)),
-								 int(m_iScreenWidth * g_Config.cvars.speed_width_fraction),
-								 int(m_iScreenHeight * g_Config.cvars.speed_height_fraction),
-								 int(255.f * g_Config.cvars.speed_color[0]),
-								 int(255.f * g_Config.cvars.speed_color[1]),
-								 int(255.f * g_Config.cvars.speed_color[2]),
-								 FONT_ALIGN_CENTER);
+			g_Drawing.DrawNumber( flSpeed > 0.f ? int( floor( flSpeed ) ) : int( ceil( flSpeed ) ),
+								  int( m_iScreenWidth * g_Config.cvars.speed_width_fraction ),
+								  int( m_iScreenHeight * g_Config.cvars.speed_height_fraction ),
+								  int( 255.f * g_Config.cvars.speed_color[ 0 ] ),
+								  int( 255.f * g_Config.cvars.speed_color[ 1 ] ),
+								  int( 255.f * g_Config.cvars.speed_color[ 2 ] ),
+								  FONT_ALIGN_CENTER );
 
-			if (g_Config.cvars.show_jumpspeed)
+			if ( g_Config.cvars.show_jumpspeed )
 			{
-				int r = int(255.f * g_Config.cvars.speed_color[0]);
-				int g = int(255.f * g_Config.cvars.speed_color[1]);
-				int b = int(255.f * g_Config.cvars.speed_color[2]);
+				int r = int( 255.f * g_Config.cvars.speed_color[ 0 ] );
+				int g = int( 255.f * g_Config.cvars.speed_color[ 1 ] );
+				int b = int( 255.f * g_Config.cvars.speed_color[ 2 ] );
 
 				float flFadeDuration = g_Config.cvars.jumpspeed_fade_duration;
 				int iSpriteHeight = g_Drawing.GetNumberSpriteHeight();
 
-				if (flFadeDuration > 0.0f)
+				if ( flFadeDuration > 0.0f )
 				{
-					if ( !g_pClient->IsOnGround() )
+					if ( ( vecVelocity[ 2 ] != 0.0f && vecPrevVelocity[ 2 ] == 0.0f ) || ( vecVelocity[ 2 ] > 0.0f && vecPrevVelocity[ 2 ] < 0.0f ) )
 					{
-						if ( m_bOnGround && g_pClient->Buttons() & IN_JUMP )
+						float flDifference = flSpeed - m_flJumpSpeed;
+
+						if ( flDifference != 0.0f )
 						{
-							float flDifference = flSpeed - m_flJumpSpeed;
-
-							if (flDifference != 0.0f)
+							if ( flDifference > 0.0f )
 							{
-								if (flDifference > 0.0f)
-								{
-									m_clFadeFrom[0] = 0;
-									m_clFadeFrom[1] = 255;
-									m_clFadeFrom[2] = 0;
-								}
-								else
-								{
-									m_clFadeFrom[0] = 255;
-									m_clFadeFrom[1] = 0;
-									m_clFadeFrom[2] = 0;
-								}
-
-								m_flFadeTime = 0.0f;
-								m_flJumpSpeed = flSpeed;
+								m_clFadeFrom[ 0 ] = 0;
+								m_clFadeFrom[ 1 ] = 255;
+								m_clFadeFrom[ 2 ] = 0;
 							}
+							else
+							{
+								m_clFadeFrom[ 0 ] = 255;
+								m_clFadeFrom[ 1 ] = 0;
+								m_clFadeFrom[ 2 ] = 0;
+							}
+
+							m_flFadeTime = 0.0f;
+							m_flJumpSpeed = flSpeed;
 						}
-
-						m_bOnGround = false;
-					}
-					else
-					{
-						m_bOnGround = true;
 					}
 
-					float flDelta = V_max(m_flTime - m_flPrevTime, 0.0f);
+					float flDelta = V_max( m_flTime - m_flPrevTime, 0.0f );
 
 					m_flFadeTime += flDelta;
 
-					if (m_flFadeTime > flFadeDuration || !Vec_IsFloatFinite(m_flFadeTime) )
+					if ( m_flFadeTime > flFadeDuration || !Vec_IsFloatFinite( m_flFadeTime ) )
 						m_flFadeTime = flFadeDuration;
 
-					float flFadeFrom_R = int(255.f * g_Config.cvars.speed_color[0]) - m_clFadeFrom[0] / flFadeDuration;
-					float flFadeFrom_G = int(255.f * g_Config.cvars.speed_color[1]) - m_clFadeFrom[1] / flFadeDuration;
-					float flFadeFrom_B = int(255.f * g_Config.cvars.speed_color[2]) - m_clFadeFrom[2] / flFadeDuration;
+					float flFadeFrom_R = int( 255.f * g_Config.cvars.speed_color[ 0 ] ) - m_clFadeFrom[ 0 ] / flFadeDuration;
+					float flFadeFrom_G = int( 255.f * g_Config.cvars.speed_color[ 1 ] ) - m_clFadeFrom[ 1 ] / flFadeDuration;
+					float flFadeFrom_B = int( 255.f * g_Config.cvars.speed_color[ 2 ] ) - m_clFadeFrom[ 2 ] / flFadeDuration;
 
-					r = int(int(255.f * g_Config.cvars.speed_color[0]) - flFadeFrom_R * (flFadeDuration - m_flFadeTime));
-					g = int(int(255.f * g_Config.cvars.speed_color[1]) - flFadeFrom_G * (flFadeDuration - m_flFadeTime));
-					b = int(int(255.f * g_Config.cvars.speed_color[2]) - flFadeFrom_B * (flFadeDuration - m_flFadeTime));
+					r = int( int( 255.f * g_Config.cvars.speed_color[ 0 ] ) - flFadeFrom_R * ( flFadeDuration - m_flFadeTime ) );
+					g = int( int( 255.f * g_Config.cvars.speed_color[ 1 ] ) - flFadeFrom_G * ( flFadeDuration - m_flFadeTime ) );
+					b = int( int( 255.f * g_Config.cvars.speed_color[ 2 ] ) - flFadeFrom_B * ( flFadeDuration - m_flFadeTime ) );
 
 					m_flPrevTime = m_flTime;
 				}
 
-				g_Drawing.DrawNumber(m_flJumpSpeed > 0.f ? int(floor(m_flJumpSpeed)) : int(ceil(m_flJumpSpeed)),
-									 int(m_iScreenWidth * g_Config.cvars.speed_width_fraction),
-									 int(m_iScreenHeight * g_Config.cvars.speed_height_fraction) - (iSpriteHeight + iSpriteHeight / 4),
-									 r,
-									 g,
-									 b,
-									 FONT_ALIGN_CENTER);
+				g_Drawing.DrawNumber( m_flJumpSpeed > 0.f ? int( floor( m_flJumpSpeed ) ) : int( ceil( m_flJumpSpeed ) ),
+									  int( m_iScreenWidth * g_Config.cvars.speed_width_fraction ),
+									  int( m_iScreenHeight * g_Config.cvars.speed_height_fraction ) - ( iSpriteHeight + iSpriteHeight / 4 ),
+									  r,
+									  g,
+									  b,
+									  FONT_ALIGN_CENTER );
 			}
 
 			g_bOverrideHUD = true;
 		}
-		else if (g_Config.cvars.show_speed_legacy)
+		else if ( g_Config.cvars.show_speed_legacy )
 		{
 			float flSpeed;
 
@@ -332,18 +323,20 @@ void CVisual::ShowSpeed()
 					flSpeed = g_pPlayerMove->velocity.Length2D();
 			}
 
-			g_Drawing.DrawStringF(g_hFontSpeedometer,
-								  int(m_iScreenWidth * g_Config.cvars.speed_width_fraction_legacy),
-								  int(m_iScreenHeight * g_Config.cvars.speed_height_fraction_legacy),
-								  int(255.f * g_Config.cvars.speed_color_legacy[0]),
-								  int(255.f * g_Config.cvars.speed_color_legacy[1]),
-								  int(255.f * g_Config.cvars.speed_color_legacy[2]),
-								  int(255.f * g_Config.cvars.speed_color_legacy[3]),
-								  FONT_ALIGN_CENTER,
-								  "%.1f",
-								  flSpeed);
+			g_Drawing.DrawStringF( g_hFontSpeedometer,
+								   int( m_iScreenWidth * g_Config.cvars.speed_width_fraction_legacy ),
+								   int( m_iScreenHeight * g_Config.cvars.speed_height_fraction_legacy ),
+								   int( 255.f * g_Config.cvars.speed_color_legacy[ 0 ] ),
+								   int( 255.f * g_Config.cvars.speed_color_legacy[ 1 ] ),
+								   int( 255.f * g_Config.cvars.speed_color_legacy[ 2 ] ),
+								   int( 255.f * g_Config.cvars.speed_color_legacy[ 3 ] ),
+								   FONT_ALIGN_CENTER,
+								   "%.1f",
+								   flSpeed );
 		}
 	}
+
+	vecPrevVelocity = vecVelocity;
 }
 
 void CVisual::DrawHitmarkers()
@@ -867,8 +860,8 @@ void CVisual::ESP()
 	static Vector vecBottom;
 	static Vector vecTop;
 
-	bool bSpectating = Client()->IsSpectating();
-	int iLocalPlayer = g_pPlayerMove->player_index + 1;
+	bool bSpectating = UTIL_IsSpectating();
+	int iLocalPlayer = UTIL_GetLocalPlayerIndex();
 
 	cl_entity_s *pLocal = g_pEngineFuncs->GetLocalPlayer();
 	CEntity *pEnts = g_EntityList.GetList();

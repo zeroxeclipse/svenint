@@ -12,9 +12,12 @@
 #endif
 
 #include <hl_sdk/common/pmtrace.h>
+#include <hl_sdk/pm_shared/pm_defs.h>
 #include <platform.h>
 
 #include "../modules/server.h"
+
+typedef pmtrace_t ( __cdecl *PM_PlayerTraceFn )( float *start, float *end, int traceflags, int numents, physent_t *ents, int ignore_ent, int ( __cdecl *pfnEntFilter )( int ) );
 
 struct screen_info_t
 {
@@ -54,6 +57,13 @@ FORCEINLINE float Long32ToFloat( long val )
 
 	return un_fl;
 };
+
+// Client utilities
+extern PM_PlayerTraceFn PM_PlayerTrace;
+
+bool UTIL_IsDead( void );
+bool UTIL_IsSpectating( void );
+int UTIL_GetLocalPlayerIndex( void );
 
 // Intersection tests
 #define UTIL_IsPointInsideAABB(point, mins, maxs) UTIL_IsAABBIntersectingAABB( point, point, mins, maxs )

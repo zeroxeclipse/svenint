@@ -28,6 +28,7 @@
 
 #include "../strafe/strafe_utils.h"
 #include "../scripts/scripts.h"
+#include "../scripts/lua_entity_dictionary.h"
 
 #include "../patterns.h"
 #include "../config.h"
@@ -165,6 +166,35 @@ CON_COMMAND( sc_st_timescale, "Set timescale" )
 			Msg( "Current timescale: %.3f\n", 1.f / ( sc_st_min_frametime.GetFloat() * CVar()->FindCvar( "fps_max" )->value ) );
 		else
 			Msg( "Current timescale: 1.000\n" );
+	}
+}
+
+CON_COMMAND( sc_st_obsclip, "Simulate observer clipping: sc_st_obsclip <speed> <fps>" )
+{
+	if ( args.ArgC() >= 3 && Host_IsServerActive() )
+	{
+		edict_t *pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( g_pPlayerMove->player_index + 1 );
+
+		if ( pPlayer == NULL )
+			return;
+
+		Vector va, vecSimOrigin, vecMove;
+
+		Vector vecMins = ( Client()->IsDucking() ? VEC_DUCK_HULL_MIN : VEC_HULL_MIN );
+		Vector vecMaxs = ( Client()->IsDucking() ? VEC_DUCK_HULL_MAX : VEC_HULL_MAX );
+
+		float speed = atof( args[ 1 ] );
+		float frametime = 1.f / atof( args[ 2 ] );
+
+		g_pEngineFuncs->GetViewAngles( va );
+
+		vecMove = static_cast<QAngle>( va ).GetForward() * speed * frametime;
+		vecSimOrigin = g_pPlayerMove->origin + vecMove;
+
+		//pPlayer->v.origin = vecSimOrigin;
+
+		//DrawBox( vecSimOrigin, vecMins, vecMaxs, 1.f, 1.f, 0.f, 0.5f, 3.f, true );
+		Render()->DrawBox( vecSimOrigin, vecMins, vecMaxs, { 1.f, 1.f, 0.f, 0.5f }, 10.f );
 	}
 }
 
@@ -688,15 +718,22 @@ CON_COMMAND( sc_test_revive, "" )
 //-----------------------------------------------------------------------------
 
 static bool inside_CFuncTankGun_Fire = false;
+static bool inside_CBaseEntity_FireBullets = false;
+static void *inside_CBaseEntity_FireBullets_thisptr = NULL;
 
 DECLARE_CLASS_FUNC( void, HOOKED_CBaseEntity_FireBullets, void *thisptr, unsigned int cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFeq, int iDamage, entvars_t *pAttacker, int fDraw )
 {
+	inside_CBaseEntity_FireBullets = true;
+	inside_CBaseEntity_FireBullets_thisptr = thisptr;
+
 	if ( sc_st_disable_spread.GetBool() )
 	{
 		vecSpread.Zero();
 	}
 
 	ORIG_CBaseEntity_FireBullets( thisptr, cShots, vecSrc, vecDirShooting, vecSpread, flDistance, iBulletType, iTracerFeq, iDamage, pAttacker, fDraw );
+
+	inside_CBaseEntity_FireBullets = false;
 }
 
 DECLARE_CLASS_FUNC( void, HOOKED_CFuncTankGun_Fire, void *thisptr, const Vector &barrelEnd, const Vector &forward, entvars_t *pevAttacker )
@@ -717,20 +754,50 @@ DECLARE_FUNC( void, __cdecl, HOOKED_UTIL_GetCircularGaussianSpread, float *x, fl
 		*x = *y = 0.f;
 	}
 	
-	if ( inside_CFuncTankGun_Fire )
+	//if ( inside_CFuncTankGun_Fire )
+	//{
+	//	scriptref_t hCallbackFunction;
+
+	//	if ( hCallbackFunction = g_ScriptVM.LookupFunction( "OnTankGunFireSpread" ) )
+	//	{
+	//		lua_State *pLuaState = g_ScriptVM.GetVM();
+
+	//		lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hCallbackFunction);
+
+	//		lua_pushnumber( pLuaState, (lua_Number)*x );
+	//		lua_pushnumber( pLuaState, (lua_Number)*y );
+
+	//		g_ScriptVM.ProtectedCall( pLuaState, 2, 2, 0 );
+
+	//		if ( lua_isnumber( pLuaState, -2 ) && lua_isnumber( pLuaState, -1 ) )
+	//		{
+	//			*x = (float)lua_tonumber( pLuaState, -2 );
+	//			*y = (float)lua_tonumber( pLuaState, -1 );
+	//		}
+
+	//		g_ScriptVM.ReleaseFunction( hCallbackFunction );
+	//	}
+	//}
+
+	if ( inside_CBaseEntity_FireBullets )
 	{
 		scriptref_t hCallbackFunction;
 
-		if ( hCallbackFunction = g_ScriptVM.LookupFunction( "OnTankGunFire" ) )
+		if ( hCallbackFunction = g_ScriptVM.LookupFunction( "OnFireBulletsSpread" ) )
 		{
 			lua_State *pLuaState = g_ScriptVM.GetVM();
 
-			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hCallbackFunction);
+			entvars_t *pev = *(entvars_t **)( (unsigned long *)inside_CBaseEntity_FireBullets_thisptr + 1 );
+			edict_t *pEntity = g_pServerEngineFuncs->pfnFindEntityByVars( pev );
 
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hCallbackFunction );
+
+			lua_pushedict( pLuaState, pEntity );
+			lua_pushinteger( pLuaState, (lua_Integer)g_pServerEngineFuncs->pfnIndexOfEdict( pEntity ) );
 			lua_pushnumber( pLuaState, (lua_Number)*x );
 			lua_pushnumber( pLuaState, (lua_Number)*y );
 
-			g_ScriptVM.ProtectedCall( pLuaState, 2, 2, 0 );
+			g_ScriptVM.ProtectedCall( pLuaState, 4, 2, 0 );
 
 			if ( lua_isnumber( pLuaState, -2 ) && lua_isnumber( pLuaState, -1 ) )
 			{
@@ -1421,7 +1488,7 @@ void CSpeedrunTools::BroadcastPlayerHull_Server( int client, int dead, const Vec
 
 void CSpeedrunTools::DrawPlayerHull_Comm( int client, int dead, const Vector &vecOrigin, bool bDuck )
 {
-	if ( !g_Config.cvars.st_server_player_hulls || ( !dead && client == g_pPlayerMove->player_index + 1 ) )
+	if ( !g_Config.cvars.st_server_player_hulls || ( !dead && client == UTIL_GetLocalPlayerIndex() ) )
 		return;
 
 	playerhull_display_info_t &display_info = m_vPlayersHulls[ client ];
@@ -1450,7 +1517,7 @@ void CSpeedrunTools::DrawPlayerHulls( void )
 {
 	if ( g_Config.cvars.st_server_player_hulls )
 	{
-		int iLocalPlayer = g_pPlayerMove->player_index + 1;
+		int iLocalPlayer = UTIL_GetLocalPlayerIndex();
 
 		for ( int i = 1; i <= g_pEngineFuncs->GetMaxClients(); i++ )
 		{
@@ -1496,7 +1563,7 @@ void CSpeedrunTools::DrawPlayerHulls( void )
 	}
 	else if ( g_Config.cvars.st_player_hulls )
 	{
-		int iLocalPlayer = g_pPlayerMove->player_index + 1;
+		int iLocalPlayer = UTIL_GetLocalPlayerIndex();
 
 		CEntity *pEnts = g_EntityList.GetList();
 
@@ -1510,7 +1577,7 @@ void CSpeedrunTools::DrawPlayerHulls( void )
 			if ( ent.m_classInfo.id != CLASS_DEAD_PLAYER && !ent.m_bPlayer )
 				continue;
 
-			if ( iLocalPlayer == i && ( !g_Config.cvars.st_player_hulls_show_local_player || Client()->IsSpectating() ) )
+			if ( iLocalPlayer == i && ( !g_Config.cvars.st_player_hulls_show_local_player || UTIL_IsSpectating() ) )
 				continue;
 
 			if ( ent.m_bPlayer )
@@ -1553,7 +1620,9 @@ void CSpeedrunTools::DrawPlayerHulls( void )
 
 void CSpeedrunTools::DrawReviveBoostInfo( void )
 {
-	if ( g_Config.cvars.st_show_revive_boost_info && !Client()->IsDead() && Client()->GetCurrentWeaponID() == WEAPON_MEDKIT )
+	if ( g_Config.cvars.st_show_revive_boost_info &&
+		 !UTIL_IsDead() &&
+		 ( Client()->GetCurrentWeaponID() == WEAPON_MEDKIT || g_Config.cvars.st_show_revive_boost_any_weapon ) )
 	{
 		const Vector vecReviveHullMins( -16, -16, 0 );
 		const Vector vecReviveHullMaxs( 16, 16, 72 );
@@ -1836,8 +1905,8 @@ void CSpeedrunTools::DrawReviveInfo( void )
 	int iWeaponID = Client()->GetCurrentWeaponID();
 
 	if ( g_Config.cvars.st_show_revive_info &&
-		 !Client()->IsDead() &&
-		 ( iWeaponID == WEAPON_MEDKIT || ( g_Config.cvars.st_show_revive_info_with_melee && ( iWeaponID == WEAPON_CROWBAR || iWeaponID == WEAPON_WRENCH ) ) ) )
+		 !UTIL_IsDead() &&
+		 ( iWeaponID == WEAPON_MEDKIT || ( g_Config.cvars.st_show_revive_info_any_weapon ) ) )
 	{
 		pmtrace_t tr;
 		Vector vecForward;
@@ -2075,7 +2144,7 @@ void CSpeedrunTools::DrawReviveUnstuckArea( void )
 		bool bDucking;
 		Vector vecOrigin;
 
-		int iLocalPlayer = g_pPlayerMove->player_index + 1;
+		int iLocalPlayer = UTIL_GetLocalPlayerIndex();
 
 		CEntity *pEnts = g_EntityList.GetList();
 
@@ -2089,7 +2158,7 @@ void CSpeedrunTools::DrawReviveUnstuckArea( void )
 			if ( ent.m_classInfo.id != CLASS_DEAD_PLAYER && !ent.m_bPlayer )
 				continue;
 
-			if ( iLocalPlayer == i && ( !g_Config.cvars.st_show_revive_area_local_player || Client()->IsSpectating() ) )
+			if ( iLocalPlayer == i && ( !g_Config.cvars.st_show_revive_area_local_player || UTIL_IsSpectating() ) )
 				continue;
 
 			bDucking = false;
@@ -2177,7 +2246,10 @@ void CSpeedrunTools::DrawLandPoint( void )
 	if ( !g_Config.cvars.st_show_land_point )
 		return;
 
-	if ( !g_bPlayingbackDemo && ( !g_pPlayerMove->movevars || Client()->IsDead() ) )
+	if ( UTIL_IsDead() )
+		return;
+
+	if ( !g_bPlayingbackDemo && g_pPlayerMove->movevars == NULL )
 		return;
 
 	const int oldhull = g_pPlayerMove->usehull;
@@ -2974,10 +3046,11 @@ void CSpeedrunTools::ShowEntityInfo( int r, int g, int b )
 
 					Vector traceEnd = tr.endpos;
 					CEntity *pEnts = g_EntityList.GetList();
+					int iLocalPlayer = UTIL_GetLocalPlayerIndex();
 
 					for ( int i = 1; i <= g_pEngineFuncs->GetMaxClients(); i++ )
 					{
-						if ( i == g_pPlayerMove->player_index + 1 )
+						if ( i == iLocalPlayer )
 							continue;
 
 						CEntity &ent = pEnts[ i ];
