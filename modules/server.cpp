@@ -20,11 +20,14 @@ DECLARE_HOOK( void, __cdecl, PlayerSpawns, edict_t *, edict_t * );
 DECLARE_HOOK( bool, __cdecl, FixPlayerStuck, edict_t * );
 DECLARE_HOOK( void, __cdecl, ClientKill, edict_t * );
 DECLARE_HOOK( void, __cdecl, ClientPutInServer, edict_t * );
+DECLARE_HOOK( void, __cdecl, ClientCommand, edict_t * );
 
 DECLARE_CLASS_HOOK( void, CBasePlayer__SpecialSpawn, void * );
 DECLARE_CLASS_HOOK( void, CBasePlayer__BeginRevive, void *, float );
 DECLARE_CLASS_HOOK( void, CBasePlayer__EndRevive, void *, float );
 DECLARE_CLASS_HOOK( entvars_t *, CopyPEntityVars, entvars_t *pev_dst, entvars_t *pev_src );
+
+DECLARE_HOOK( void, __cdecl, FireTargets, const char *, void *, void *, int, float, float );
 
 DECLARE_HOOK( void, __cdecl, RunPlayerMove, edict_t *, const float *, float, float, float, unsigned short, byte, byte );
 
@@ -173,8 +176,8 @@ DECLARE_FUNC( bool, __cdecl, HOOKED_FixPlayerStuck, edict_t *pPlayer )
 
 	if ( bUnstuck )
 	{
-		Vector unstuckBoundsMin = pPlayer->v.origin + Vector( -48.f, -48.f, -48.f );
-		Vector unstuckBoundsMax = pPlayer->v.origin + Vector( 48.f, 48.f, 48.f );
+		Vector unstuckBoundsMin = vecRevivePreUnstuckOrigin + Vector( -48.f, -48.f, -48.f );
+		Vector unstuckBoundsMax = vecRevivePreUnstuckOrigin + Vector( 48.f, 48.f, 48.f );
 
 		g_ScriptCallbacks.OnPlayerUnstuck( pPlayer );
 
@@ -183,6 +186,8 @@ DECLARE_FUNC( bool, __cdecl, HOOKED_FixPlayerStuck, edict_t *pPlayer )
 		{
 			g_pEngineFuncs->ClientCmd( "say \"FixPlayerStuck: NOT LEGIT UNSTUCK DETECTED.\"" );
 			g_pEngineFuncs->ClientCmd( "say \"FixPlayerStuck: the unstuck position is outside the largest test hull.\"" );
+
+			Warning( "FixPlayerStuck: pre-unstuck origin %.6f %.6f %.6f\n", VectorExpand( vecRevivePreUnstuckOrigin ) );
 		}
 	}
 
@@ -202,6 +207,24 @@ DECLARE_FUNC( void, __cdecl, HOOKED_ClientPutInServer, edict_t *pPlayer )
 
 	g_ServerClientBridge.OnClientPutInServer( pPlayer );
 	g_ScriptCallbacks.OnClientPutInServer( pPlayer );
+}
+
+DECLARE_FUNC( void, __cdecl, HOOKED_ClientCommand, edict_t *pPlayer )
+{
+	if ( !pPlayer->pvPrivateData )
+		return;
+
+	if ( !strcmp( g_pServerEngineFuncs->pfnCmd_Argv( 0 ), "sc_sendsignal" ) )
+	{
+		if ( g_pServerEngineFuncs->pfnCmd_Argc() >= 2 )
+		{
+			g_ScriptCallbacks.OnClientSignal( pPlayer, atoi( g_pServerEngineFuncs->pfnCmd_Argv( 1 ) ) );
+		}
+
+		return;
+	}
+
+	ORIG_ClientCommand( pPlayer );
 }
 
 DECLARE_CLASS_FUNC( void, HOOKED_CBasePlayer__SpecialSpawn, void *thisptr )
@@ -226,6 +249,8 @@ DECLARE_CLASS_FUNC( void, HOOKED_CBasePlayer__SpecialSpawn, void *thisptr )
 			{
 				g_pEngineFuncs->ClientCmd( "say \"CBasePlayer::SpecialSpawn -> FixPlayerStuck: NOT LEGIT REVIVE DETECTED.\"" );
 				g_pEngineFuncs->ClientCmd( "say \"CBasePlayer::SpecialSpawn -> FixPlayerStuck: the revive position is outside the largest test hull.\"" );
+
+				Warning( "FixPlayerStuck: pre-revive origin %.6f %.6f %.6f\n", VectorExpand( vecRevivePreUnstuckOrigin ) );
 			}
 		}
 	}
@@ -263,6 +288,13 @@ DECLARE_CLASS_FUNC( entvars_t *, HOOKED_CopyPEntityVars, entvars_t *pev_dst, ent
 	vecRevivePreUnstuckOrigin = pev_src->origin;
 
 	return ORIG_CopyPEntityVars( pev_dst, pev_src );
+}
+
+DECLARE_FUNC( void, __cdecl, HOOKED_FireTargets, const char *pszTargetName, void *pActivator, void *pCaller, int useType, float flValue, float flDelay )
+{
+	ORIG_FireTargets( pszTargetName, pActivator, pCaller, useType, flValue, flDelay );
+
+	g_ScriptCallbacks.OnFireTargets( pszTargetName, pActivator, pCaller, useType, flValue, flDelay );
 }
 
 //-----------------------------------------------------------------------------
@@ -449,6 +481,7 @@ bool CServerModule::Init( void )
 	auto fm_pfnFixPlayerStuck = MemoryUtils()->FindPatternAsync( m_hServerDLL, Patterns::Server::FixPlayerStuck );
 	auto fpCBasePlayer_dtor_vmt = MemoryUtils()->FindPatternAsync( m_hServerDLL, Patterns::Server::CBasePlayer__vtable );
 	auto fm_pfnCopyPEntityVars = MemoryUtils()->FindPatternAsync( m_hServerDLL, Patterns::Server::CopyPEntityVars );
+	auto fm_pfnFireTargets = MemoryUtils()->FindPatternAsync( m_hServerDLL, Patterns::Server::FireTargets );
 
 	if ( !( pfnCL_ClearState = fpfnCL_ClearState.get() ) )
 	{
@@ -489,6 +522,12 @@ bool CServerModule::Init( void )
 	if ( !( m_pfnCopyPEntityVars = fm_pfnCopyPEntityVars.get() ) )
 	{
 		Warning( "Failed to locate function call \"CopyPEntityVars\"\n" );
+		ScanOK = false;
+	}
+	
+	if ( !( m_pfnFireTargets = fm_pfnFireTargets.get() ) )
+	{
+		Warning( "Failed to locate function \"FireTargets\"\n" );
 		ScanOK = false;
 	}
 
@@ -592,6 +631,7 @@ void CServerModule::PostInit( void )
 	m_hTouch = DetoursAPI()->DetourFunction( g_pServerFuncs->pfnTouch, HOOKED_Touch, GET_FUNC_PTR( ORIG_Touch ) );
 	m_hClientKill = DetoursAPI()->DetourFunction( g_pServerFuncs->pfnClientKill, HOOKED_ClientKill, GET_FUNC_PTR( ORIG_ClientKill ) );
 	m_hClientPutInServer = DetoursAPI()->DetourFunction( g_pServerFuncs->pfnClientPutInServer, HOOKED_ClientPutInServer, GET_FUNC_PTR( ORIG_ClientPutInServer ) );
+	m_hClientCommand = DetoursAPI()->DetourFunction( g_pServerFuncs->pfnClientCommand, HOOKED_ClientCommand, GET_FUNC_PTR( ORIG_ClientCommand ) );
 	m_hPlayerSpawns = DetoursAPI()->DetourFunction( m_pfnPlayerSpawns, HOOKED_PlayerSpawns, GET_FUNC_PTR( ORIG_PlayerSpawns ) );
 	m_hFixPlayerStuck = DetoursAPI()->DetourFunction( m_pfnFixPlayerStuck, HOOKED_FixPlayerStuck, GET_FUNC_PTR( ORIG_FixPlayerStuck ) );
 
@@ -611,6 +651,7 @@ void CServerModule::PostInit( void )
 																		GET_FUNC_PTR( ORIG_CBasePlayer__EndRevive ) );
 
 	m_hCopyPEntityVars = DetoursAPI()->DetourFunction( MemoryUtils()->CalcAbsoluteAddress( m_pfnCopyPEntityVars ), HOOKED_CopyPEntityVars, GET_FUNC_PTR( ORIG_CopyPEntityVars ) );
+	m_hFireTargets = DetoursAPI()->DetourFunction( m_pfnFireTargets, HOOKED_FireTargets, GET_FUNC_PTR( ORIG_FireTargets ) );
 }
 
 //-----------------------------------------------------------------------------
@@ -623,6 +664,7 @@ void CServerModule::Shutdown( void )
 	DetoursAPI()->RemoveDetour( m_hTouch );
 	DetoursAPI()->RemoveDetour( m_hClientKill );
 	DetoursAPI()->RemoveDetour( m_hClientPutInServer );
+	DetoursAPI()->RemoveDetour( m_hClientCommand );
 	DetoursAPI()->RemoveDetour( m_hPlayerSpawns );
 	DetoursAPI()->RemoveDetour( m_hFixPlayerStuck );
 
@@ -631,4 +673,5 @@ void CServerModule::Shutdown( void )
 	DetoursAPI()->RemoveDetour( m_hCBasePlayer__EndRevive );
 
 	DetoursAPI()->RemoveDetour( m_hCopyPEntityVars );
+	DetoursAPI()->RemoveDetour( m_hFireTargets );
 }

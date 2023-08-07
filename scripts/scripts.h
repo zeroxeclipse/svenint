@@ -32,6 +32,7 @@ public:
 
 	void OnEntityUse( edict_t *pEntityUseEdict, edict_t *pEntityEdict );
 	void OnEntityTouch( edict_t *pEntityTouchEdict, edict_t *pEntityEdict );
+	void OnFireTargets( const char *pszTargetName, void *pActivator, void *pCaller, int useType, float flValue, float flDelay );
 
 	void OnClientPutInServer( edict_t *pPlayerEdict );
 
@@ -43,6 +44,7 @@ public:
 	void OnClientKill( edict_t *pPlayerEdict );
 
 	void OnServerSignal( int value );
+	void OnClientSignal( edict_t *pPlayerEdict, int value );
 	bool OnFilterAimbotTarget( int entindex );
 
 	// Input Manager

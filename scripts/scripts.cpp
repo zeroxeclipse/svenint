@@ -9,6 +9,7 @@
 #include "lua_triggers.h"
 #include "lua_entity_dictionary.h"
 #include "lua_entity_vars.h"
+#include "lua_global_vars.h"
 #include "lua_player_move.h"
 #include "lua_usercmd.h"
 #include "lua_input_manager.h"
@@ -19,6 +20,8 @@
 
 #include <dbg.h>
 #include <convar.h>
+
+#include "../modules/server.h"
 
 extern bool g_bPlayingbackDemo;
 
@@ -415,6 +418,54 @@ void CScriptCallbacks::OnClientKill( edict_t *pPlayerEdict )
 	}
 }
 
+void CScriptCallbacks::OnFireTargets( const char *pszTargetName, void *pActivator, void *pCaller, int useType, float flValue, float flDelay )
+{
+	lua_State *pLuaState = g_ScriptVM.GetVM();
+
+	if ( pLuaState != NULL )
+	{
+		scriptref_t hFunction;
+
+		if ( hFunction = g_ScriptVM.LookupFunction( "OnFireTargets" ) )
+		{
+			entvars_t *pev;
+			edict_t *activator, *caller;
+
+			if ( pActivator != NULL )
+			{
+				pev = *(entvars_t **)( (unsigned long *)pActivator + 1 );
+				activator = g_pServerEngineFuncs->pfnFindEntityByVars( pev );
+			}
+			else
+			{
+				activator = NULL;
+			}
+			
+			if ( pCaller != NULL )
+			{
+				pev = *(entvars_t **)( (unsigned long *)pCaller + 1 );
+				caller = g_pServerEngineFuncs->pfnFindEntityByVars( pev );
+			}
+			else
+			{
+				caller = NULL;
+			}
+
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
+
+			lua_pushstring( pLuaState, pszTargetName );
+			lua_pushedict( pLuaState, activator );
+			lua_pushedict( pLuaState, caller );
+			lua_pushinteger( pLuaState, useType );
+			lua_pushnumber( pLuaState, flValue );
+			lua_pushnumber( pLuaState, flDelay );
+
+			g_ScriptVM.ProtectedCall( pLuaState, 6, 0, 0 );
+			g_ScriptVM.ReleaseFunction( hFunction );
+		}
+	}
+}
+
 void CScriptCallbacks::OnServerSignal( int value )
 {
 	lua_State *pLuaState = g_ScriptVM.GetVM();
@@ -430,6 +481,27 @@ void CScriptCallbacks::OnServerSignal( int value )
 			lua_pushinteger( pLuaState, value );
 
 			g_ScriptVM.ProtectedCall( pLuaState, 1, 0, 0 );
+			g_ScriptVM.ReleaseFunction( hFunction );
+		}
+	}
+}
+
+void CScriptCallbacks::OnClientSignal( edict_t *pPlayerEdict, int value )
+{
+	lua_State *pLuaState = g_ScriptVM.GetVM();
+
+	if ( pLuaState != NULL )
+	{
+		scriptref_t hFunction;
+
+		if ( hFunction = g_ScriptVM.LookupFunction( "OnClientSignal" ) )
+		{
+			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hFunction );
+
+			lua_pushedict( pLuaState, pPlayerEdict );
+			lua_pushinteger( pLuaState, value );
+
+			g_ScriptVM.ProtectedCall( pLuaState, 2, 0, 0 );
 			g_ScriptVM.ReleaseFunction( hFunction );
 		}
 	}
@@ -534,6 +606,7 @@ bool CScriptVM::Init( void )
 			luaopen_usercmd( m_pLuaState );
 			luaopen_edict( m_pLuaState );
 			luaopen_entvars( m_pLuaState );
+			luaopen_globalvars( m_pLuaState );
 			luaopen_cvar( m_pLuaState );
 			luaopen_logic( m_pLuaState );
 			luaopen_triggers( m_pLuaState );
