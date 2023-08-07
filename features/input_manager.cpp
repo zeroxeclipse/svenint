@@ -458,8 +458,7 @@ void CInputContext::GotoFrame( int iFrame )
 	edict_t *pPlayer;
 	int iCurrentFrame;
 
-	// Only host can jump to frame
-	if ( m_frames.size() == 0 || !Host_IsServerActive() )
+	if ( m_frames.size() == 0 )
 		return;
 
 	iCurrentFrame = iFrame - 1;
@@ -474,7 +473,7 @@ void CInputContext::GotoFrame( int iFrame )
 	m_iCurrentFrame = iCurrentFrame;
 
 	// Set origin & velocity
-	if ( ( pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( g_pPlayerMove->player_index + 1 ) ) != NULL )
+	if ( Host_IsServerActive() && ( pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( g_pPlayerMove->player_index + 1 ) ) != NULL )
 	{
 		if ( sc_im_goto_exact.GetBool() )
 		{
@@ -491,8 +490,7 @@ void CInputContext::ForwardFrames( int iFrames )
 	edict_t *pPlayer;
 	int iCurrentFrame;
 
-	// Only host can forward
-	if ( m_frames.size() == 0 || !Host_IsServerActive() )
+	if ( m_frames.size() == 0 )
 		return;
 
 	Assert( iFrames > 0 );
@@ -509,7 +507,7 @@ void CInputContext::ForwardFrames( int iFrames )
 	m_iCurrentFrame = iCurrentFrame;
 
 	// Set origin & velocity
-	if ( ( pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( g_pPlayerMove->player_index + 1 ) ) != NULL )
+	if ( Host_IsServerActive() && ( pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( g_pPlayerMove->player_index + 1 ) ) != NULL )
 	{
 		if ( sc_im_goto_exact.GetBool() )
 		{
@@ -526,8 +524,7 @@ void CInputContext::BackwardFrames( int iFrames )
 	edict_t *pPlayer;
 	int iCurrentFrame;
 
-	// Only host can backward
-	if ( m_frames.size() == 0 || !Host_IsServerActive() )
+	if ( m_frames.size() == 0 )
 		return;
 
 	Assert( iFrames > 0 );
@@ -544,7 +541,7 @@ void CInputContext::BackwardFrames( int iFrames )
 	m_iCurrentFrame = iCurrentFrame;
 
 	// Set origin & velocity
-	if ( ( pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( g_pPlayerMove->player_index + 1 ) ) != NULL )
+	if ( Host_IsServerActive() && ( pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( g_pPlayerMove->player_index + 1 ) ) != NULL )
 	{
 		if ( sc_im_goto_exact.GetBool() )
 		{
