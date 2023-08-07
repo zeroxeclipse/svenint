@@ -35,6 +35,8 @@ namespace Patterns
 		EXTERN_PATTERN( R_ForceCVars );
 		EXTERN_PATTERN( R_LoadSkyboxInt );
 
+		EXTERN_PATTERN( PM_PlayerTrace );
+
 		EXTERN_PATTERN( CL_ClearState );
 		EXTERN_PATTERN( CL_ParseConsistencyInfo );
 		EXTERN_PATTERN( CL_BatchResourceRequest );
@@ -101,6 +103,8 @@ namespace Patterns
 		EXTERN_PATTERN( FixPlayerStuck );
 		EXTERN_PATTERN( CBasePlayer__SpecialSpawn );
 		EXTERN_PATTERN( CBasePlayer__vtable );
+
+		EXTERN_PATTERN( FireTargets );
 
 		EXTERN_PATTERN( CopyPEntityVars );
 	}

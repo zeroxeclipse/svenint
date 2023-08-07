@@ -28,6 +28,8 @@ namespace Patterns
 		DEFINE_PATTERN( R_ForceCVars, "83 7C 24 04 ? 0F 84 ? ? ? ? 81 3D ? ? ? ? FF" );
 		DEFINE_PATTERN( R_LoadSkyboxInt, "81 EC ? ? 00 00 A1 ? ? ? ? 33 C4 89 84 24 ? ? 00 00 53 8B 9C 24 ? ? 00 00 55 56 57 89 5C 24 24" );
 
+		DEFINE_PATTERN( PM_PlayerTrace, "55 8B EC 83 E4 ? 81 EC ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 20 01 00 00" );
+
 		DEFINE_PATTERN( CL_ClearState, "E8 ? ? ? ? 85 C0 75 ? FF 74 24 04" );
 		DEFINE_PATTERN( CL_ParseConsistencyInfo, "83 EC ? A1 ? ? ? ? 33 C4 89 44 24 24 D9 ? ? ? ? ? D9 ? DA" );
 		DEFINE_PATTERN( CL_BatchResourceRequest, "55 8B EC 83 E4 ? B8 ? ? ? ? E8 ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 1C 01 04 00" );
@@ -94,6 +96,8 @@ namespace Patterns
 		DEFINE_PATTERN( FixPlayerStuck, "81 EC ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 FC 02 00 00" );
 		DEFINE_PATTERN( CBasePlayer__SpecialSpawn, "81 EC ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 38 03 00 00" );
 		DEFINE_PATTERN( CBasePlayer__vtable, "C7 06 ? ? ? ? 8D 9E 74 08 00 00 C7 86 00 06 00 00 FF FF FF FF" );
+
+		DEFINE_PATTERN( FireTargets, "53 8B 5C 24 08 85 DB 0F 84 ? ? ? ? 80 3B ? 0F 84 ? ? ? ? 55" );
 
 		DEFINE_PATTERN( CopyPEntityVars, "E8 ? ? ? ? F3 0F 10 84 24 8C 01 00 00" );
 	}
