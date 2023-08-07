@@ -384,6 +384,8 @@ CON_COMMAND(sc_ultra_test, "")
 	}
 }
 
+ConVar sc_bsp( "sc_bsp", "1", FCVAR_CLIENTDLL, "Allow parse of .bsp maps" );
+
 //-----------------------------------------------------------------------------
 // Utilities
 //-----------------------------------------------------------------------------
@@ -927,6 +929,9 @@ void CBsp::LoadBsp()
 	vMonsterSpawns.clear();
 	vTriggers.clear();
 	vEnts.clear();
+
+	if ( !sc_bsp.GetBool() )
+		return;
 
 	char mapname[MAX_PATH];
 
