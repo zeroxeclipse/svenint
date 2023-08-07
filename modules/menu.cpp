@@ -3015,7 +3015,7 @@ void CMenuModule::DrawUtilityTabContent()
 		if (ImGui::BeginCombo("      ", xs("Revive"), 0))
 		{
 			ImGui::Checkbox(xs("Show Revive Info##st"), &g_Config.cvars.st_show_revive_info); ImGui::SameLine();
-			ImGui::Checkbox(xs("Show with Equipped Melee##st_revive"), &g_Config.cvars.st_show_revive_info_with_melee);
+			ImGui::Checkbox(xs("Show With Any Weapon##st_revive"), &g_Config.cvars.st_show_revive_info_any_weapon);
 
 			ImGuiCustom.Spacing( 4 );
 
@@ -3040,7 +3040,8 @@ void CMenuModule::DrawUtilityTabContent()
 
 		if (ImGui::BeginCombo("       ", xs("Revive Boost"), ImGuiComboFlags_HeightLargest ))
 		{
-			ImGui::Checkbox(xs("Show Revive Boost Info##st"), &g_Config.cvars.st_show_revive_boost_info);
+			ImGui::Checkbox(xs("Show Revive Boost Info##st"), &g_Config.cvars.st_show_revive_boost_info); ImGui::SameLine();
+			ImGui::Checkbox( xs( "Show With Any Weapon##st_revive_boost" ), &g_Config.cvars.st_show_revive_boost_any_weapon );
 
 			ImGuiCustom.Spacing( 4 );
 

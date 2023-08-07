@@ -576,13 +576,14 @@ public:
 		float st_show_entity_info_height_frac = 0.47f;
 		
 		bool st_show_revive_info = false;
-		bool st_show_revive_info_with_melee = false;
+		bool st_show_revive_info_any_weapon = false;
 		float st_show_revive_info_width_frac = 0.009f;
 		float st_show_revive_info_height_frac = 0.25f;
 		float st_show_revive_info_color[ 4 ] = { 0.f, 1.f, 0.f, 0.5f };
 		float st_show_revive_info_no_ammo_color[ 4 ] = { 1.f, 0.f, 0.f, 0.5f };
 		
 		bool st_show_revive_boost_info = false;
+		bool st_show_revive_boost_any_weapon = false;
 		bool st_show_revive_boost_info_wireframe_hull = true;
 		bool st_show_revive_boost_info_wireframe_direction_box = false;
 		int st_show_revive_boost_info_direction_type = 0;

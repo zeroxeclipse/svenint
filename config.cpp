@@ -780,7 +780,7 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam( "EntityInfoScreenHeightFrac", cvars.st_show_entity_info_height_frac );
 
 			ConfigManager()->ImportParam( "ShowReviveInfo", cvars.st_show_revive_info );
-			ConfigManager()->ImportParam( "ShowReviveInfoWithMelee", cvars.st_show_revive_info_with_melee );
+			ConfigManager()->ImportParam( "ShowReviveInfoWithAnyWeapon", cvars.st_show_revive_info_any_weapon );
 			ConfigManager()->ImportParam( "ReviveInfoWidthFrac", cvars.st_show_revive_info_width_frac );
 			ConfigManager()->ImportParam( "ReviveInfoHeightFrac", cvars.st_show_revive_info_height_frac );
 			ConfigManager()->ImportParam( "ReviveInfoColor_R", cvars.st_show_revive_info_color[ 0 ] );
@@ -793,6 +793,7 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam( "ReviveInfoNoAmmoColor_A", cvars.st_show_revive_info_no_ammo_color[ 3 ] );
 
 			ConfigManager()->ImportParam( "ShowReviveBoostInfo", cvars.st_show_revive_boost_info );
+			ConfigManager()->ImportParam( "ShowReviveBoostInfoWithAnyWeapon", cvars.st_show_revive_boost_any_weapon );
 			ConfigManager()->ImportParam( "ReviveBoostInfoWireframeHull", cvars.st_show_revive_boost_info_wireframe_hull );
 			ConfigManager()->ImportParam( "ReviveBoostInfoWireframeDirectionBox", cvars.st_show_revive_boost_info_wireframe_direction_box );
 			ConfigManager()->ImportParam( "ReviveBoostInfoDirectionType", cvars.st_show_revive_boost_info_direction_type );
@@ -1672,7 +1673,7 @@ void CConfig::Save()
 			ConfigManager()->ExportParam( "EntityInfoScreenHeightFrac", cvars.st_show_entity_info_height_frac );
 
 			ConfigManager()->ExportParam( "ShowReviveInfo", cvars.st_show_revive_info );
-			ConfigManager()->ExportParam( "ShowReviveInfoWithMelee", cvars.st_show_revive_info_with_melee );
+			ConfigManager()->ExportParam( "ShowReviveInfoWithAnyWeapon", cvars.st_show_revive_info_any_weapon );
 			ConfigManager()->ExportParam( "ReviveInfoWidthFrac", cvars.st_show_revive_info_width_frac );
 			ConfigManager()->ExportParam( "ReviveInfoHeightFrac", cvars.st_show_revive_info_height_frac );
 			ConfigManager()->ExportParam( "ReviveInfoColor_R", cvars.st_show_revive_info_color[ 0 ] );
@@ -1685,6 +1686,7 @@ void CConfig::Save()
 			ConfigManager()->ExportParam( "ReviveInfoNoAmmoColor_A", cvars.st_show_revive_info_no_ammo_color[ 3 ] );
 
 			ConfigManager()->ExportParam( "ShowReviveBoostInfo", cvars.st_show_revive_boost_info );
+			ConfigManager()->ExportParam( "ShowReviveBoostInfoWithAnyWeapon", cvars.st_show_revive_boost_any_weapon );
 			ConfigManager()->ExportParam( "ReviveBoostInfoWireframeHull", cvars.st_show_revive_boost_info_wireframe_hull );
 			ConfigManager()->ExportParam( "ReviveBoostInfoWireframeDirectionBox", cvars.st_show_revive_boost_info_wireframe_direction_box );
 			ConfigManager()->ExportParam( "ReviveBoostInfoDirectionType", cvars.st_show_revive_boost_info_direction_type );
