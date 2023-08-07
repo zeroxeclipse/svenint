@@ -549,13 +549,13 @@ void CDrawTrajectory::AddImpact(const Vector &impact)
 // Draw
 //-----------------------------------------------------------------------------
 
-void DrawBox( const Vector &vecOrigin, const Vector &vecMins, const Vector &vecMaxs, float r, float g, float b, float alpha, float width, bool wireframe )
+void DrawBox( const Vector &vecOrigin, const Vector &vecMins, const Vector &vecMaxs, float r, float g, float b, float alpha, float width, bool wireframe, float duration /* = 0.f */ )
 {
 	if ( wireframe )
 	{
 		CWireframeBox *pWireframeBox = new CWireframeBox( vecOrigin, vecMins, vecMaxs, Color( r, g, b, alpha ), width, false );
 
-		Render()->AddDrawContext( pWireframeBox );
+		Render()->AddDrawContext( pWireframeBox, duration );
 	}
 	else
 	{
@@ -565,20 +565,21 @@ void DrawBox( const Vector &vecOrigin, const Vector &vecMins, const Vector &vecM
 						   r,
 						   g,
 						   b,
-						   alpha );
+						   alpha,
+						   duration );
 	}
 }
 
-void DrawBoxAngles( const Vector &vecOrigin, const Vector &vecMins, const Vector &vecMaxs, const Vector &vecAngles, float r, float g, float b, float alpha, float width, bool wireframe )
+void DrawBoxAngles( const Vector &vecOrigin, const Vector &vecMins, const Vector &vecMaxs, const Vector &vecAngles, float r, float g, float b, float alpha, float width, bool wireframe, float duration /* = 0.f */ )
 {
 	if ( wireframe )
 	{
 		CWireframeBoxAngles *pWireframeBoxAngles = new CWireframeBoxAngles( vecOrigin, vecMins, vecMaxs, vecAngles, Color( r, g, b, alpha ), width, false );
 
-		Render()->AddDrawContext( pWireframeBoxAngles );
+		Render()->AddDrawContext( pWireframeBoxAngles, duration );
 	}
 	else
 	{
-		Render()->DrawBoxAngles( vecOrigin, vecMins, vecMaxs, vecAngles, r, g, b, alpha );
+		Render()->DrawBoxAngles( vecOrigin, vecMins, vecMaxs, vecAngles, r, g, b, alpha, duration );
 	}
 }
