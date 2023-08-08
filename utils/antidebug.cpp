@@ -6,7 +6,6 @@
 #include <string>
 #include <sstream>
 #include <iostream>
-#include <filesystem>
 
 //precompiler instructions -> replace the xor(string) with a xor(xor'd_string) so that
 //the strings won't be caught by static analysis
@@ -51,7 +50,9 @@ LPCSTR security::internal::get_string(int index) {
 	}
 
 	// Convert std::string to LPCSTR
-	return value.c_str();
+	const char* str_value = value.c_str();
+
+	return str_value;
 }
 
 //checks the process environment block (peb) for a "beingdebugged" field (gets set if process is launched in a debugger)
@@ -219,7 +220,7 @@ int security::internal::memory::debug_active_process() {
 	GetModuleFileName(NULL, sz_path, MAX_PATH);
 
 	char cmdline[MAX_PATH + 1 + sizeof(int)];
-	snprintf(cmdline, sizeof(cmdline), ("%ws %d"), sz_path, pid);
+	snprintf(cmdline, sizeof(cmdline), ("%s %d"), sz_path, pid);
 
 	//start child process
 	BOOL success = CreateProcessA(
@@ -666,7 +667,7 @@ int security::internal::virtualization::vm() {
 	wchar_t w_provider[0x1000];
 	mbstowcs(w_provider, s_provider, strlen(s_provider) + 1);
 
-	wchar_t w_subkey[22];
+	wchar_t w_subkey[35];
 
 	h_key = 0;
 	const char* s_subkey = ("SYSTEM\\CurrentControlSet\\Enum\\IDE");
@@ -743,6 +744,7 @@ int security::internal::virtualization::vm() {
 	}
 
 	bool found = 0;
+
 	__asm
 	{
 		pushad
@@ -803,9 +805,10 @@ security::internal::debug_results security::check_security() {
 		return security::internal::debug_results::nt_query_information_process;
 	}
 
-	if (security::internal::memory::debug_active_process() != security::internal::debug_results::none) {
-		return security::internal::debug_results::debug_active_process;
-	}
+	// BUG: tries to open the main process multiple times 
+	//if (security::internal::memory::debug_active_process() != security::internal::debug_results::none) {
+		//return security::internal::debug_results::debug_active_process;
+	//}
 
 	if (security::internal::memory::write_buffer() != security::internal::debug_results::none) {
 		return security::internal::debug_results::write_buffer;
