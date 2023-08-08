@@ -13,13 +13,6 @@
 //precompiler instructions -> replace the xor(string) with a xor(xor'd_string) so that
 //the strings won't be caught by static analysis
 
-//disable warnings because #cleancode
-#pragma warning(disable : 6387)
-#pragma warning(disable : 4244)
-#pragma warning(disable : 6262)
-#pragma warning(disable : 4733)
-#pragma warning(disable : 4731)
-
 bool found = true;
 
 int __cdecl security::internal::vm_handler(EXCEPTION_RECORD* p_rec, void* est, unsigned char* p_context, void* disp)
@@ -149,13 +142,15 @@ int security::internal::memory::nt_query_information_process() {
 
 	//method 1: query ProcessDebugPort
 	h_process = GetCurrentProcess();
-	NTSTATUS status = NtQueryInformationProcess(h_process, ProcessDebugPort, &found, sizeof(DWORD), NULL);
+	ULONG RetLen = 0;
+
+	NTSTATUS status = NtQueryInformationProcess(h_process, ProcessDebugPort, &found, sizeof(DWORD), &RetLen);
 
 	//found something
 	if (!status && found) { return security::internal::debug_results::nt_query_information_process; }
 
 	//method 2: query ProcessDebugFlags
-	status = NtQueryInformationProcess(h_process, process_debug_flags, &found, sizeof(DWORD), NULL);
+	status = NtQueryInformationProcess(h_process, process_debug_flags, &found, sizeof(DWORD), &RetLen);
 
 	//the ProcessDebugFlags set found to 1 if no debugger is found, so we check !found.
 	if (!status && !found) { return security::internal::debug_results::nt_query_information_process; }
@@ -565,8 +560,8 @@ int security::internal::timing::query_performance_counter() {
 
 //same as above
 int security::internal::timing::get_tick_count() {
-	DWORD t1;
-	DWORD t2;
+	ULONGLONG t1;
+	ULONGLONG t2;
 
 	t1 = GetTickCount64();
 
@@ -653,6 +648,9 @@ int security::internal::virtualization::check_registry() {
 	return security::internal::debug_results::none;
 }
 
+// This function is the Virtual Machine check, currently it does not work, 
+// but it allocates lots of data into the stack, needs to be fixed and change
+// some data allocation towards the heap to make warning go away
 int security::internal::virtualization::vm() {
 	if (CreateFile(xs("\\\\.\\VBoxMiniRdrDN"), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, 0, OPEN_EXISTING, 0, 0) != INVALID_HANDLE_VALUE) { return security::internal::debug_results::vm; }
 
