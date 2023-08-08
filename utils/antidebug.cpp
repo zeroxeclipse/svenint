@@ -1,11 +1,13 @@
 #include <Windows.h>
-#include ".\antidebug.h"
 #include <cstdio>
 #include <functional>
 #include <vector>
 #include <string>
 #include <sstream>
 #include <iostream>
+
+#include "antidebug.h"
+#include "xorstr.h"
 
 //precompiler instructions -> replace the xor(string) with a xor(xor'd_string) so that
 //the strings won't be caught by static analysis
@@ -35,24 +37,22 @@ void security::internal::to_lower(unsigned char* input)
 
 //returns strings for the check_window_name() function
 //this combined with the xoring of strings is to prevent static analysis / make it harder
-LPCSTR security::internal::get_string(int index) {
-	std::string value = "";
+LPCSTR security::internal::get_string(int index) 
+{
+	const char* value = nullptr;
 
 	switch (index) {
-	case 0: value = "Qt5QWindowIcon"; break;
-	case 1: value = "OLLYDBG"; break;
-	case 2: value = "SunAwtFrame"; break;
-	case 3: value = "ID"; break;
-	case 4: value = "ntdll.dll"; break;
-	case 5: value = "antidbg"; break;
-	case 6: value = "%random_environment_var_name_that_doesnt_exist?[]<>@\\;*!-{}#:/~%"; break;
-	case 7: value = "%random_file_name_that_doesnt_exist?[]<>@\\;*!-{}#:/~%"; break;
+	case 0: value = xs("Qt5QWindowIcon"); break;
+	case 1: value = xs("OLLYDBG"); break;
+	case 2: value = xs("SunAwtFrame"); break;
+	case 3: value = xs("ID"); break;
+	case 4: value = xs("ntdll.dll"); break;
+	case 5: value = xs("antidbg"); break;
+	case 6: value = xs("%random_environment_var_name_that_doesnt_exist?[]<>@\\;*!-{}#:/~%"); break;
+	case 7: value = xs("%random_file_name_that_doesnt_exist?[]<>@\\;*!-{}#:/~%"); break;
 	}
 
-	// Convert std::string to LPCSTR
-	const char* str_value = value.c_str();
-
-	return str_value;
+	return value;
 }
 
 //checks the process environment block (peb) for a "beingdebugged" field (gets set if process is launched in a debugger)
@@ -141,7 +141,7 @@ int security::internal::memory::nt_query_information_process() {
 
 	//dynamically acquire the address of NtQueryInformationProcess
 	_NtQueryInformationProcess NtQueryInformationProcess = NULL;
-	NtQueryInformationProcess = (_NtQueryInformationProcess)GetProcAddress(h_ntdll, ("NtQueryInformationProcess"));
+	NtQueryInformationProcess = (_NtQueryInformationProcess)GetProcAddress(h_ntdll, (xs("NtQueryInformationProcess")));
 
 	//if we cant get access for some reason, we return none
 	if (NtQueryInformationProcess == NULL) { return security::internal::debug_results::none; }
@@ -174,7 +174,7 @@ int security::internal::memory::nt_set_information_thread() {
 
 	//dynamically acquire the address of NtQueryInformationProcess
 	_NtQueryInformationProcess NtQueryInformationProcess = NULL;
-	NtQueryInformationProcess = (_NtQueryInformationProcess)GetProcAddress(h_ntdll, ("NtQueryInformationProcess"));
+	NtQueryInformationProcess = (_NtQueryInformationProcess)GetProcAddress(h_ntdll, (xs("NtQueryInformationProcess")));
 
 	//if we cant get access for some reason, we return none
 	if (NtQueryInformationProcess == NULL) { return security::internal::debug_results::none; }
@@ -220,7 +220,7 @@ int security::internal::memory::debug_active_process() {
 	GetModuleFileName(NULL, sz_path, MAX_PATH);
 
 	char cmdline[MAX_PATH + 1 + sizeof(int)];
-	snprintf(cmdline, sizeof(cmdline), ("%s %d"), sz_path, pid);
+	snprintf(cmdline, sizeof(cmdline), (xs("%s %d")), sz_path, pid);
 
 	//start child process
 	BOOL success = CreateProcessA(
@@ -455,7 +455,7 @@ int security::internal::exceptions::prefix_hop() {
 //if no debugger is present an error occurs -> we can check if the last error is not 0 (an error) -> debugger not found
 int security::internal::exceptions::debug_string() {
 	SetLastError(0);
-	OutputDebugStringA(("anti-debugging test."));
+	OutputDebugStringA((xs("Undefined")));
 
 	return (GetLastError() != 0) ? security::internal::debug_results::debug_string : security::internal::debug_results::none;
 }
@@ -613,15 +613,15 @@ int security::internal::virtualization::check_registry() {
 }
 
 int security::internal::virtualization::vm() {
-	if (CreateFile(("\\\\.\\VBoxMiniRdrDN"), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, 0, OPEN_EXISTING, 0, 0) != INVALID_HANDLE_VALUE) { return security::internal::debug_results::vm; }
+	if (CreateFile(xs("\\\\.\\VBoxMiniRdrDN"), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, 0, OPEN_EXISTING, 0, 0) != INVALID_HANDLE_VALUE) { return security::internal::debug_results::vm; }
 
-	if (LoadLibrary(("VBoxHook.dll"))) { return security::internal::debug_results::vm; }
+	if (LoadLibrary(xs("VBoxHook.dll"))) { return security::internal::debug_results::vm; }
 
 	HKEY h_key = 0;
-	if ((ERROR_SUCCESS == RegOpenKeyEx(HKEY_LOCAL_MACHINE, ("SOFTWARE\\Oracle\\VirtualBox Guest Additions"), 0, KEY_READ, &h_key)) && h_key) { RegCloseKey(h_key); return security::internal::debug_results::vm; }
+	if ((ERROR_SUCCESS == RegOpenKeyEx(HKEY_LOCAL_MACHINE, xs("SOFTWARE\\Oracle\\VirtualBox Guest Additions"), 0, KEY_READ, &h_key)) && h_key) { RegCloseKey(h_key); return security::internal::debug_results::vm; }
 
 	h_key = 0;
-	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, ("HARDWARE\\DESCRIPTION\\System"), 0, KEY_READ, &h_key) == ERROR_SUCCESS)
+	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, xs("HARDWARE\\DESCRIPTION\\System"), 0, KEY_READ, &h_key) == ERROR_SUCCESS)
 	{
 		unsigned long type = 0;
 		unsigned long size = 0x100;
@@ -659,7 +659,7 @@ int security::internal::virtualization::vm() {
 		RegCloseKey(h_key);
 	}
 
-	HANDLE h = CreateFile(("\\\\.\\pipe\\VBoxTrayIPC"), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING, 0, 0);
+	HANDLE h = CreateFile(xs("\\\\.\\pipe\\VBoxTrayIPC"), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING, 0, 0);
 	if (h != INVALID_HANDLE_VALUE) { CloseHandle(h); return security::internal::debug_results::vm; }
 
 	unsigned long pnsize = 0x1000;
@@ -670,7 +670,7 @@ int security::internal::virtualization::vm() {
 	wchar_t w_subkey[35];
 
 	h_key = 0;
-	const char* s_subkey = ("SYSTEM\\CurrentControlSet\\Enum\\IDE");
+	const char* s_subkey = xs("SYSTEM\\CurrentControlSet\\Enum\\IDE");
 
 	mbstowcs(w_subkey, s_subkey, strlen(s_subkey) + 1);
 	if ((ERROR_SUCCESS == RegOpenKeyEx(HKEY_LOCAL_MACHINE, s_subkey, 0, KEY_READ, &h_key)) && h_key)
@@ -708,7 +708,7 @@ int security::internal::virtualization::vm() {
 								{
 									unsigned long size = 0xFFF;
 									unsigned char value_name[0x1000] = { 0 };
-									if (RegQueryValueEx(h_new_key, ("FriendlyName"), 0, 0, value_name, &size) == ERROR_SUCCESS) { to_lower(value_name); if (strstr((char*)value_name, ("vbox"))) { return security::internal::debug_results::vm; } }
+									if (RegQueryValueEx(h_new_key, xs("FriendlyName"), 0, 0, value_name, &size) == ERROR_SUCCESS) { to_lower(value_name); if (strstr((char*)value_name, xs("vbox"))) { return security::internal::debug_results::vm; } }
 									RegCloseKey(HKKK);
 								}
 							}
