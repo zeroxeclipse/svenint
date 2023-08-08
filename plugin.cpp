@@ -48,7 +48,7 @@
 #include "features/input_manager.h"
 
 #include "steam/steam_api.h"
-#include "utils/antidebug.h"
+#include "utils/antidebug.hpp"
 #include "utils/xorstr.h"
 
 //-----------------------------------------------------------------------------
