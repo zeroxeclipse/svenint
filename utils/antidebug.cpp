@@ -559,22 +559,28 @@ int security::internal::cpu::hardware_debug_registers() {
 	return security::internal::debug_results::none;
 }
 
-//single stepping check
+// Single stepping check
+// Checks if carry flag (CF) is set within the EFLAGS register
 int security::internal::cpu::mov_ss() {
 	BOOL found = FALSE;
 
-	_asm
-	{
-		push ss;
-		pop ss;
-		pushfd;
-		test byte ptr[esp + 1], 1;
-		jne fnd;
-		jmp end;
-	fnd:
-		mov found, 1;
-	end:
-		nop;
+	__asm {
+		pushad; 
+		pushfd; 
+
+		mov al, byte ptr[esp + 1]; 
+
+		test al, 1; 
+		jnz fnd; Jump if carry flag is set
+
+		jmp end; Jump if not
+
+		fnd :
+		mov found, 1; 
+
+			end :
+			popfd; Pop EFLAGS from the stack
+			popad; 
 	}
 
 	return (found) ? security::internal::debug_results::mov_ss : security::internal::debug_results::none;
@@ -848,9 +854,9 @@ security::internal::debug_results security::check_security() {
 		return security::internal::debug_results::hardware_debug_registers;
 	}
 
-	//if (security::internal::cpu::mov_ss() != security::internal::debug_results::none) {
-		//return security::internal::debug_results::mov_ss;
-	//}
+	if (security::internal::cpu::mov_ss() != security::internal::debug_results::none) {
+		return security::internal::debug_results::mov_ss;
+	}
 
 	//virtualization
 	if (security::internal::virtualization::check_cpuid() != security::internal::debug_results::none) {

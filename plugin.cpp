@@ -357,10 +357,6 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 	static bool s_bRemoveAntiScreen = false;
 	static float s_flRemoveAntiScreenDuration = -1.f;
 
-#if ANTIDEBUG
-	static int s_iAntiDebugChecks = 0;
-#endif
-
 	float flPlatTime = g_pEngineFuncs->Sys_FloatTime();
 
 	g_ScriptVM.Frame(state, frametime, bPostRunCmd);
@@ -374,15 +370,14 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 			m_flPlatTime = flPlatTime;
 		}
 
-	#if ANTIDEBUG
-		if ( s_iAntiDebugChecks < 10 && flPlatTime - m_flAntiDebugTime >= 2.0f )
+#if ANTIDEBUG
+		if ( flPlatTime - m_flAntiDebugTime >= 2.0f )
 		{
 			CheckDebug();
 
-			s_iAntiDebugChecks++;
 			m_flAntiDebugTime = flPlatTime;
 		}
-	#endif
+#endif
 	}
 	else
 	{
