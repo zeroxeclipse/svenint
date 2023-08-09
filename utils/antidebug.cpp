@@ -844,14 +844,9 @@ security::internal::debug_results security::check_security() {
 	//	return security::internal::debug_results::nt_query_information_process;
 	//}
 
-<<<<<<< HEAD
-	//if (security::internal::memory::debug_active_process() != security::internal::debug_results::none) {
-	//	return security::internal::debug_results::debug_active_process;
-=======
 	// BUG: tries to open the main process multiple times 
 	//if (security::internal::memory::debug_active_process() != security::internal::debug_results::none) {
 		//return security::internal::debug_results::debug_active_process;
->>>>>>> 611f2f6502dfb4c87705390738945764acaa6ee9
 	//}
 
 	if (security::internal::memory::write_buffer() != security::internal::debug_results::none) {
