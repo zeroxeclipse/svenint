@@ -1,22 +1,17 @@
 #include <Windows.h>
-#include ".\antidebug.h"
 #include <cstdio>
 #include <functional>
 #include <vector>
 #include <string>
 #include <sstream>
 #include <iostream>
-//#include <filesystem>
+
+#include "antidebug.hpp"
+
+#include "xorstr.h"
 
 //precompiler instructions -> replace the xor(string) with a xor(xor'd_string) so that
 //the strings won't be caught by static analysis
-
-//disable warnings because #cleancode
-#pragma warning(disable : 6387)
-#pragma warning(disable : 4244)
-#pragma warning(disable : 6262)
-#pragma warning(disable : 4733)
-#pragma warning(disable : 4731)
 
 bool found = true;
 
@@ -36,22 +31,22 @@ void security::internal::to_lower(unsigned char* input)
 
 //returns strings for the check_window_name() function
 //this combined with the xoring of strings is to prevent static analysis / make it harder
-LPCSTR security::internal::get_string(int index) {
-	std::string value = "";
+LPCSTR security::internal::get_string(int index) 
+{
+	const char* value = nullptr;
 
 	switch (index) {
-	case 0: value = "Qt5QWindowIcon"; break;
-	case 1: value = "OLLYDBG"; break;
-	case 2: value = "SunAwtFrame"; break;
-	case 3: value = "ID"; break;
-	case 4: value = "ntdll.dll"; break;
-	case 5: value = "antidbg"; break;
-	case 6: value = "%random_environment_var_name_that_doesnt_exist?[]<>@\\;*!-{}#:/~%"; break;
-	case 7: value = "%random_file_name_that_doesnt_exist?[]<>@\\;*!-{}#:/~%"; break;
+	case 0: value = xs("Qt5QWindowIcon"); break;
+	case 1: value = xs("OLLYDBG"); break;
+	case 2: value = xs("SunAwtFrame"); break;
+	case 3: value = xs("ID"); break;
+	case 4: value = xs("ntdll.dll"); break;
+	case 5: value = xs("antidbg"); break;
+	case 6: value = xs("%random_environment_var_name_that_doesnt_exist?[]<>@\\;*!-{}#:/~%"); break;
+	case 7: value = xs("%random_file_name_that_doesnt_exist?[]<>@\\;*!-{}#:/~%"); break;
 	}
 
-	// Convert std::string to LPCSTR
-	return value.c_str();
+	return value;
 }
 
 //checks the process environment block (peb) for a "beingdebugged" field (gets set if process is launched in a debugger)
@@ -140,20 +135,22 @@ int security::internal::memory::nt_query_information_process() {
 
 	//dynamically acquire the address of NtQueryInformationProcess
 	_NtQueryInformationProcess NtQueryInformationProcess = NULL;
-	NtQueryInformationProcess = (_NtQueryInformationProcess)GetProcAddress(h_ntdll, ("NtQueryInformationProcess"));
+	NtQueryInformationProcess = (_NtQueryInformationProcess)GetProcAddress(h_ntdll, (xs("NtQueryInformationProcess")));
 
 	//if we cant get access for some reason, we return none
 	if (NtQueryInformationProcess == NULL) { return security::internal::debug_results::none; }
 
 	//method 1: query ProcessDebugPort
 	h_process = GetCurrentProcess();
-	NTSTATUS status = NtQueryInformationProcess(h_process, ProcessDebugPort, &found, sizeof(DWORD), NULL);
+	ULONG RetLen = 0;
+
+	NTSTATUS status = NtQueryInformationProcess(h_process, ProcessDebugPort, &found, sizeof(DWORD), &RetLen);
 
 	//found something
 	if (!status && found) { return security::internal::debug_results::nt_query_information_process; }
 
 	//method 2: query ProcessDebugFlags
-	status = NtQueryInformationProcess(h_process, process_debug_flags, &found, sizeof(DWORD), NULL);
+	status = NtQueryInformationProcess(h_process, process_debug_flags, &found, sizeof(DWORD), &RetLen);
 
 	//the ProcessDebugFlags set found to 1 if no debugger is found, so we check !found.
 	if (!status && !found) { return security::internal::debug_results::nt_query_information_process; }
@@ -173,7 +170,7 @@ int security::internal::memory::nt_set_information_thread() {
 
 	//dynamically acquire the address of NtQueryInformationProcess
 	_NtQueryInformationProcess NtQueryInformationProcess = NULL;
-	NtQueryInformationProcess = (_NtQueryInformationProcess)GetProcAddress(h_ntdll, ("NtQueryInformationProcess"));
+	NtQueryInformationProcess = (_NtQueryInformationProcess)GetProcAddress(h_ntdll, (xs("NtQueryInformationProcess")));
 
 	//if we cant get access for some reason, we return none
 	if (NtQueryInformationProcess == NULL) { return security::internal::debug_results::none; }
@@ -219,8 +216,7 @@ int security::internal::memory::debug_active_process() {
 	GetModuleFileName(NULL, sz_path, MAX_PATH);
 
 	char cmdline[MAX_PATH + 1 + sizeof(int)];
-	snprintf(cmdline, sizeof(cmdline), ("%s %d"), sz_path, pid);
-	//snprintf(cmdline, sizeof(cmdline), ("%ws %d"), sz_path, pid);
+	snprintf(cmdline, sizeof(cmdline), (xs("%s %d")), sz_path, pid);
 
 	//start child process
 	BOOL success = CreateProcessA(
@@ -393,6 +389,46 @@ int security::internal::exceptions::int_3() {
 	return security::internal::debug_results::int_3_cc;
 }
 
+//extended version of int3 (0xCC) opcode. INT n, RET   where n = 2nd byte in instruction.
+//without the debugger, something has to handle the breakpoint exception (our handler)
+//if it doesn't get hit, theres a debugger handling it instead -> we can detect that our handler was not run -> debugger found
+//possible bypass: most debuggers give an option (pass exception to the application or let the debugger handle it), if the debugger handles it, we can detect it.
+int security::internal::exceptions::multibyte_int3() {
+	__try
+	{
+		__asm //multi-byte version of INT3 stub
+		{
+			_emit 0xCD   //INT
+			_emit 0x03   //0x03
+			_emit 0xC3   //RET
+		}
+	}
+
+	//exception is handled by our app = debugger did not attempt to intervene
+	__except (EXCEPTION_EXECUTE_HANDLER) { return security::internal::debug_results::none; }
+
+	//if we don't get the exception, we return the right code.
+	return security::internal::debug_results::multibyte_int_3_cd;
+}
+
+//2c is a kernel interrupt (opcode 0x2c), acts as an assertion (assertion failure) break point when debugging
+int security::internal::exceptions::int_2c() {
+
+	__try
+	{
+		_asm
+		{
+			int 0x2C; //assertion interrupt
+		}
+	}
+
+	__except (EXCEPTION_EXECUTE_HANDLER) { return security::internal::debug_results::none; }
+
+	//if we don't get the exception, we return the right code.
+	return security::internal::debug_results::int_2c;
+}
+
+
 //2d is a kernel interrupt (opcode 0x2D), when it gets executed, windows will use the extended instruction pointer register value as the exception address,
 //after then it increments the extended instruction pointer register value by 1.
 //windows also checks the eax register value to determine how to adjust the exception address
@@ -455,7 +491,7 @@ int security::internal::exceptions::prefix_hop() {
 //if no debugger is present an error occurs -> we can check if the last error is not 0 (an error) -> debugger not found
 int security::internal::exceptions::debug_string() {
 	SetLastError(0);
-	OutputDebugStringA(("anti-debugging test."));
+	OutputDebugStringA((xs("Undefined")));
 
 	return (GetLastError() != 0) ? security::internal::debug_results::debug_string : security::internal::debug_results::none;
 }
@@ -524,8 +560,8 @@ int security::internal::timing::query_performance_counter() {
 
 //same as above
 int security::internal::timing::get_tick_count() {
-	DWORD t1;
-	DWORD t2;
+	ULONGLONG t1;
+	ULONGLONG t2;
 
 	t1 = GetTickCount64();
 
@@ -612,16 +648,19 @@ int security::internal::virtualization::check_registry() {
 	return security::internal::debug_results::none;
 }
 
+// This function is the Virtual Machine check, currently it does not work, 
+// but it allocates lots of data into the stack, needs to be fixed and change
+// some data allocation towards the heap to make warning go away
 int security::internal::virtualization::vm() {
-	if (CreateFile(("\\\\.\\VBoxMiniRdrDN"), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, 0, OPEN_EXISTING, 0, 0) != INVALID_HANDLE_VALUE) { return security::internal::debug_results::vm; }
+	if (CreateFile(xs("\\\\.\\VBoxMiniRdrDN"), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, 0, OPEN_EXISTING, 0, 0) != INVALID_HANDLE_VALUE) { return security::internal::debug_results::vm; }
 
-	if (LoadLibrary(("VBoxHook.dll"))) { return security::internal::debug_results::vm; }
+	if (LoadLibrary(xs("VBoxHook.dll"))) { return security::internal::debug_results::vm; }
 
 	HKEY h_key = 0;
-	if ((ERROR_SUCCESS == RegOpenKeyEx(HKEY_LOCAL_MACHINE, ("SOFTWARE\\Oracle\\VirtualBox Guest Additions"), 0, KEY_READ, &h_key)) && h_key) { RegCloseKey(h_key); return security::internal::debug_results::vm; }
+	if ((ERROR_SUCCESS == RegOpenKeyEx(HKEY_LOCAL_MACHINE, xs("SOFTWARE\\Oracle\\VirtualBox Guest Additions"), 0, KEY_READ, &h_key)) && h_key) { RegCloseKey(h_key); return security::internal::debug_results::vm; }
 
 	h_key = 0;
-	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, ("HARDWARE\\DESCRIPTION\\System"), 0, KEY_READ, &h_key) == ERROR_SUCCESS)
+	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, xs("HARDWARE\\DESCRIPTION\\System"), 0, KEY_READ, &h_key) == ERROR_SUCCESS)
 	{
 		unsigned long type = 0;
 		unsigned long size = 0x100;
@@ -659,7 +698,7 @@ int security::internal::virtualization::vm() {
 		RegCloseKey(h_key);
 	}
 
-	HANDLE h = CreateFile(("\\\\.\\pipe\\VBoxTrayIPC"), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING, 0, 0);
+	HANDLE h = CreateFile(xs("\\\\.\\pipe\\VBoxTrayIPC"), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING, 0, 0);
 	if (h != INVALID_HANDLE_VALUE) { CloseHandle(h); return security::internal::debug_results::vm; }
 
 	unsigned long pnsize = 0x1000;
@@ -667,10 +706,10 @@ int security::internal::virtualization::vm() {
 	wchar_t w_provider[0x1000];
 	mbstowcs(w_provider, s_provider, strlen(s_provider) + 1);
 
-	wchar_t w_subkey[22];
+	wchar_t w_subkey[35];
 
 	h_key = 0;
-	const char* s_subkey = ("SYSTEM\\CurrentControlSet\\Enum\\IDE");
+	const char* s_subkey = xs("SYSTEM\\CurrentControlSet\\Enum\\IDE");
 
 	mbstowcs(w_subkey, s_subkey, strlen(s_subkey) + 1);
 	if ((ERROR_SUCCESS == RegOpenKeyEx(HKEY_LOCAL_MACHINE, s_subkey, 0, KEY_READ, &h_key)) && h_key)
@@ -708,7 +747,7 @@ int security::internal::virtualization::vm() {
 								{
 									unsigned long size = 0xFFF;
 									unsigned char value_name[0x1000] = { 0 };
-									if (RegQueryValueEx(h_new_key, ("FriendlyName"), 0, 0, value_name, &size) == ERROR_SUCCESS) { to_lower(value_name); if (strstr((char*)value_name, ("vbox"))) { return security::internal::debug_results::vm; } }
+									if (RegQueryValueEx(h_new_key, xs("FriendlyName"), 0, 0, value_name, &size) == ERROR_SUCCESS) { to_lower(value_name); if (strstr((char*)value_name, xs("vbox"))) { return security::internal::debug_results::vm; } }
 									RegCloseKey(HKKK);
 								}
 							}
@@ -744,6 +783,7 @@ int security::internal::virtualization::vm() {
 	}
 
 	bool found = 0;
+
 	__asm
 	{
 		pushad
@@ -804,8 +844,14 @@ security::internal::debug_results security::check_security() {
 	//	return security::internal::debug_results::nt_query_information_process;
 	//}
 
+<<<<<<< HEAD
 	//if (security::internal::memory::debug_active_process() != security::internal::debug_results::none) {
 	//	return security::internal::debug_results::debug_active_process;
+=======
+	// BUG: tries to open the main process multiple times 
+	//if (security::internal::memory::debug_active_process() != security::internal::debug_results::none) {
+		//return security::internal::debug_results::debug_active_process;
+>>>>>>> 611f2f6502dfb4c87705390738945764acaa6ee9
 	//}
 
 	if (security::internal::memory::write_buffer() != security::internal::debug_results::none) {
@@ -823,6 +869,14 @@ security::internal::debug_results security::check_security() {
 
 	if (security::internal::exceptions::int_3() != security::internal::debug_results::none) {
 		return security::internal::debug_results::int_3_cc;
+	}
+
+	if (security::internal::exceptions::multibyte_int3() != security::internal::debug_results::none) {
+		return security::internal::debug_results::multibyte_int_3_cd;
+	}
+
+	if (security::internal::exceptions::int_2c() != security::internal::debug_results::none) {
+		return security::internal::debug_results::int_2c;
 	}
 
 	if (security::internal::exceptions::int_2d() != security::internal::debug_results::none) {
