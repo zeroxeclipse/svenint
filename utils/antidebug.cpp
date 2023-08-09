@@ -840,9 +840,9 @@ security::internal::debug_results security::check_security() {
 		return security::internal::debug_results::being_debugged_peb;
 	}
 
-	//if (security::internal::memory::nt_query_information_process() != security::internal::debug_results::none) {
-	//	return security::internal::debug_results::nt_query_information_process;
-	//}
+	if (security::internal::memory::nt_query_information_process() != security::internal::debug_results::none) {
+		return security::internal::debug_results::nt_query_information_process;
+	}
 
 	// BUG: tries to open the main process multiple times 
 	//if (security::internal::memory::debug_active_process() != security::internal::debug_results::none) {
