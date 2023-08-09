@@ -747,7 +747,8 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 
-		ImGui::Checkbox(xs("Skip Frames"), &g_Config.cvars.skip_frames);
+		ImGui::Checkbox( xs( "Skip Frames" ), &g_Config.cvars.skip_frames ); ImGui::SameLine();
+		ImGui::Checkbox( xs( "Skip Sequence of Frames" ), &g_Config.cvars.skip_frames_sequence );
 
 		ImGui::Spacing();
 

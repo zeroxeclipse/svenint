@@ -224,6 +224,7 @@ public:
 		bool no_fade = false;
 
 		bool skip_frames = false;
+		bool skip_frames_sequence = false;
 		int skip_frames_count = 1;
 
 		bool show_sound_origin = false;

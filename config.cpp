@@ -436,6 +436,7 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam( "NoShake", cvars.no_shake );
 			ConfigManager()->ImportParam( "NoFade", cvars.no_fade );
 			ConfigManager()->ImportParam( "SkipFrames", cvars.skip_frames );
+			ConfigManager()->ImportParam( "SkipFramesSequence", cvars.skip_frames_sequence );
 			ConfigManager()->ImportParam( "SkipFramesCount", cvars.skip_frames_count );
 			ConfigManager()->ImportParam( "DrawEntities", cvars.draw_entities );
 
@@ -1329,6 +1330,7 @@ void CConfig::Save()
 			ConfigManager()->ExportParam( "NoShake", cvars.no_shake );
 			ConfigManager()->ExportParam( "NoFade", cvars.no_fade );
 			ConfigManager()->ExportParam( "SkipFrames", cvars.skip_frames );
+			ConfigManager()->ExportParam( "SkipFramesSequence", cvars.skip_frames_sequence );
 			ConfigManager()->ExportParam( "SkipFramesCount", cvars.skip_frames_count );
 			ConfigManager()->ExportParam( "DrawEntities", cvars.draw_entities );
 

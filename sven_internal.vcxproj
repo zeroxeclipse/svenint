@@ -119,6 +119,7 @@
     <ClCompile Include="features\input_manager.cpp" />
     <ClCompile Include="features\keyspam.cpp" />
     <ClCompile Include="features\message_spammer.cpp" />
+    <ClCompile Include="features\midi_sound_player.cpp" />
     <ClCompile Include="features\misc.cpp" />
     <ClCompile Include="features\models_manager.cpp" />
     <ClCompile Include="features\radar.cpp" />
@@ -263,6 +264,7 @@
     <ClInclude Include="features\input_manager.h" />
     <ClInclude Include="features\keyspam.h" />
     <ClInclude Include="features\message_spammer.h" />
+    <ClInclude Include="features\midi_sound_player.h" />
     <ClInclude Include="features\misc.h" />
     <ClInclude Include="features\models_manager.h" />
     <ClInclude Include="features\radar.h" />

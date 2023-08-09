@@ -86,6 +86,7 @@ static bool s_bNotifyTimescaleChanged = false;
 // ConCommands, CVars..
 //-----------------------------------------------------------------------------
 
+ConVar sc_st_ignore_fps_change( "sc_st_ignore_fps_change", "0", FCVAR_CLIENTDLL, "Ignore FPS change" );
 ConVar sc_st_min_frametime( "sc_st_min_frametime", "0", FCVAR_CLIENTDLL, "Min frametime to run a frame" );
 
 ConVar sc_st_map_start_position( "sc_st_map_start_position", "", FCVAR_CLIENTDLL, "Restart map if player hasn't spawned in the given position\n\"x y\" - 2D position\n\"\" - disabled" );
@@ -96,7 +97,7 @@ ConVar sc_st_legit_mode_block_freeze_mouse_input( "sc_st_legit_mode_block_freeze
 
 static void CvarChangeHook_fps_max( cvar_t *pCvar, const char *pszOldValue, float flOldValue )
 {
-	if ( s_bIgnoreCvarChange || flOldValue == pCvar->value )
+	if ( sc_st_ignore_fps_change.GetBool() || s_bIgnoreCvarChange || flOldValue == pCvar->value )
 		return;
 
 	if ( sc_st_min_frametime.GetFloat() != 0.f )
@@ -960,32 +961,35 @@ void CSpeedrunTools::OnFirstClientdataReceived( client_data_t *pcldata, float fl
 // GameFrame
 //-----------------------------------------------------------------------------
 
-void CSpeedrunTools::GameFrame( void )
+void CSpeedrunTools::GameFrame( bool bPostRunCmd )
 {
-	CheckPlayerHulls_Server();
-
-	BroadcastTimescale();
-
-	if ( is_hl_c17 && iNihilanthIndex != 0 )
+	if ( !bPostRunCmd )
 	{
-		edict_t *pNihilanth = g_pServerEngineFuncs->pfnPEntityOfEntIndex( iNihilanthIndex );
+		CheckPlayerHulls_Server();
 
-		if ( pNihilanth != NULL && &pNihilanth->v == pNihilanthVars )
+		BroadcastTimescale();
+
+		if ( is_hl_c17 && iNihilanthIndex != 0 )
 		{
-			float flHealth = pNihilanthVars->health;
+			edict_t *pNihilanth = g_pServerEngineFuncs->pfnPEntityOfEntIndex( iNihilanthIndex );
 
-			if ( flHealth <= 0.f )
+			if ( pNihilanth != NULL && &pNihilanth->v == pNihilanthVars )
 			{
-				StopTimer();
+				float flHealth = pNihilanthVars->health;
 
+				if ( flHealth <= 0.f )
+				{
+					StopTimer();
+
+					iNihilanthIndex = 0;
+					pNihilanthVars = NULL;
+				}
+			}
+			else
+			{
 				iNihilanthIndex = 0;
 				pNihilanthVars = NULL;
 			}
-		}
-		else
-		{
-			iNihilanthIndex = 0;
-			pNihilanthVars = NULL;
 		}
 	}
 }

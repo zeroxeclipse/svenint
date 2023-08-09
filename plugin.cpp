@@ -2,8 +2,6 @@
 #error "RTTI enabled"
 #endif
 
-#define ANTIDEBUG -1
-
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -127,25 +125,6 @@ private:
 
 CSvenInternal g_SvenInternal;
 IClientPlugin *g_pClientPlugin = &g_SvenInternal;
-
-//-----------------------------------------------------------------------------
-// Debugging countermeasures
-//-----------------------------------------------------------------------------
-
-#if ANTIDEBUG
-FORCEINLINE void CheckDebug()
-{
-	// Testing 
-
-	if (security::check_security() != security::internal::debug_results::none) {
-		Warning("Security check was not successful.\n");
-	}
-	else
-	{
-		Msg("All good.\n");
-	}
-}
-#endif
 
 //-----------------------------------------------------------------------------
 // Implement plugin methods
@@ -431,7 +410,6 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 				g_Skybox.Think();
 				g_ChatColors.Think();
 				g_Visual.GameFrame();
-				g_SpeedrunTools.GameFrame();
 
 				//static int wait_frames_TAGS = 0;
 
@@ -470,6 +448,7 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 
 	if ( state == CLS_ACTIVE )
 	{
+		g_SpeedrunTools.GameFrame( bPostRunCmd );
 		g_InputManager.GameFrame( bPostRunCmd );
 	}
 }

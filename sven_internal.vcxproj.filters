@@ -437,6 +437,9 @@
     <ClCompile Include="scripts\lua_global_vars.cpp">
       <Filter>Sven Internal\Scripts</Filter>
     </ClCompile>
+    <ClCompile Include="features\midi_sound_player.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">
@@ -846,6 +849,9 @@
     </ClInclude>
     <ClInclude Include="scripts\lua_global_vars.h">
       <Filter>Sven Internal\Scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="features\midi_sound_player.h">
+      <Filter>Sven Internal\Features</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

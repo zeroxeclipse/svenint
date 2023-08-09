@@ -43,6 +43,7 @@
 #include "../features/custom_vote_popup.h"
 #include "../features/firstperson_roaming.h"
 #include "../features/message_spammer.h"
+#include "../features/midi_sound_player.h"
 #include "../features/keyspam.h"
 #include "../features/skybox.h"
 #include "../features/dynamic_glow.h"
@@ -278,6 +279,7 @@ FORCEINLINE void RunClientMoveHooks(float frametime, usercmd_t *cmd, int active)
 	g_CamHack.CreateMove( frametime, cmd, active );
 	g_ThirdPerson.CreateMove( frametime, cmd, active );
 	g_MessageSpammer.CreateMove( frametime, cmd, active );
+	g_MidiSoundPlayer.CreateMove( frametime, cmd, active );
 	g_SpeedrunTools.CreateMove( frametime, cmd, active );
 	g_Strafer.CreateMove( frametime, cmd, active );
 	g_Aim.CreateMove( frametime, cmd, active );
@@ -876,14 +878,30 @@ DECLARE_FUNC(void, __cdecl, HOOKED_SCR_UpdateScreen)
 	{
 		static int count = 0;
 
-		if ( count <= g_Config.cvars.skip_frames_count )
-			count++;
-
-		if ( count > g_Config.cvars.skip_frames_count )
+		if ( g_Config.cvars.skip_frames_sequence )
 		{
-			count = 0;
-			return;
-		};
+			if ( count <= g_Config.cvars.skip_frames_count )
+			{
+				count++;
+				return;
+			}
+			else
+			{
+				count = 0;
+			}
+		}
+		else
+		{
+			if ( count <= g_Config.cvars.skip_frames_count )
+			{
+				count++;
+			}
+			else
+			{
+				count = 0;
+				return;
+			}
+		}
 	};
 
 	ORIG_SCR_UpdateScreen();

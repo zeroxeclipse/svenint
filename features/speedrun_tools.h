@@ -44,7 +44,7 @@ public:
 	virtual void		Unload( void );
 
 public:
-	void				GameFrame( void );
+	void				GameFrame( bool bPostRunCmd );
 	void				CreateMove( float frametime, struct usercmd_s *cmd, int active );
 	void				OnVideoInit( void );
 	void				V_CalcRefDef( void );

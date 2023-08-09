@@ -1,12 +1,20 @@
 #pragma once
 
+#define ANTIDEBUG ( 0 )
+
+#include <platform.h>
+#include <dbg.h>
+
 #include <Windows.h>
 #include <Winternl.h>
 #include <string>
 
 #pragma warning( disable : 4091)
 
-//main namespace for security
+//-----------------------------------------------------------------------------
+// Main namespace for security
+//-----------------------------------------------------------------------------
+
 namespace security {
 	//internal (used by the security itself, no need to be used outside of namespace)
 	namespace internal {
@@ -99,4 +107,24 @@ namespace security {
 	}
 
 	internal::debug_results check_security();
+}
+
+//-----------------------------------------------------------------------------
+// Debugging countermeasures
+//-----------------------------------------------------------------------------
+
+FORCEINLINE void CheckDebug()
+{
+#if ANTIDEBUG
+	// Testing 
+
+	if ( security::check_security() != security::internal::debug_results::none )
+	{
+		Warning( "Security check was not successful.\n" );
+	}
+	else
+	{
+		Msg( "All good.\n" );
+	}
+#endif
 }
