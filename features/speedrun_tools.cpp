@@ -88,6 +88,8 @@ static bool s_bNotifyTimescaleChanged = false;
 
 ConVar sc_st_ignore_fps_change( "sc_st_ignore_fps_change", "0", FCVAR_CLIENTDLL, "Ignore FPS change" );
 ConVar sc_st_min_frametime( "sc_st_min_frametime", "0", FCVAR_CLIENTDLL, "Min frametime to run a frame" );
+ConVar sc_st_transmit_timer( "sc_st_transmit_timer", "1", FCVAR_CLIENTDLL, "Transmit to all clients the segment's time" );
+ConVar sc_st_transmit_timescale( "sc_st_transmit_timescale", "1", FCVAR_CLIENTDLL, "Transmit to all clients current timescale" );
 
 ConVar sc_st_map_start_position( "sc_st_map_start_position", "", FCVAR_CLIENTDLL, "Restart map if player hasn't spawned in the given position\n\"x y\" - 2D position\n\"\" - disabled" );
 ConVar sc_st_disable_spread( "sc_st_disable_spread", "0", FCVAR_CLIENTDLL, "Disables spread" );
@@ -1163,10 +1165,13 @@ void CSpeedrunTools::OnHUDRedraw( float time )
 
 		ShowTimer( flSegmentTime, true );
 
-		g_pServerEngineFuncs->pfnMessageBegin( MSG_BROADCAST, SVC_SVENINT, NULL, NULL );
-		g_pServerEngineFuncs->pfnWriteByte( SVENINT_COMM_TIMER );
-		g_pServerEngineFuncs->pfnWriteCoord( flSegmentTime );
-		g_pServerEngineFuncs->pfnMessageEnd();
+		if ( sc_st_transmit_timer.GetBool() )
+		{
+			g_pServerEngineFuncs->pfnMessageBegin( MSG_BROADCAST, SVC_SVENINT, NULL, NULL );
+			g_pServerEngineFuncs->pfnWriteByte( SVENINT_COMM_TIMER );
+			g_pServerEngineFuncs->pfnWriteCoord( flSegmentTime );
+			g_pServerEngineFuncs->pfnMessageEnd();
+		}
 	}
 	else if ( m_flLastTimerUpdate > 0.f && *dbRealtime - m_flLastTimerUpdate <= 1.f )
 	{
@@ -2444,13 +2449,16 @@ void CSpeedrunTools::BroadcastTimescale( void )
 {
 	if ( Host_IsServerActive() && fps_max->value != 20.f )
 	{
-		g_pServerEngineFuncs->pfnMessageBegin( MSG_BROADCAST, SVC_SVENINT, NULL, NULL );
-		g_pServerEngineFuncs->pfnWriteByte( SVENINT_COMM_TIMESCALE );
-		g_pServerEngineFuncs->pfnWriteByte( s_bNotifyTimescaleChanged ? 1 : 0 );
-		g_pServerEngineFuncs->pfnWriteLong( FloatToLong32( host_framerate->value ) );
-		g_pServerEngineFuncs->pfnWriteLong( FloatToLong32( fps_max->value ) );
-		g_pServerEngineFuncs->pfnWriteLong( FloatToLong32( sc_st_min_frametime.GetFloat() ) );
-		g_pServerEngineFuncs->pfnMessageEnd();
+		if ( sc_st_transmit_timescale.GetBool() )
+		{
+			g_pServerEngineFuncs->pfnMessageBegin( MSG_BROADCAST, SVC_SVENINT, NULL, NULL );
+			g_pServerEngineFuncs->pfnWriteByte( SVENINT_COMM_TIMESCALE );
+			g_pServerEngineFuncs->pfnWriteByte( s_bNotifyTimescaleChanged ? 1 : 0 );
+			g_pServerEngineFuncs->pfnWriteLong( FloatToLong32( host_framerate->value ) );
+			g_pServerEngineFuncs->pfnWriteLong( FloatToLong32( fps_max->value ) );
+			g_pServerEngineFuncs->pfnWriteLong( FloatToLong32( sc_st_min_frametime.GetFloat() ) );
+			g_pServerEngineFuncs->pfnMessageEnd();
+		}
 
 		s_bNotifyTimescaleChanged = false;
 	}

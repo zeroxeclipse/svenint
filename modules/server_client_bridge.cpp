@@ -11,6 +11,7 @@
 #include "../features/speedrun_tools.h"
 #include "../scripts/scripts.h"
 #include "../game/utils.h"
+#include "../utils/xorstr.h"
 
 extern bool g_bPlayingbackDemo;
 
@@ -126,9 +127,9 @@ void CServerClientBridge::OnClientPutInServer( edict_t *pPlayer )
 
 void CServerClientBridge::Init( void )
 {
-	if ( g_pEngineFuncs->HookUserMsg("SvenInt", UserMsgHook_SvenInt) != 0 )
+	if ( g_pEngineFuncs->HookUserMsg(xs("SvenInt"), UserMsgHook_SvenInt) != 0 )
     {
-        usermsg_t *pUserMsg = const_cast<usermsg_t *>( Utils()->FindUserMessage("SvenInt") );
+        usermsg_t *pUserMsg = const_cast<usermsg_t *>( Utils()->FindUserMessage(xs("SvenInt")) );
 
         if ( pUserMsg != NULL )
         {

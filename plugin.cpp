@@ -47,7 +47,7 @@
 #include "features/input_manager.h"
 
 #include "steam/steam_api.h"
-#include "utils/antidebug.hpp"
+#include "utils/security.hpp"
 #include "utils/xorstr.h"
 
 //-----------------------------------------------------------------------------
@@ -183,11 +183,14 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 	glGetIntegerv( GL_MAJOR_VERSION, &major );
 	glGetIntegerv( GL_MINOR_VERSION, &minor );
 
-	DevMsg( "GL Vendor            : %s\n", vendor );
-	DevMsg( "GL Renderer          : %s\n", renderer );
-	DevMsg( "GL Version (string)  : %s\n", version );
-	DevMsg( "GL Version (integer) : %d.%d\n", major, minor );
-	DevMsg( "GLSL Version         : %s\n", glslVersion );
+	if ( CVar()->GetBoolFromCvar( xs( "developer" ) ) )
+	{
+		DevMsg( xs( "GL Vendor            : %s\n" ), vendor );
+		DevMsg( xs( "GL Renderer          : %s\n" ), renderer );
+		DevMsg( xs( "GL Version (string)  : %s\n" ), version );
+		DevMsg( xs( "GL Version (integer) : %d.%d\n" ), major, minor );
+		DevMsg( xs( "GLSL Version         : %s\n" ), glslVersion );
+	}
 
 #if SECURITY_CHECKS
 	AntiDebug();
@@ -206,6 +209,7 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 	if ( !std::binary_search( g_Gods.begin(), g_Gods.end(), g_ullSteam64ID ) )
 	{
 		//Warning(xs("[Sven Internal] You're not allowed to use this plugin\n"));
+		security::obfuscate_exit();
 		return false;
 	}
 
@@ -656,7 +660,7 @@ static void SaveSoundcache()
 {
 	if ( !*szSoundcacheDirectory )
 	{
-		snprintf(szSoundcacheDirectory, MAX_PATH, "%s\\svencoop_downloads\\maps\\soundcache\\", SvenModAPI()->GetBaseDirectory());
+		snprintf(szSoundcacheDirectory, MAX_PATH, xs("%s\\svencoop_downloads\\maps\\soundcache\\"), SvenModAPI()->GetBaseDirectory());
 	}
 
 	if ( g_Config.cvars.save_soundcache )

@@ -344,7 +344,7 @@
     <ClCompile Include="friends.cpp">
       <Filter>Sven Internal</Filter>
     </ClCompile>
-    <ClCompile Include="utils\antidebug.cpp">
+    <ClCompile Include="utils\security.cpp">
       <Filter>Sven Internal\Utils</Filter>
     </ClCompile>
     <ClCompile Include="features\shaders.cpp">
@@ -745,7 +745,7 @@
     <ClInclude Include="friends.h">
       <Filter>Sven Internal</Filter>
     </ClInclude>
-    <ClInclude Include="utils\antidebug.h">
+    <ClInclude Include="utils\security.hpp">
       <Filter>Sven Internal\Utils</Filter>
     </ClInclude>
     <ClInclude Include="features\shaders.h">
