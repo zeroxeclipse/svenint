@@ -85,7 +85,7 @@
       </PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>svenmod\public;glew\include;imgui;imgui_impl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>false</OpenMPSupport>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <AdditionalOptions>/GR- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -94,8 +94,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalLibraryDirectories>glew\lib\Release\Win32;steam\lib;svenmod\lib\public;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>svenmod.lib;steam_api.lib;OpenGL32.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>glew\lib\Release\Win32;steam\lib;svenmod\lib\public;cryptopp\include;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>svenmod.lib;steam_api.lib;OpenGL32.lib;glew32.lib;cryptlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>D:\GAMES\Steam\steamapps\common\Sven Co-op\svenmod\plugins\$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
@@ -137,6 +137,7 @@
     <ClCompile Include="game\draw_context.cpp" />
     <ClCompile Include="game\entitylist.cpp" />
     <ClCompile Include="game\utils.cpp" />
+    <ClCompile Include="hashes.cpp" />
     <ClCompile Include="imgui\imgui.cpp" />
     <ClCompile Include="imgui\imgui_demo.cpp" />
     <ClCompile Include="imgui\imgui_draw.cpp" />
@@ -283,6 +284,7 @@
     <ClInclude Include="game\entitylist.h" />
     <ClInclude Include="game\structs.h" />
     <ClInclude Include="game\utils.h" />
+    <ClInclude Include="hashes.h" />
     <ClInclude Include="imgui\imconfig.h" />
     <ClInclude Include="imgui\imgui.h" />
     <ClInclude Include="imgui\imgui_internal.h" />

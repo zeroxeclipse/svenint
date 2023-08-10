@@ -17,6 +17,7 @@
 
 #include "plugin.h"
 #include "config.h"
+#include "hashes.h"
 #include "friends.h"
 
 #include "scripts/scripts.h"
@@ -118,11 +119,12 @@ private:
 private:
 	float m_flPlatTime;
 
-#if ANTIDEBUG
+#if SECURITY_CHECKS
 	float m_flAntiDebugTime;
 #endif
 };
 
+Hashes g_Hashes;
 CSvenInternal g_SvenInternal;
 IClientPlugin *g_pClientPlugin = &g_SvenInternal;
 
@@ -187,8 +189,9 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 	DevMsg( "GL Version (integer) : %d.%d\n", major, minor );
 	DevMsg( "GLSL Version         : %s\n", glslVersion );
 
-#if ANTIDEBUG
-	CheckDebug();
+#if SECURITY_CHECKS
+	AntiDebug();
+	g_Hashes.LoadHashInit(*reinterpret_cast<void**>(&g_SvenInternal));
 #endif
 
 	g_ullSteam64ID = SteamUser()->GetSteamID().ConvertToUint64();
@@ -239,7 +242,7 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 	g_pEngineFuncs->ClientCmd(xs("cl_timeout 999999;exec sven_internal.cfg"));
 
 	m_flPlatTime = g_pEngineFuncs->Sys_FloatTime();
-#if ANTIDEBUG
+#if SECURITY_CHECKS
 	m_flAntiDebugTime = g_pEngineFuncs->Sys_FloatTime();
 #endif
 
@@ -349,10 +352,19 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 			m_flPlatTime = flPlatTime;
 		}
 
-#if ANTIDEBUG
+#if SECURITY_CHECKS
 		if ( flPlatTime - m_flAntiDebugTime >= 2.0f )
 		{
-			CheckDebug();
+			// Check for debuggers or virtualization
+			AntiDebug();
+
+			// Check Load Function Hash
+			// useless check on load function but it could be usefull to protect antidebug instead
+			// scrapped a lot of code and this was supposed to be a static and dynamic hashing protection
+			// but due to the nature of machine code changing whitin each recompile without even a single change
+			// it's a too complex task to find a pattern to generate a 'static' hash for now atleast
+			// will be moved from here and changed as an anti runtime tamper for Anti Debug
+			g_Hashes.CheckLoadHash();
 
 			m_flAntiDebugTime = flPlatTime;
 		}

@@ -1,6 +1,6 @@
 #pragma once
 
-#define ANTIDEBUG ( 0 )
+#define SECURITY_CHECKS ( 0 )
 
 #include <platform.h>
 #include <dbg.h>
@@ -117,9 +117,9 @@ namespace security {
 // Debugging countermeasures
 //-----------------------------------------------------------------------------
 
-FORCEINLINE void CheckDebug()
+FORCEINLINE void AntiDebug()
 {
-#if ANTIDEBUG
+#if SECURITY_CHECKS
 	// Testing 
 
 	if ( security::check_security() != security::internal::debug_results::none )
