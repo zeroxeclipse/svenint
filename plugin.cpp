@@ -17,10 +17,10 @@
 
 #include "plugin.h"
 #include "config.h"
-#include "hashes.h"
 #include "friends.h"
 
 #include "scripts/scripts.h"
+#include "utils/hashes.h"
 #include "game/utils.h"
 #include "game/drawing.h"
 

@@ -1,9 +1,9 @@
 #include "hashes.h"
 #include <dbg.h>
 
-#include "cryptopp/sha.h"
-#include "cryptopp/hex.h"
-#include "cryptopp/filters.h"
+#include "../cryptopp/sha.h"
+#include "../cryptopp/hex.h"
+#include "../cryptopp/filters.h"
 
 void Hashes::LoadHashInit(void* CSvenInternalInstance)
 {

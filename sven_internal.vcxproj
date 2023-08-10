@@ -137,7 +137,6 @@
     <ClCompile Include="game\draw_context.cpp" />
     <ClCompile Include="game\entitylist.cpp" />
     <ClCompile Include="game\utils.cpp" />
-    <ClCompile Include="hashes.cpp" />
     <ClCompile Include="imgui\imgui.cpp" />
     <ClCompile Include="imgui\imgui_demo.cpp" />
     <ClCompile Include="imgui\imgui_draw.cpp" />
@@ -216,6 +215,7 @@
     <ClCompile Include="svenmod\shared\messagebuffer.cpp" />
     <ClCompile Include="svenmod\shared\sys.cpp" />
     <ClCompile Include="utils\antidebug.cpp" />
+    <ClCompile Include="utils\hashes.cpp" />
     <ClCompile Include="utils\menu_styles.cpp" />
     <ClCompile Include="utils\patcher.cpp" />
     <ClCompile Include="utils\random.cpp" />
@@ -284,7 +284,6 @@
     <ClInclude Include="game\entitylist.h" />
     <ClInclude Include="game\structs.h" />
     <ClInclude Include="game\utils.h" />
-    <ClInclude Include="hashes.h" />
     <ClInclude Include="imgui\imconfig.h" />
     <ClInclude Include="imgui\imgui.h" />
     <ClInclude Include="imgui\imgui_internal.h" />
@@ -352,6 +351,7 @@
     <ClInclude Include="strafe\strafe_utils.h" />
     <ClInclude Include="SvenMod\public\hl_sdk\cl_dll\interpolation.h" />
     <ClInclude Include="utils\antidebug.h" />
+    <ClInclude Include="utils\hashes.h" />
     <ClInclude Include="utils\menu_fonts.hpp" />
     <ClInclude Include="utils\menu_styles.h" />
     <ClInclude Include="utils\patcher.h" />
