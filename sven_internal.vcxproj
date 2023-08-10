@@ -95,7 +95,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>glew\lib\Release\Win32;steam\lib;svenmod\lib\public;cryptopp\include;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>svenmod.lib;steam_api.lib;OpenGL32.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>svenmod.lib;steam_api.lib;OpenGL32.lib;glew32.lib;cryptlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>D:\GAMES\Steam\steamapps\common\Sven Co-op\svenmod\plugins\$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
