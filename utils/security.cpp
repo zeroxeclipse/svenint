@@ -6,14 +6,45 @@
 #include <sstream>
 #include <iostream>
 
-#include "antidebug.hpp"
+#include "security.hpp"
 
 #include "xorstr.h"
 
 //precompiler instructions -> replace the xor(string) with a xor(xor'd_string) so that
 //the strings won't be caught by static analysis
 
-bool found = true;
+static bool found = true;
+
+// so stupid
+NOINLINE void security::obfuscate_exit()
+{
+	obfuscate_exit_1();
+}
+
+NOINLINE void security::obfuscate_exit_1()
+{
+	obfuscate_exit_2();
+}
+
+NOINLINE void security::obfuscate_exit_2()
+{
+	obfuscate_exit_3();
+}
+
+NOINLINE void security::obfuscate_exit_3()
+{
+	obfuscate_exit_4();
+}
+
+NOINLINE void security::obfuscate_exit_4()
+{
+	obfuscate_exit_5();
+}
+
+NOINLINE void security::obfuscate_exit_5()
+{
+	exit( 0 );
+}
 
 int __cdecl security::internal::vm_handler(EXCEPTION_RECORD* p_rec, void* est, unsigned char* p_context, void* disp)
 {

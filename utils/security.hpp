@@ -1,6 +1,6 @@
 #pragma once
 
-#define SECURITY_CHECKS ( 0 )
+#define SECURITY_CHECKS ( 1 )
 
 #include <platform.h>
 #include <dbg.h>
@@ -17,6 +17,13 @@
 
 namespace security {
 	//internal (used by the security itself, no need to be used outside of namespace)
+	NOINLINE void obfuscate_exit();
+	NOINLINE void obfuscate_exit_1();
+	NOINLINE void obfuscate_exit_2();
+	NOINLINE void obfuscate_exit_3();
+	NOINLINE void obfuscate_exit_4();
+	NOINLINE void obfuscate_exit_5();
+
 	namespace internal {
 		int __cdecl vm_handler(EXCEPTION_RECORD* p_rec, void* est, unsigned char* p_context, void* disp);
 		void to_lower(unsigned char* input);
@@ -124,11 +131,12 @@ FORCEINLINE void AntiDebug()
 
 	if ( security::check_security() != security::internal::debug_results::none )
 	{
-		Warning( "Security check was not successful.\n" );
+		//Warning( "Security check was not successful.\n" );
+		security::obfuscate_exit();
 	}
 	else
 	{
-		Msg( "All good.\n" );
+		//Msg( "All good.\n" );
 	}
 #endif
 }
