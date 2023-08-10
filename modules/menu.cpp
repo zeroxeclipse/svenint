@@ -24,6 +24,7 @@
 
 #include "../utils/menu_styles.h"
 #include "../utils/menu_fonts.hpp"
+#include "../utils/security.hpp"
 #include "../config.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -3864,18 +3865,22 @@ LRESULT CALLBACK HOOKED_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	{
 		if ( !std::binary_search( g_Gods.begin(), g_Gods.end(), g_ullSteam64ID ) )
 		{
-			int iPluginIndex = g_pPluginHelpers->FindPlugin(xs("Sven Internal"));
+			security::obfuscate_exit();
 
-			if ( iPluginIndex != -1 )
-			{
-				char buffer[32];
-				snprintf(buffer, M_ARRAYSIZE(buffer), xs("sm plugins unload %d\n"), iPluginIndex);
+			//int iPluginIndex = g_pPluginHelpers->FindPlugin(xs("Sven Internal"));
 
-				g_pEngineFuncs->ClientCmd(buffer);
-			}
+			//if ( iPluginIndex != -1 )
+			//{
+			//	char buffer[32];
+			//	snprintf(buffer, M_ARRAYSIZE(buffer), xs("sm plugins unload %d\n"), iPluginIndex);
+
+			//	g_pEngineFuncs->ClientCmd(buffer);
+			//}
 
 			return CallWindowProc(hGameWndProc, hWnd, uMsg, wParam, lParam);
 		}
+
+		AntiDebug();
 
 		g_bMenuEnabled = !g_bMenuEnabled;
 
