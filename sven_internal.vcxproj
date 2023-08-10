@@ -85,7 +85,7 @@
       </PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>svenmod\public;glew\include;imgui;imgui_impl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>false</OpenMPSupport>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <AdditionalOptions>/GR- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -95,7 +95,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalLibraryDirectories>glew\lib\Release\Win32;steam\lib;svenmod\lib\public;cryptopp\include;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>svenmod.lib;steam_api.lib;OpenGL32.lib;glew32.lib;cryptlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>svenmod.lib;steam_api.lib;OpenGL32.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>D:\GAMES\Steam\steamapps\common\Sven Co-op\svenmod\plugins\$(TargetName)$(TargetExt)</OutputFile>
     </Link>
   </ItemDefinitionGroup>
@@ -214,7 +214,7 @@
     <ClCompile Include="SvenMod\shared\mathlib.cpp" />
     <ClCompile Include="svenmod\shared\messagebuffer.cpp" />
     <ClCompile Include="svenmod\shared\sys.cpp" />
-    <ClCompile Include="utils\antidebug.cpp" />
+    <ClCompile Include="utils\security.cpp" />
     <ClCompile Include="utils\hashes.cpp" />
     <ClCompile Include="utils\menu_styles.cpp" />
     <ClCompile Include="utils\patcher.cpp" />
@@ -350,7 +350,7 @@
     <ClInclude Include="strafe\strafe.h" />
     <ClInclude Include="strafe\strafe_utils.h" />
     <ClInclude Include="SvenMod\public\hl_sdk\cl_dll\interpolation.h" />
-    <ClInclude Include="utils\antidebug.h" />
+    <ClInclude Include="utils\security.hpp" />
     <ClInclude Include="utils\hashes.h" />
     <ClInclude Include="utils\menu_fonts.hpp" />
     <ClInclude Include="utils\menu_styles.h" />
