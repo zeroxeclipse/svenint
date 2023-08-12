@@ -156,7 +156,7 @@ LUALIB_API int luaopen_entvars( lua_State *pLuaState )
 		VLua::BindProperty( ENTVARS_TYPE, "waterlevel", VLuaPropertyDesc( entvars_t, waterlevel ) );
 		VLua::BindProperty( ENTVARS_TYPE, "watertype", VLuaPropertyDesc( entvars_t, watertype ) );
 		VLua::BindProperty( ENTVARS_TYPE, "target", VLuaPropertyDescFieldtype( entvars_t, target, VLUA_FIELD_TYPE_STRING ), true, false );
-		VLua::BindProperty( ENTVARS_TYPE, "targetname", VLuaPropertyDescFieldtype( entvars_t, targetname, VLUA_FIELD_TYPE_STRING ), true, false );
+		VLua::BindProperty( ENTVARS_TYPE, "targetname", VLuaPropertyDescFieldtype( entvars_t, targetname, VLUA_FIELD_TYPE_STRING ), true, true ); // true, false
 		VLua::BindProperty( ENTVARS_TYPE, "netname", VLuaPropertyDescFieldtype( entvars_t, netname, VLUA_FIELD_TYPE_STRING ), true, false );
 		VLua::BindProperty( ENTVARS_TYPE, "message", VLuaPropertyDescFieldtype( entvars_t, message, VLUA_FIELD_TYPE_STRING ), true, false );
 		VLua::BindProperty( ENTVARS_TYPE, "dmg_take", VLuaPropertyDesc( entvars_t, dmg_take ) );

@@ -8,7 +8,9 @@
 
 #include "security.hpp"
 
+#ifndef xs
 #include "xorstr.h"
+#endif
 
 //precompiler instructions -> replace the xor(string) with a xor(xor'd_string) so that
 //the strings won't be caught by static analysis

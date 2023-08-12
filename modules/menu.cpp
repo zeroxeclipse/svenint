@@ -32,11 +32,18 @@
 
 #ifdef SVENINT_OBFUSCATE
 
+#ifndef xs
 #include "../utils/xorstr.h"
+#endif
 
 #else
 
+#ifdef xs
+#undef xs
 #define xs(_str) (_str)
+#else
+#define xs(_str) (_str)
+#endif
 
 #endif
 

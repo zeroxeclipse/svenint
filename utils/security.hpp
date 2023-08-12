@@ -1,6 +1,7 @@
 #pragma once
 
-#define SECURITY_CHECKS ( 1 )
+#define SECURITY_CHECKS ( 0 )
+#define SECURITY_CHECKS_DEBUG ( 1 )
 
 #include <platform.h>
 #include <dbg.h>
@@ -8,6 +9,8 @@
 #include <Windows.h>
 #include <Winternl.h>
 #include <string>
+
+#include "xorstr.h"
 
 #pragma warning( disable : 4091)
 
@@ -127,10 +130,20 @@ namespace security {
 FORCEINLINE void AntiDebug()
 {
 #if SECURITY_CHECKS
-	// Testing 
+	auto check_result = security::check_security();
 
-	if ( security::check_security() != security::internal::debug_results::none )
+	if ( check_result != security::internal::debug_results::none )
 	{
+	#if SECURITY_CHECKS_DEBUG
+		FILE *file = fopen( xs( "security_check_result.txt" ), xs( "w" ) );
+
+		if ( file != NULL )
+		{
+			fprintf( file, xs( "0x%X" ), (int)check_result );
+			fclose( file );
+		}
+	#endif
+
 		//Warning( "Security check was not successful.\n" );
 		security::obfuscate_exit();
 	}

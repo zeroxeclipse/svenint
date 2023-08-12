@@ -128,6 +128,38 @@ DEFINE_SCRIPTFUNC( PrintChatText )
 	return VLUA_RET_ARGS( 0 );
 }
 
+DEFINE_SCRIPTFUNC( AllocEngineString )
+{
+	const char *pszString = lua_tostring( pLuaState, 1 );
+
+	if ( pszString == NULL )
+	{
+		lua_pushinteger( pLuaState, -1 );
+		return VLUA_RET_ARGS( 1 );
+	}
+
+	int string = g_pServerEngineFuncs->pfnAllocString( pszString );
+
+	lua_pushinteger( pLuaState, string );
+
+	return VLUA_RET_ARGS( 1 );
+}
+
+DEFINE_SCRIPTFUNC( KeyValue )
+{
+	edict_t *pEdict = lua_getedict( pLuaState, 1 );
+	const char *pszKeyname = lua_tostring( pLuaState, 2 );
+	const char *pszValue = lua_tostring( pLuaState, 3 );
+
+	KeyValueData kv = { gpGlobals->pStringBase + pEdict->v.classname, pszKeyname, pszValue, 0 };
+
+	g_pServerFuncs->pfnKeyValue( pEdict, &kv );
+
+	lua_pushboolean( pLuaState, (int)!!kv.fHandled );
+
+	return VLUA_RET_ARGS( 1 );
+}
+
 DEFINE_SCRIPTFUNC( GetPEntityFromEntityIndex )
 {
 	if ( !Host_IsServerActive() )
@@ -435,6 +467,8 @@ LUALIB_API int luaopen_mod( lua_State *pLuaState )
 	VLua::RegisterFunction( "GetMapName", SCRIPTFUNC( GetMapName ) );
 	VLua::RegisterFunction( "ClientCmd", SCRIPTFUNC( ClientCmd ) );
 	VLua::RegisterFunction( "PrintChatText", SCRIPTFUNC( PrintChatText ) );
+	VLua::RegisterFunction( "AllocEngineString", SCRIPTFUNC( AllocEngineString ) );
+	VLua::RegisterFunction( "KeyValue", SCRIPTFUNC( KeyValue ) );
 	VLua::RegisterFunction( "GetPEntityFromEntityIndex", SCRIPTFUNC( GetPEntityFromEntityIndex ) );
 	VLua::RegisterFunction( "GetPEntityFromPlayerName", SCRIPTFUNC( GetPEntityFromPlayerName ) );
 	VLua::RegisterFunction( "GetEntityIndexFromEdict", SCRIPTFUNC( GetEntityIndexFromEdict ) );

@@ -401,8 +401,13 @@ namespace VLua
 			*(scriptref_t *)pVariable = (scriptref_t)luaL_ref( pLuaState, LUA_REGISTRYINDEX );
 			break;
 		case VLUA_FIELD_TYPE_STRING:
-			Sys_Error( "Implement VLUA_FIELD_TYPE_STRING" );
+		{
+			string_t iString = (string_t)(int)lua_tointeger( pLuaState, idx );
+			if ( iString > 0 )
+				*(string_t *)pVariable = (string_t)(int)lua_tointeger( pLuaState, idx );
+			//Sys_Error( "Implement VLUA_FIELD_TYPE_STRING" );
 			break;
+		}
 		case VLUA_FIELD_TYPE_USERCMD:
 			*(usercmd_t **)pVariable = lua_getusercmd( pLuaState, idx );
 			break;
