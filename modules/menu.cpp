@@ -594,6 +594,8 @@ void CMenuModule::DrawStats()
 
 	ImGui::PushFont( m_pMenuFontDefault );
 
+	EasyAntiDebug();
+
 	ImGui::Text(xs("%.3f ms/frame"), 1000.0f / ImGui::GetIO().Framerate);
 	ImGui::Text(xs("%.1f FPS"), ImGui::GetIO().Framerate);
 
@@ -3914,6 +3916,8 @@ LRESULT CALLBACK HOOKED_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	{
 		ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
 	}
+
+	EasyAntiDebug();
 
 	return CallWindowProc(hGameWndProc, hWnd, uMsg, wParam, lParam);
 }

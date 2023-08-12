@@ -10,19 +10,82 @@
 
 #include "xorstr.h"
 
-//precompiler instructions -> replace the xor(string) with a xor(xor'd_string) so that
-//the strings won't be caught by static analysis
+#include "../cryptopp/sha.h"
+#include "../cryptopp/hex.h"
+#include "../cryptopp/filters.h"
+
+//-----------------------------------------------------------------------------
+// Hashes
+//-----------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------
+// Debug
+//-----------------------------------------------------------------------------
+
+bool security::global_flags::byobfuscatedexit = false;
 
 static bool found = true;
+
+int security::debug::decoy() // idk i think this is more stupid xD
+{
+	int x = 10;
+	for ( int i = 0; i < 1000; ++i )
+	{
+		x = ( x * 37 + 91 ) % 997;
+	}
+
+	if ( x == 000000 )
+		return 1;
+	if ( x == 111111 )
+		return 0;
+}
+
+unsigned int security::debug::Randomize()
+{
+	static unsigned int seed = static_cast<unsigned int>( std::time( nullptr ) );
+	seed = ( seed * 1103515245 + 12345 ) & 0x7FFFFFFF;
+	return seed;
+}
+
+unsigned int security::debug::RandomPick = 0xFFFFFFFFF;
+
+int ( *security::debug::Picked )( ) = security::debug::decoy;
+
+int (*security::debug::funcs[])() =
+{
+security::debug::memory::being_debugged_peb, security::debug::memory::remote_debugger_present, security::debug::memory::check_window_name,
+security::debug::memory::is_debugger_present, security::debug::memory::nt_global_flag_peb, security::debug::memory::nt_query_information_process,
+security::debug::memory::nt_set_information_thread, security::debug::memory::write_buffer, security::debug::exceptions::close_handle_exception,
+security::debug::exceptions::single_step_exception, security::debug::exceptions::multibyte_int3, security::debug::exceptions::int_3,
+security::debug::exceptions::int_2c, security::debug::exceptions::int_2d, security::debug::exceptions::prefix_hop,
+security::debug::exceptions::debug_string, security::debug::timing::rdtsc, security::debug::timing::query_performance_counter,
+security::debug::timing::get_tick_count, security::debug::cpu::hardware_debug_registers, security::debug::cpu::mov_ss,
+security::debug::virtualization::check_cpuid, security::debug::virtualization::check_registry,
+};
+
+void security::debug::Dispatch()
+{
+	security::debug::RandomPick = Randomize() % ( sizeof( funcs ) / sizeof( funcs[ 0 ] ) );
+	security::debug::Picked = funcs[ RandomPick ];
+}
 
 // so stupid
 NOINLINE void security::obfuscate_exit()
 {
+	security::global_flags::byobfuscatedexit = true;
 	obfuscate_exit_1();
 }
 
 NOINLINE void security::obfuscate_exit_1()
 {
+
+	__asm 
+	{
+		int 3
+		int 3
+		int 3
+	}
+
 	obfuscate_exit_2();
 }
 
@@ -46,14 +109,14 @@ NOINLINE void security::obfuscate_exit_5()
 	exit( 0 );
 }
 
-int __cdecl security::internal::vm_handler(EXCEPTION_RECORD* p_rec, void* est, unsigned char* p_context, void* disp)
+int __cdecl security::debug::vm_handler(EXCEPTION_RECORD* p_rec, void* est, unsigned char* p_context, void* disp)
 {
 	found = true;
 	(*(unsigned long*)(p_context + 0xB8)) += 4;
 	return ExceptionContinueExecution;
 }
 
-void security::internal::to_lower(unsigned char* input)
+void security::debug::to_lower(unsigned char* input)
 {
 	char* p = (char*)input;
 	unsigned long length = strlen(p);
@@ -62,7 +125,7 @@ void security::internal::to_lower(unsigned char* input)
 
 //returns strings for the check_window_name() function
 //this combined with the xoring of strings is to prevent static analysis / make it harder
-LPCSTR security::internal::get_string(int index) 
+LPCSTR security::debug::get_string(int index) 
 {
 	const char* value = nullptr;
 
@@ -82,7 +145,7 @@ LPCSTR security::internal::get_string(int index)
 
 //checks the process environment block (peb) for a "beingdebugged" field (gets set if process is launched in a debugger)
 //possible bypass: once the peb byte is set, set the value to 0 before the application checks
-int security::internal::memory::being_debugged_peb() {
+int security::debug::memory::being_debugged_peb() {
 	BOOL found = FALSE;
 	_asm
 	{
@@ -93,12 +156,12 @@ int security::internal::memory::being_debugged_peb() {
 		mov found, eax;			//copy value to found
 	}
 
-	return (found) ? security::internal::debug_results::being_debugged_peb : security::internal::debug_results::none;
+	return (found) ? security::debug::results::being_debugged_peb : security::debug::results::none;
 }
 
 //checks if a debugger is running (in another system/process)
 //possible bypass: set a breakpoint before this gets called, single step, set the return value to 0
-int security::internal::memory::remote_debugger_present() {
+int security::debug::memory::remote_debugger_present() {
 	//declare variables to hold the process handle & bool to check if it was found
 	HANDLE h_process = INVALID_HANDLE_VALUE;
 	BOOL found = FALSE;
@@ -109,33 +172,33 @@ int security::internal::memory::remote_debugger_present() {
 	CheckRemoteDebuggerPresent(h_process, &found);
 
 	//if found is true, we return the right code.
-	return (found) ? security::internal::debug_results::remote_debugger_present : security::internal::debug_results::none;
+	return (found) ? security::debug::results::remote_debugger_present : security::debug::results::none;
 }
 
 //checks if certain windows are present (not the name that can be easily changed but the window_class_name)
 //possible bypass: set a breakpoint before this gets called, single step, set the return value to 0
-int security::internal::memory::check_window_name() {
+int security::debug::memory::check_window_name() {
 	LPCSTR names[4] = { get_string(0), get_string(1), get_string(2), get_string(3) };
 
 	for (LPCSTR name : names) {
-		if (FindWindow(name, 0)) { return security::internal::debug_results::find_window; }
+		if (FindWindow(name, 0)) { return security::debug::results::find_window; }
 	}
 
-	return security::internal::debug_results::none;
+	return security::debug::results::none;
 }
 
 //another check for the peb flag, this time by the function from winapi.h
 //possible bypass: set a breakpoint before this gets called, single step, set the return value to 0
-int security::internal::memory::is_debugger_present() {
+int security::debug::memory::is_debugger_present() {
 	//if debugger is found, we return the right code.
-	return (IsDebuggerPresent()) ? security::internal::debug_results::debugger_is_present : security::internal::debug_results::none;
+	return (IsDebuggerPresent()) ? security::debug::results::debugger_is_present : security::debug::results::none;
 }
 
 //looks for process environment block references
 //they usually start with FS:[0x30h]. fs = frame segment, indicates reference to the programs internal header structures
 //0x68 offset from the peb is ntglobalflag, three flags get set if a process is being debugged
 //FLG_HEAP_ENABLE_TAIL_CHECK (0x10), FLG_HEAP_ENABLE_FREE_CHECK (0x20), FLG_HEAP_VALIDATE_PARAMETERS(0x40)
-int security::internal::memory::nt_global_flag_peb() {
+int security::debug::memory::nt_global_flag_peb() {
 	//bool to indicate find status
 	BOOL found = FALSE;
 	_asm
@@ -148,11 +211,11 @@ int security::internal::memory::nt_global_flag_peb() {
 	}
 
 	//if found is true, we return the right code.
-	return (found) ? security::internal::debug_results::being_debugged_peb : security::internal::debug_results::none;
+	return (found) ? security::debug::results::being_debugged_peb : security::debug::results::none;
 }
 
 //two checks here, 1. xxx, 2. NoDebugInherit
-int security::internal::memory::nt_query_information_process() {
+int security::debug::memory::nt_query_information_process() {
 	HANDLE h_process = INVALID_HANDLE_VALUE;
 	DWORD found = FALSE;
 	DWORD process_debug_port = 0x07;	//first method, check msdn for details
@@ -162,14 +225,14 @@ int security::internal::memory::nt_query_information_process() {
 	HMODULE h_ntdll = LoadLibrary(get_string(4));
 
 	//if we cant get the handle for some reason, we return none
-	if (h_ntdll == INVALID_HANDLE_VALUE || h_ntdll == NULL) { return security::internal::debug_results::none; }
+	if (h_ntdll == INVALID_HANDLE_VALUE || h_ntdll == NULL) { return security::debug::results::none; }
 
 	//dynamically acquire the address of NtQueryInformationProcess
 	_NtQueryInformationProcess NtQueryInformationProcess = NULL;
 	NtQueryInformationProcess = (_NtQueryInformationProcess)GetProcAddress(h_ntdll, (xs("NtQueryInformationProcess")));
 
 	//if we cant get access for some reason, we return none
-	if (NtQueryInformationProcess == NULL) { return security::internal::debug_results::none; }
+	if (NtQueryInformationProcess == NULL) { return security::debug::results::none; }
 
 	//method 1: query ProcessDebugPort
 	h_process = GetCurrentProcess();
@@ -178,41 +241,41 @@ int security::internal::memory::nt_query_information_process() {
 	NTSTATUS status = NtQueryInformationProcess(h_process, ProcessDebugPort, &found, sizeof(DWORD), &RetLen);
 
 	//found something
-	if (!status && found) { return security::internal::debug_results::nt_query_information_process; }
+	if (!status && found) { return security::debug::results::nt_query_information_process; }
 
 	//method 2: query ProcessDebugFlags
 	status = NtQueryInformationProcess(h_process, process_debug_flags, &found, sizeof(DWORD), &RetLen);
 
 	//the ProcessDebugFlags set found to 1 if no debugger is found, so we check !found.
-	if (!status && !found) { return security::internal::debug_results::nt_query_information_process; }
+	if (!status && !found) { return security::debug::results::nt_query_information_process; }
 
-	return security::internal::debug_results::none;
+	return security::debug::results::none;
 }
 
 //hides the thread from any debugger, any attempt to control the process after this call ends the debugging session
-int security::internal::memory::nt_set_information_thread() {
+int security::debug::memory::nt_set_information_thread() {
 	DWORD thread_hide_from_debugger = 0x11;
 
 	//get a handle to ntdll.dll so we can use NtQueryInformationProcess
 	HMODULE h_ntdll = LoadLibrary(get_string(4));
 
 	//if we cant get the handle for some reason, we return none
-	if (h_ntdll == INVALID_HANDLE_VALUE || h_ntdll == NULL) { return security::internal::debug_results::none; }
+	if (h_ntdll == INVALID_HANDLE_VALUE || h_ntdll == NULL) { return security::debug::results::none; }
 
 	//dynamically acquire the address of NtQueryInformationProcess
 	_NtQueryInformationProcess NtQueryInformationProcess = NULL;
 	NtQueryInformationProcess = (_NtQueryInformationProcess)GetProcAddress(h_ntdll, (xs("NtQueryInformationProcess")));
 
 	//if we cant get access for some reason, we return none
-	if (NtQueryInformationProcess == NULL) { return security::internal::debug_results::none; }
+	if (NtQueryInformationProcess == NULL) { return security::debug::results::none; }
 
 	//make call to detach a debugger :moyai:
 	(_NtSetInformationThread)(GetCurrentThread(), thread_hide_from_debugger, 0, 0, 0);
 
-	return security::internal::debug_results::none;
+	return security::debug::results::none;
 }
 
-int security::internal::memory::debug_active_process() {
+int security::debug::memory::debug_active_process() {
 	BOOL found = FALSE;
 	STARTUPINFOA si = { 0 };
 	PROCESS_INFORMATION pi = { 0 };
@@ -233,7 +296,7 @@ int security::internal::memory::debug_active_process() {
 		if (DebugActiveProcess((DWORD)atoi(cp_id)))
 		{
 			//no debugger found
-			return security::internal::debug_results::none;
+			return security::debug::results::none;
 		}
 		else
 		{
@@ -272,7 +335,7 @@ int security::internal::memory::debug_active_process() {
 	CloseHandle(pi.hProcess);
 	CloseHandle(pi.hThread);
 	//if found is true, we return the right code.
-	return (found) ? security::internal::debug_results::being_debugged_peb : security::internal::debug_results::none;
+	return (found) ? security::debug::results::being_debugged_peb : security::debug::results::none;
 }
 
 //uses MEM_WRITE_WATCH feature of VirtualAlloc to check whether a debugger etc. is writing to our memory
@@ -283,7 +346,7 @@ int security::internal::memory::debug_active_process() {
 //allocate an executable buffer, copy a debug check routine to it, run the check and check if any writes were performed after the initial write
 
 //thanks to LordNoteworthy/al-khaser for the idea
-int security::internal::memory::write_buffer() {
+int security::debug::memory::write_buffer() {
 	//first option
 
 	//vars to store the amount of accesses to the buffer and the granularity for GetWriteWatch()
@@ -292,20 +355,20 @@ int security::internal::memory::write_buffer() {
 
 	PVOID* addresses = static_cast<PVOID*>(VirtualAlloc(NULL, 4096 * sizeof(PVOID), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE));
 	if (addresses == NULL) {
-		return security::internal::debug_results::write_buffer;
+		return security::debug::results::write_buffer;
 	}
 
 	int* buffer = static_cast<int*>(VirtualAlloc(NULL, 4096 * 4096, MEM_RESERVE | MEM_COMMIT | MEM_WRITE_WATCH, PAGE_READWRITE));
 	if (buffer == NULL) {
 		VirtualFree(addresses, 0, MEM_RELEASE);
-		return security::internal::debug_results::write_buffer;
+		return security::debug::results::write_buffer;
 	}
 
 	//read the buffer once
 	buffer[0] = 1234;
 
 	hits = 4096;
-	if (GetWriteWatch(0, buffer, 4096, addresses, &hits, &granularity) != 0) { return security::internal::debug_results::write_buffer; }
+	if (GetWriteWatch(0, buffer, 4096, addresses, &hits, &granularity) != 0) { return security::debug::results::write_buffer; }
 	else
 	{
 		//free the memory again
@@ -313,7 +376,7 @@ int security::internal::memory::write_buffer() {
 		VirtualFree(buffer, 0, MEM_RELEASE);
 
 		//we should have 1 hit if everything is fine
-		return (hits == 1) ? security::internal::debug_results::none : security::internal::debug_results::write_buffer;
+		return (hits == 1) ? security::debug::results::none : security::debug::results::write_buffer;
 	}
 
 	//second option
@@ -321,18 +384,18 @@ int security::internal::memory::write_buffer() {
 	BOOL result = FALSE, error = FALSE;
 
 	addresses = static_cast<PVOID*>(VirtualAlloc(NULL, 4096 * sizeof(PVOID), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE));
-	if (addresses == NULL) { return security::internal::debug_results::write_buffer; }
+	if (addresses == NULL) { return security::debug::results::write_buffer; }
 
 	buffer = static_cast<int*>(VirtualAlloc(NULL, 4096 * 4096, MEM_RESERVE | MEM_COMMIT | MEM_WRITE_WATCH, PAGE_READWRITE));
 	if (buffer == NULL) {
 		VirtualFree(addresses, 0, MEM_RELEASE);
-		return security::internal::debug_results::write_buffer;
+		return security::debug::results::write_buffer;
 	}
 
 	//make some calls where a buffer *can* be written to, but isn't actually edited because we pass invalid parameters	
 	if (GlobalGetAtomName(INVALID_ATOM, (LPTSTR)buffer, 1) != FALSE || GetEnvironmentVariable(get_string(6), (LPSTR)buffer, 4096 * 4096) != FALSE || GetBinaryType(get_string(7), (LPDWORD)buffer) != FALSE
 		|| HeapQueryInformation(0, (HEAP_INFORMATION_CLASS)69, buffer, 4096, NULL) != FALSE || ReadProcessMemory(INVALID_HANDLE_VALUE, (LPCVOID)0x69696969, buffer, 4096, NULL) != FALSE
-		|| GetThreadContext(INVALID_HANDLE_VALUE, (LPCONTEXT)buffer) != FALSE || GetWriteWatch(0, &security::internal::memory::write_buffer, 0, NULL, NULL, (PULONG)buffer) == 0) {
+		|| GetThreadContext(INVALID_HANDLE_VALUE, (LPCONTEXT)buffer) != FALSE || GetWriteWatch(0, &security::debug::memory::write_buffer, 0, NULL, NULL, (PULONG)buffer) == 0) {
 		result = false;
 		error = true;
 	}
@@ -362,7 +425,7 @@ int security::internal::memory::write_buffer() {
 //will throw an exception when trying to close an invalid handle (only when debugged)
 //so if we pass an invalid handle and get the exception, we know that we're being debugged
 //possible bypass: change the passed handle to an existing handle or adjust the extended instruction pointer register to skip over the invalid handle
-int security::internal::exceptions::close_handle_exception() {
+int security::debug::exceptions::close_handle_exception() {
 	//invalid handle
 	HANDLE h_invalid = (HANDLE)0xDEADBEEF;
 
@@ -373,14 +436,14 @@ int security::internal::exceptions::close_handle_exception() {
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
 		//if we get the exception, we return the right code.
-		return security::internal::debug_results::close_handle_exception;
+		return security::debug::results::close_handle_exception;
 	}
 
-	return security::internal::debug_results::none;
+	return security::debug::results::none;
 }
 
 //we force an exception to occur, if it occurs outside of a debugger the __except() handler is called, if it's inside a debugger it will not be called
-int security::internal::exceptions::single_step_exception() {
+int security::debug::exceptions::single_step_exception() {
 	BOOL debugger_present = TRUE;
 	__try
 	{
@@ -396,7 +459,7 @@ int security::internal::exceptions::single_step_exception() {
 
 	//if the exception was raised, return none
 	//if a debugger handled the exception (no exception for us to handle), return detection
-	return (debugger_present) ? security::internal::debug_results::single_step : security::internal::debug_results::none;
+	return (debugger_present) ? security::debug::results::single_step : security::debug::results::none;
 }
 
 //i3 is a standard software breakcode (opcode 0xCC), when you set a breakpoint the debugger replaces the opcode under the breakpoint location with
@@ -405,7 +468,7 @@ int security::internal::exceptions::single_step_exception() {
 //without the debugger, something has to handle the breakpoint exception (our handler)
 //if it doesn't get hit, theres a debugger handling it instead -> we can detect that our handler was not run -> debugger found
 //possible bypass: most debuggers give an option (pass exception to the application or let the debugger handle it), if the debugger handles it, we can detect it.
-int security::internal::exceptions::int_3() {
+int security::debug::exceptions::int_3() {
 	__try
 	{
 		_asm
@@ -414,17 +477,17 @@ int security::internal::exceptions::int_3() {
 		}
 	}
 	//exception is handled by our app = debugger did not attempt to intervene
-	__except (EXCEPTION_EXECUTE_HANDLER) { return security::internal::debug_results::none; }
+	__except (EXCEPTION_EXECUTE_HANDLER) { return security::debug::results::none; }
 
 	//if we don't get the exception, we return the right code.
-	return security::internal::debug_results::int_3_cc;
+	return security::debug::results::int_3_cc;
 }
 
 //extended version of int3 (0xCC) opcode. INT n, RET   where n = 2nd byte in instruction.
 //without the debugger, something has to handle the breakpoint exception (our handler)
 //if it doesn't get hit, theres a debugger handling it instead -> we can detect that our handler was not run -> debugger found
 //possible bypass: most debuggers give an option (pass exception to the application or let the debugger handle it), if the debugger handles it, we can detect it.
-int security::internal::exceptions::multibyte_int3() {
+int security::debug::exceptions::multibyte_int3() {
 	__try
 	{
 		__asm //multi-byte version of INT3 stub
@@ -436,14 +499,14 @@ int security::internal::exceptions::multibyte_int3() {
 	}
 
 	//exception is handled by our app = debugger did not attempt to intervene
-	__except (EXCEPTION_EXECUTE_HANDLER) { return security::internal::debug_results::none; }
+	__except (EXCEPTION_EXECUTE_HANDLER) { return security::debug::results::none; }
 
 	//if we don't get the exception, we return the right code.
-	return security::internal::debug_results::multibyte_int_3_cd;
+	return security::debug::results::multibyte_int_3_cd;
 }
 
 //2c is a kernel interrupt (opcode 0x2c), acts as an assertion (assertion failure) break point when debugging
-int security::internal::exceptions::int_2c() {
+int security::debug::exceptions::int_2c() {
 
 	__try
 	{
@@ -453,10 +516,10 @@ int security::internal::exceptions::int_2c() {
 		}
 	}
 
-	__except (EXCEPTION_EXECUTE_HANDLER) { return security::internal::debug_results::none; }
+	__except (EXCEPTION_EXECUTE_HANDLER) { return security::debug::results::none; }
 
 	//if we don't get the exception, we return the right code.
-	return security::internal::debug_results::int_2c;
+	return security::debug::results::int_2c;
 }
 
 
@@ -472,7 +535,7 @@ int security::internal::exceptions::int_2c() {
 //this might result in a single-byte instruction being skipped (because windows increased the exception address by one) or in the
 //execution of a completely different instruction because the first instruction byte is missing.
 //this behaviour can be checked to see whether a debugger is present.
-int security::internal::exceptions::int_2d() {
+int security::debug::exceptions::int_2d() {
 	BOOL found = false;
 	__try
 	{
@@ -482,7 +545,7 @@ int security::internal::exceptions::int_2d() {
 		}
 	}
 
-	__except (EXCEPTION_EXECUTE_HANDLER) { return security::internal::debug_results::none; }
+	__except (EXCEPTION_EXECUTE_HANDLER) { return security::debug::results::none; }
 
 	__try
 	{
@@ -495,13 +558,13 @@ int security::internal::exceptions::int_2d() {
 		}
 	}
 
-	__except (EXCEPTION_EXECUTE_HANDLER) { return security::internal::debug_results::none; }
+	__except (EXCEPTION_EXECUTE_HANDLER) { return security::debug::results::none; }
 
 	//if we don't get the exception, we return the right code.
-	return security::internal::debug_results::int_2;
+	return security::debug::results::int_2;
 }
 
-int security::internal::exceptions::prefix_hop() {
+int security::debug::exceptions::prefix_hop() {
 	__try
 	{
 		_asm
@@ -512,26 +575,26 @@ int security::internal::exceptions::prefix_hop() {
 		}
 	}
 
-	__except (EXCEPTION_EXECUTE_HANDLER) { return security::internal::debug_results::none; }
+	__except (EXCEPTION_EXECUTE_HANDLER) { return security::debug::results::none; }
 
 	//if we don't get the exception, we return the right code.
-	return security::internal::debug_results::prefix_hop;
+	return security::debug::results::prefix_hop;
 }
 
 //checks whether a debugger is present by attempting to output a string to the debugger (helper functions for debugging applications)
 //if no debugger is present an error occurs -> we can check if the last error is not 0 (an error) -> debugger not found
-int security::internal::exceptions::debug_string() {
+int security::debug::exceptions::debug_string() {
 	SetLastError(0);
 	OutputDebugStringA((xs("Undefined")));
 
-	return (GetLastError() != 0) ? security::internal::debug_results::debug_string : security::internal::debug_results::none;
+	return (GetLastError() != 0) ? security::debug::results::debug_string : security::debug::results::none;
 }
 
-int security::internal::timing::rdtsc() {
+int security::debug::timing::rdtsc() {
 	//integers for time values
 	UINT64 time_a, time_b = 0;
-	int time_upper_a, time_lower_a = 0;
-	int time_upper_b, time_lower_b = 0;
+	int time_upper_a = 0, time_lower_a = 0;
+	int time_upper_b = 0, time_lower_b = 0;
 
 	_asm
 	{
@@ -560,12 +623,12 @@ int security::internal::timing::rdtsc() {
 
 	//0x10000 is purely empirical and is based on the computer's clock cycle, could be less if the cpu clocks really fast etc.
 	//should change depending on the length and complexity of the code between each rdtsc operation (-> asm code inbetween needs longer to execute but takes A LOT longer if its being debugged / someone is stepping through it)
-	return (time_b - time_a > 0x10000) ? security::internal::debug_results::rdtsc : security::internal::debug_results::none;
+	return (time_b - time_a > 0x10000) ? security::debug::results::rdtsc : security::debug::results::none;
 }
 
 //checks how much time passes between the two query performance counters
 //if more than X (here 30ms) pass, a debugger is slowing execution down (manual breakpoints etc.)
-int security::internal::timing::query_performance_counter() {
+int security::debug::timing::query_performance_counter() {
 	LARGE_INTEGER t1;
 	LARGE_INTEGER t2;
 
@@ -586,11 +649,11 @@ int security::internal::timing::query_performance_counter() {
 	QueryPerformanceCounter(&t2);
 
 	//30 is a random value
-	return ((t2.QuadPart - t1.QuadPart) > 30) ? security::internal::debug_results::query_performance_counter : security::internal::debug_results::none;
+	return ((t2.QuadPart - t1.QuadPart) > 30) ? security::debug::results::query_performance_counter : security::debug::results::none;
 }
 
 //same as above
-int security::internal::timing::get_tick_count() {
+int security::debug::timing::get_tick_count() {
 	ULONGLONG t1;
 	ULONGLONG t2;
 
@@ -611,25 +674,25 @@ int security::internal::timing::get_tick_count() {
 	t2 = GetTickCount64();
 
 	//30 ms seems ok
-	return ((t2 - t1) > 30) ? security::internal::debug_results::query_performance_counter : security::internal::debug_results::none;
+	return ((t2 - t1) > 30) ? security::debug::results::query_performance_counter : security::debug::results::none;
 }
 
-int security::internal::cpu::hardware_debug_registers() {
+int security::debug::cpu::hardware_debug_registers() {
 	CONTEXT ctx = { 0 };
 	HANDLE h_thread = GetCurrentThread();
 
 	ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;
 	if (GetThreadContext(h_thread, &ctx))
 	{
-		return ((ctx.Dr0 != 0x00) || (ctx.Dr1 != 0x00) || (ctx.Dr2 != 0x00) || (ctx.Dr3 != 0x00) || (ctx.Dr6 != 0x00) || (ctx.Dr7 != 0x00)) ? security::internal::debug_results::hardware_debug_registers : security::internal::debug_results::none;
+		return ((ctx.Dr0 != 0x00) || (ctx.Dr1 != 0x00) || (ctx.Dr2 != 0x00) || (ctx.Dr3 != 0x00) || (ctx.Dr6 != 0x00) || (ctx.Dr7 != 0x00)) ? security::debug::results::hardware_debug_registers : security::debug::results::none;
 	}
 
-	return security::internal::debug_results::none;
+	return security::debug::results::none;
 }
 
 // Single stepping check
 // Checks if carry flag (CF) is set within the EFLAGS register
-int security::internal::cpu::mov_ss() {
+int security::debug::cpu::mov_ss() {
 	BOOL found = FALSE;
 
 	__asm {
@@ -651,10 +714,10 @@ int security::internal::cpu::mov_ss() {
 			popad; 
 	}
 
-	return (found) ? security::internal::debug_results::mov_ss : security::internal::debug_results::none;
+	return (found) ? security::debug::results::mov_ss : security::debug::results::none;
 }
 
-int security::internal::virtualization::check_cpuid() {
+int security::debug::virtualization::check_cpuid() {
 	bool found = false;
 	__asm {
 		xor eax, eax
@@ -669,26 +732,26 @@ int security::internal::virtualization::check_cpuid() {
 		nop
 	}
 
-	return (found) ? security::internal::debug_results::check_cpuid : security::internal::debug_results::none;
+	return (found) ? security::debug::results::check_cpuid : security::debug::results::none;
 }
 
-int security::internal::virtualization::check_registry() {
+int security::debug::virtualization::check_registry() {
 	HKEY h_key = 0;
-	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, ("HARDWARE\\ACPI\\DSDT\\VBOX__"), 0, KEY_READ, &h_key) == ERROR_SUCCESS) { return security::internal::debug_results::check_registry; }
+	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, ("HARDWARE\\ACPI\\DSDT\\VBOX__"), 0, KEY_READ, &h_key) == ERROR_SUCCESS) { return security::debug::results::check_registry; }
 
-	return security::internal::debug_results::none;
+	return security::debug::results::none;
 }
 
 // This function is the Virtual Machine check, currently it does not work, 
 // but it allocates lots of data into the stack, needs to be fixed and change
 // some data allocation towards the heap to make warning go away
-int security::internal::virtualization::vm() {
-	if (CreateFile(xs("\\\\.\\VBoxMiniRdrDN"), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, 0, OPEN_EXISTING, 0, 0) != INVALID_HANDLE_VALUE) { return security::internal::debug_results::vm; }
+int security::debug::virtualization::vm() {
+	if (CreateFile(xs("\\\\.\\VBoxMiniRdrDN"), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, 0, OPEN_EXISTING, 0, 0) != INVALID_HANDLE_VALUE) { return security::debug::results::vm; }
 
-	if (LoadLibrary(xs("VBoxHook.dll"))) { return security::internal::debug_results::vm; }
+	if (LoadLibrary(xs("VBoxHook.dll"))) { return security::debug::results::vm; }
 
 	HKEY h_key = 0;
-	if ((ERROR_SUCCESS == RegOpenKeyEx(HKEY_LOCAL_MACHINE, xs("SOFTWARE\\Oracle\\VirtualBox Guest Additions"), 0, KEY_READ, &h_key)) && h_key) { RegCloseKey(h_key); return security::internal::debug_results::vm; }
+	if ((ERROR_SUCCESS == RegOpenKeyEx(HKEY_LOCAL_MACHINE, xs("SOFTWARE\\Oracle\\VirtualBox Guest Additions"), 0, KEY_READ, &h_key)) && h_key) { RegCloseKey(h_key); return security::debug::results::vm; }
 
 	h_key = 0;
 	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, xs("HARDWARE\\DESCRIPTION\\System"), 0, KEY_READ, &h_key) == ERROR_SUCCESS)
@@ -703,7 +766,7 @@ int security::internal::virtualization::vm() {
 			{
 				if (strstr(systembiosversion, ("vbox")))
 				{
-					return security::internal::debug_results::vm;
+					return security::debug::results::vm;
 				}
 			}
 		}
@@ -720,7 +783,7 @@ int security::internal::virtualization::vm() {
 				while (*(unsigned char*)video)
 				{
 					to_lower((unsigned char*)video);
-					if (strstr(video, ("oracle")) || strstr(video, ("virtualbox"))) { return security::internal::debug_results::vm; }
+					if (strstr(video, ("oracle")) || strstr(video, ("virtualbox"))) { return security::debug::results::vm; }
 					video = &video[strlen(video) + 1];
 				}
 			}
@@ -730,7 +793,7 @@ int security::internal::virtualization::vm() {
 	}
 
 	HANDLE h = CreateFile(xs("\\\\.\\pipe\\VBoxTrayIPC"), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING, 0, 0);
-	if (h != INVALID_HANDLE_VALUE) { CloseHandle(h); return security::internal::debug_results::vm; }
+	if (h != INVALID_HANDLE_VALUE) { CloseHandle(h); return security::debug::results::vm; }
 
 	unsigned long pnsize = 0x1000;
 	char* s_provider = (char*)LocalAlloc(LMEM_ZEROINIT, pnsize);
@@ -778,7 +841,7 @@ int security::internal::virtualization::vm() {
 								{
 									unsigned long size = 0xFFF;
 									unsigned char value_name[0x1000] = { 0 };
-									if (RegQueryValueEx(h_new_key, xs("FriendlyName"), 0, 0, value_name, &size) == ERROR_SUCCESS) { to_lower(value_name); if (strstr((char*)value_name, xs("vbox"))) { return security::internal::debug_results::vm; } }
+									if (RegQueryValueEx(h_new_key, xs("FriendlyName"), 0, 0, value_name, &size) == ERROR_SUCCESS) { to_lower(value_name); if (strstr((char*)value_name, xs("vbox"))) { return security::debug::results::vm; } }
 									RegCloseKey(HKKK);
 								}
 							}
@@ -805,7 +868,7 @@ int security::internal::virtualization::vm() {
 		__emit 0Bh
 	}
 
-	if (found == false) { return security::internal::debug_results::vm; }
+	if (found == false) { return security::debug::results::vm; }
 
 	__asm
 	{
@@ -845,112 +908,113 @@ int security::internal::virtualization::vm() {
 			bye :
 			popad
 	}
-	if (found == 1) { return security::internal::debug_results::vm; }
+	if (found == 1) { return security::debug::results::vm; }
 
-	return security::internal::debug_results::none;
+	return security::debug::results::none;
 }
 
-security::internal::debug_results security::check_security() {
+security::debug::results security::debug::check() 
+{
 	//memory
-	if (security::internal::memory::being_debugged_peb() != security::internal::debug_results::none) {
-		return security::internal::debug_results::being_debugged_peb;
+	if (security::debug::memory::being_debugged_peb() != security::debug::results::none) {
+		return security::debug::results::being_debugged_peb;
 	}
-	if (security::internal::memory::remote_debugger_present() != security::internal::debug_results::none) {
-		return security::internal::debug_results::remote_debugger_present;
-	}
-
-	if (security::internal::memory::check_window_name() != security::internal::debug_results::none) {
-		return security::internal::debug_results::find_window;
+	if (security::debug::memory::remote_debugger_present() != security::debug::results::none) {
+		return security::debug::results::remote_debugger_present;
 	}
 
-	if (security::internal::memory::is_debugger_present() != security::internal::debug_results::none) {
-		return security::internal::debug_results::debugger_is_present;
+	if (security::debug::memory::check_window_name() != security::debug::results::none) {
+		return security::debug::results::find_window;
 	}
 
-	if (security::internal::memory::nt_global_flag_peb() != security::internal::debug_results::none) {
-		return security::internal::debug_results::being_debugged_peb;
+	if (security::debug::memory::is_debugger_present() != security::debug::results::none) {
+		return security::debug::results::debugger_is_present;
 	}
 
-	if (security::internal::memory::nt_query_information_process() != security::internal::debug_results::none) {
-		return security::internal::debug_results::nt_query_information_process;
+	if (security::debug::memory::nt_global_flag_peb() != security::debug::results::none) {
+		return security::debug::results::being_debugged_peb;
+	}
+
+	if (security::debug::memory::nt_query_information_process() != security::debug::results::none) {
+		return security::debug::results::nt_query_information_process;
 	}
 
 	// BUG: tries to open the main process multiple times 
-	//if (security::internal::memory::debug_active_process() != security::internal::debug_results::none) {
-		//return security::internal::debug_results::debug_active_process;
+	//if (security::internal::memory::debug_active_process() != security::internal::results::none) {
+		//return security::internal::results::debug_active_process;
 	//}
 
-	if (security::internal::memory::write_buffer() != security::internal::debug_results::none) {
-		return security::internal::debug_results::write_buffer;
+	if (security::debug::memory::write_buffer() != security::debug::results::none) {
+		return security::debug::results::write_buffer;
 	}
 
 	//exceptions
-	if (security::internal::exceptions::close_handle_exception() != security::internal::debug_results::none) {
-		return security::internal::debug_results::close_handle_exception;
+	if (security::debug::exceptions::close_handle_exception() != security::debug::results::none) {
+		return security::debug::results::close_handle_exception;
 	}
 
-	if (security::internal::exceptions::single_step_exception() != security::internal::debug_results::none) {
-		return security::internal::debug_results::single_step;
+	if (security::debug::exceptions::single_step_exception() != security::debug::results::none) {
+		return security::debug::results::single_step;
 	}
 
-	if (security::internal::exceptions::int_3() != security::internal::debug_results::none) {
-		return security::internal::debug_results::int_3_cc;
+	if (security::debug::exceptions::int_3() != security::debug::results::none) {
+		return security::debug::results::int_3_cc;
 	}
 
-	if (security::internal::exceptions::multibyte_int3() != security::internal::debug_results::none) {
-		return security::internal::debug_results::multibyte_int_3_cd;
+	if (security::debug::exceptions::multibyte_int3() != security::debug::results::none) {
+		return security::debug::results::multibyte_int_3_cd;
 	}
 
-	if (security::internal::exceptions::int_2c() != security::internal::debug_results::none) {
-		return security::internal::debug_results::int_2c;
+	if (security::debug::exceptions::int_2c() != security::debug::results::none) {
+		return security::debug::results::int_2c;
 	}
 
-	if (security::internal::exceptions::int_2d() != security::internal::debug_results::none) {
-		return security::internal::debug_results::int_2;
+	if (security::debug::exceptions::int_2d() != security::debug::results::none) {
+		return security::debug::results::int_2;
 	}
 
-	if (security::internal::exceptions::prefix_hop() != security::internal::debug_results::none) {
-		return security::internal::debug_results::prefix_hop;
+	if (security::debug::exceptions::prefix_hop() != security::debug::results::none) {
+		return security::debug::results::prefix_hop;
 	}
 
-	if (security::internal::exceptions::debug_string() != security::internal::debug_results::none) {
-		return security::internal::debug_results::debug_string;
+	if (security::debug::exceptions::debug_string() != security::debug::results::none) {
+		return security::debug::results::debug_string;
 	}
 
 	//timing
-	if (security::internal::timing::rdtsc() != security::internal::debug_results::none) {
-		return security::internal::debug_results::rdtsc;
+	if (security::debug::timing::rdtsc() != security::debug::results::none) {
+		return security::debug::results::rdtsc;
 	}
 
-	if (security::internal::timing::query_performance_counter() != security::internal::debug_results::none) {
-		return security::internal::debug_results::query_performance_counter;
+	if (security::debug::timing::query_performance_counter() != security::debug::results::none) {
+		return security::debug::results::query_performance_counter;
 	}
 
-	if (security::internal::timing::get_tick_count() != security::internal::debug_results::none) {
-		return security::internal::debug_results::get_tick_count;
+	if (security::debug::timing::get_tick_count() != security::debug::results::none) {
+		return security::debug::results::get_tick_count;
 	}
 
 	//cpu
-	if (security::internal::cpu::hardware_debug_registers() != security::internal::debug_results::none) {
-		return security::internal::debug_results::hardware_debug_registers;
+	if (security::debug::cpu::hardware_debug_registers() != security::debug::results::none) {
+		return security::debug::results::hardware_debug_registers;
 	}
 
-	if (security::internal::cpu::mov_ss() != security::internal::debug_results::none) {
-		return security::internal::debug_results::mov_ss;
+	if (security::debug::cpu::mov_ss() != security::debug::results::none) {
+		return security::debug::results::mov_ss;
 	}
 
 	//virtualization
-	if (security::internal::virtualization::check_cpuid() != security::internal::debug_results::none) {
-		return security::internal::debug_results::check_cpuid;
+	if (security::debug::virtualization::check_cpuid() != security::debug::results::none) {
+		return security::debug::results::check_cpuid;
 	}
 
-	if (security::internal::virtualization::check_registry() != security::internal::debug_results::none) {
-		return security::internal::debug_results::check_registry;
+	if (security::debug::virtualization::check_registry() != security::debug::results::none) {
+		return security::debug::results::check_registry;
 	}
 
-	//if (security::internal::virtualization::vm() != security::internal::debug_results::none) {
-	//	return security::internal::debug_results::vm;
+	//if (security::internal::virtualization::vm() != security::internal::results::none) {
+	//	return security::internal::results::vm;
 	//}
 
-	return security::internal::debug_results::none;
+	return security::debug::results::none;
 }

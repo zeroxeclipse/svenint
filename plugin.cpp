@@ -20,7 +20,6 @@
 #include "friends.h"
 
 #include "scripts/scripts.h"
-#include "utils/hashes.h"
 #include "game/utils.h"
 #include "game/drawing.h"
 
@@ -124,7 +123,6 @@ private:
 #endif
 };
 
-Hashes g_Hashes;
 CSvenInternal g_SvenInternal;
 IClientPlugin *g_pClientPlugin = &g_SvenInternal;
 
@@ -194,7 +192,7 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 
 #if SECURITY_CHECKS
 	AntiDebug();
-	g_Hashes.LoadHashInit(*reinterpret_cast<void**>(&g_SvenInternal));
+
 #endif
 
 	g_ullSteam64ID = SteamUser()->GetSteamID().ConvertToUint64();
@@ -357,18 +355,10 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 		}
 
 #if SECURITY_CHECKS
-		if ( flPlatTime - m_flAntiDebugTime >= 2.0f )
+		if ( flPlatTime - m_flAntiDebugTime >= 5.0f )
 		{
 			// Check for debuggers or virtualization
 			AntiDebug();
-
-			// Check Load Function Hash
-			// useless check on load function but it could be usefull to protect antidebug instead
-			// scrapped a lot of code and this was supposed to be a static and dynamic hashing protection
-			// but due to the nature of machine code changing whitin each recompile without even a single change
-			// it's a too complex task to find a pattern to generate a 'static' hash for now atleast
-			// will be moved from here and changed as an anti runtime tamper for Anti Debug
-			g_Hashes.CheckLoadHash();
 
 			m_flAntiDebugTime = flPlatTime;
 		}

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SECURITY
+#define SECURITY
 
 #define SECURITY_CHECKS ( 1 )
 
@@ -15,7 +16,13 @@
 // Main namespace for security
 //-----------------------------------------------------------------------------
 
-namespace security {
+namespace security 
+{
+    namespace global_flags
+	{
+		extern bool byobfuscatedexit;
+	}
+
 	//internal (used by the security itself, no need to be used outside of namespace)
 	NOINLINE void obfuscate_exit();
 	NOINLINE void obfuscate_exit_1();
@@ -24,7 +31,8 @@ namespace security {
 	NOINLINE void obfuscate_exit_4();
 	NOINLINE void obfuscate_exit_5();
 
-	namespace internal {
+	namespace debug 
+	{
 		int __cdecl vm_handler(EXCEPTION_RECORD* p_rec, void* est, unsigned char* p_context, void* disp);
 		void to_lower(unsigned char* input);
 		LPCSTR get_string(int index);
@@ -34,7 +42,7 @@ namespace security {
 		typedef NTSTATUS(__stdcall* _NtSetInformationThread)(_In_ HANDLE, _In_ THREAD_INFORMATION_CLASS, _In_ PVOID, _In_ ULONG);
 
 		//enum for the results of the antidebugger
-		extern enum debug_results
+		extern enum results
 		{
 			//nothing was caught, value = 0
 			none = 0x0000,
@@ -115,28 +123,72 @@ namespace security {
 			int check_registry();
 			int vm();
 		}
+
+		debug::results check();
+
+		extern unsigned int RandomPick;
+
+		extern unsigned int Randomize();
+
+		extern int (*funcs[])();
+
+		extern int (*Picked)();
+
+		extern void Dispatch();
+
+		extern int decoy();
 	}
 
-	internal::debug_results check_security();
+	namespace hashes
+	{
+		NOINLINE void GenerateInitialHash( void* ClassInstance );
+		NOINLINE bool CmpHash();
+
+		extern void* ClassPtr;
+		extern void* FuncPtr;
+		extern void* FuncPtr2;
+
+		extern size_t Size;
+
+		extern char InitialHash[ 63 ];
+	}
 }
 
 //-----------------------------------------------------------------------------
 // Debugging countermeasures
 //-----------------------------------------------------------------------------
 
+// Throws every check
 FORCEINLINE void AntiDebug()
 {
-#if SECURITY_CHECKS
-	// Testing 
+	if ( security::debug::check() != security::debug::results::none )
+		security::obfuscate_exit();
+}
 
-	if ( security::check_security() != security::internal::debug_results::none )
+// Checks with a random method
+FORCEINLINE void EasyAntiDebug() 
+{
+	security::debug::Dispatch();
+
+	//Msg( "%u\n", security::debug::RandomPick );
+
+	if ( security::debug::Picked() != security::debug::results::none )
 	{
-		//Warning( "Security check was not successful.\n" );
+		security::debug::Picked = security::debug::decoy;
+
 		security::obfuscate_exit();
 	}
-	else
-	{
-		//Msg( "All good.\n" );
-	}
-#endif
+	security::debug::Picked = security::debug::decoy;
 }
+
+FORCEINLINE void GetHash(void* pointer)
+{
+	// TODO
+}
+
+FORCEINLINE void HashCmp()
+{
+	// TODO
+}
+
+#endif

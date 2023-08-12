@@ -215,7 +215,6 @@
     <ClCompile Include="svenmod\shared\messagebuffer.cpp" />
     <ClCompile Include="svenmod\shared\sys.cpp" />
     <ClCompile Include="utils\security.cpp" />
-    <ClCompile Include="utils\hashes.cpp" />
     <ClCompile Include="utils\menu_styles.cpp" />
     <ClCompile Include="utils\patcher.cpp" />
     <ClCompile Include="utils\random.cpp" />
@@ -351,7 +350,6 @@
     <ClInclude Include="strafe\strafe_utils.h" />
     <ClInclude Include="SvenMod\public\hl_sdk\cl_dll\interpolation.h" />
     <ClInclude Include="utils\security.hpp" />
-    <ClInclude Include="utils\hashes.h" />
     <ClInclude Include="utils\menu_fonts.hpp" />
     <ClInclude Include="utils\menu_styles.h" />
     <ClInclude Include="utils\patcher.h" />
