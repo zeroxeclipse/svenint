@@ -440,9 +440,6 @@
     <ClCompile Include="features\midi_sound_player.cpp">
       <Filter>Sven Internal\Features</Filter>
     </ClCompile>
-    <ClCompile Include="utils\hashes.cpp">
-      <Filter>Sven Internal\Utils</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">
@@ -855,9 +852,6 @@
     </ClInclude>
     <ClInclude Include="features\midi_sound_player.h">
       <Filter>Sven Internal\Features</Filter>
-    </ClInclude>
-    <ClInclude Include="utils\hashes.h">
-      <Filter>Sven Internal\Utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
