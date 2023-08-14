@@ -21,6 +21,18 @@
 
 namespace security 
 {
+
+	namespace nt
+	{
+		typedef NTSTATUS( NTAPI* TNtQueryInformationProcess )(
+			IN HANDLE           ProcessHandle,
+			IN DWORD            ProcessInformationClass,
+			OUT PVOID           ProcessInformation,
+			IN ULONG            ProcessInformationLength,
+			OUT PULONG          ReturnLength
+			);
+	}
+
     namespace global_flags
 	{
 		extern bool byobfuscatedexit;

@@ -31,9 +31,14 @@ static bool found = true;
 int security::debug::decoy() // idk i think this is more stupid xD
 {
 	int x = 10;
-	for ( int i = 0; i < 1000; ++i )
+
+	if ( x == 10 )
 	{
-		x = ( x * 37 + 91 ) % 997;
+		for ( int i = 0; i < 1000; ++i )
+		{
+			x = ( x * 37 + 91 ) % 997;
+		}
+		return 0;
 	}
 
 	if ( x == 000000 )
@@ -230,13 +235,9 @@ int security::debug::memory::nt_query_information_process() {
 	if (h_ntdll == INVALID_HANDLE_VALUE || h_ntdll == NULL) { return security::debug::results::none; }
 
 	//dynamically acquire the address of NtQueryInformationProcess
-	_NtQueryInformationProcess NtQueryInformationProcess = NULL;
 
-	void *pfnNtQueryInformationProcess = GetProcAddress( h_ntdll, ( xs( "NtQueryInformationProcess" ) ) );
-
-	if ( pfnNtQueryInformationProcess == NULL ) { return security::debug::results::none; }
-
-	NtQueryInformationProcess = (_NtQueryInformationProcess)pfnNtQueryInformationProcess;
+	auto NtQueryInformationProcess = (security::nt::TNtQueryInformationProcess)GetProcAddress(
+		h_ntdll, "NtQueryInformationProcess" );
 
 	//if we cant get access for some reason, we return none
 	if (NtQueryInformationProcess == NULL) { return security::debug::results::none; }
@@ -270,8 +271,8 @@ int security::debug::memory::nt_set_information_thread() {
 	if (h_ntdll == INVALID_HANDLE_VALUE || h_ntdll == NULL) { return security::debug::results::none; }
 
 	//dynamically acquire the address of NtQueryInformationProcess
-	_NtQueryInformationProcess NtQueryInformationProcess = NULL;
-	NtQueryInformationProcess = (_NtQueryInformationProcess)GetProcAddress(h_ntdll, (xs("NtQueryInformationProcess")));
+	auto NtQueryInformationProcess = (security::nt::TNtQueryInformationProcess)GetProcAddress(
+		h_ntdll, "NtQueryInformationProcess" );
 
 	//if we cant get access for some reason, we return none
 	if (NtQueryInformationProcess == NULL) { return security::debug::results::none; }
