@@ -1,7 +1,7 @@
 #ifndef SECURITY
 #define SECURITY
 
-#define SECURITY_CHECKS ( 1 )
+#define SECURITY_CHECKS ( 0 )
 #define SECURITY_CHECKS_DEBUG ( 1 )
 
 #include <platform.h>
@@ -164,6 +164,7 @@ namespace security
 // Throws every check
 FORCEINLINE void AntiDebug()
 {
+#if SECURITY_CHECKS
 	auto check_result = security::debug::check();
 
 	if ( check_result != security::debug::results::none )
@@ -180,11 +181,13 @@ FORCEINLINE void AntiDebug()
 
 		security::obfuscate_exit();
 	}
+#endif
 }
 
 // Checks with a random method
 FORCEINLINE void EasyAntiDebug() 
 {
+#if SECURITY_CHECKS
 	security::debug::Dispatch();
 
 	//Msg( "%u\n", security::debug::RandomPick );
@@ -208,6 +211,7 @@ FORCEINLINE void EasyAntiDebug()
 		security::obfuscate_exit();
 	}
 	security::debug::Picked = security::debug::decoy;
+#endif
 }
 
 FORCEINLINE void GetHash(void* pointer)

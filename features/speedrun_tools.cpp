@@ -1237,6 +1237,31 @@ bool CSpeedrunTools::IsLegitMode( void ) const
 
 void CSpeedrunTools::ShowTimer( float flTime, bool bServer )
 {
+	auto FillAreaAdditive = [](int x, int y, int w, int h, int r, int g, int b, int a) -> void
+	{
+		glPushMatrix();
+
+			glLoadIdentity();
+
+			glDisable(GL_TEXTURE_2D);
+			glEnable(GL_BLEND);
+
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE); // GL_ONE
+			glColor4ub(r, g, b, a);
+
+			glBegin(GL_QUADS);
+				glVertex2i(x, y);
+				glVertex2i(x + w, y);
+				glVertex2i(x + w, y + h);
+				glVertex2i(x, y + h);
+			glEnd();
+
+			glDisable(GL_BLEND);
+			glEnable(GL_TEXTURE_2D);
+
+		glPopMatrix();
+	};
+
 	if ( !bServer )
 	{
 		m_flTimerTime = flTime;
@@ -1266,28 +1291,28 @@ void CSpeedrunTools::ShowTimer( float flTime, bool bServer )
 	x += g_Drawing.DrawDigit( minutes / 10, x, y, r, g, b, FONT_ALIGN_LEFT );
 	x += g_Drawing.DrawDigit( minutes % 10, x, y, r, g, b, FONT_ALIGN_LEFT );
 
-	g_Drawing.FillArea( x + ( iSpriteWidth / 2 ) - iThickness,
-						y + ( iSpriteHeight / 6 ),
-						iThickness * 2,
-						iThickness * 2,
-						r, g, b, a );
+	FillAreaAdditive( x + ( iSpriteWidth / 2 ) - iThickness,
+					  y + ( iSpriteHeight / 6 ),
+					  iThickness * 2,
+					  iThickness * 2,
+					  r, g, b, a );
 
-	g_Drawing.FillArea( x + ( iSpriteWidth / 2 ) - iThickness,
-						y + iSpriteHeight - ( iSpriteHeight / 4 ),
-						iThickness * 2,
-						iThickness * 2,
-						r, g, b, a );
+	FillAreaAdditive( x + ( iSpriteWidth / 2 ) - iThickness,
+					  y + iSpriteHeight - ( iSpriteHeight / 4 ),
+					  iThickness * 2,
+					  iThickness * 2,
+					  r, g, b, a );
 
 	x += iSpriteWidth;
 
 	x += g_Drawing.DrawDigit( seconds / 10, x, y, r, g, b, FONT_ALIGN_LEFT );
 	x += g_Drawing.DrawDigit( seconds % 10, x, y, r, g, b, FONT_ALIGN_LEFT );
 
-	g_Drawing.FillArea( x + ( iSpriteWidth / 2 ) - iThickness,
-						y + iSpriteHeight - ( iSpriteHeight / 4 ),
-						iThickness * 2,
-						iThickness * 2,
-						r, g, b, a );
+	FillAreaAdditive( x + ( iSpriteWidth / 2 ) - iThickness,
+					  y + iSpriteHeight - ( iSpriteHeight / 4 ),
+					  iThickness * 2,
+					  iThickness * 2,
+					  r, g, b, a );
 
 	x += iSpriteWidth;
 

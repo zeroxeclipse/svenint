@@ -1002,10 +1002,26 @@ DECLARE_FUNC(int, __cdecl, HOOKED_StudioDrawPlayer, int flags, entity_state_t *p
 
 DECLARE_CLASS_FUNC(void, HOOKED_StudioSetupBones, CStudioModelRenderer *thisptr)
 {
-	// Taken from lovely BunnymodXT
-
 	if ( thisptr->m_pCurrentEntity == g_pEngineFuncs->GetViewModel() )
 	{
+		if ( thisptr->m_pCurrentEntity->curstate.renderfx == kRenderFxGlowShell )
+		{
+			thisptr->m_pCurrentEntity->curstate.renderfx = kRenderFxNone;
+		}
+
+		//static int curskin = 0;
+
+		//if ( curskin >= thisptr->m_pStudioHeader->numskinfamilies )
+		//{
+		//	thisptr->m_pCurrentEntity->curstate.skin = 0;
+		//	curskin = 0;
+		//	//Msg("%d | %d\n", thisptr->m_pStudioHeader->numskinref , thisptr->m_pStudioHeader->numskinfamilies);
+		//}
+		//else
+		//{
+		//	thisptr->m_pCurrentEntity->curstate.skin = ++curskin;
+		//}
+
 		float( *rotationmatrix )[ 3 ][ 4 ] = thisptr->m_protationmatrix;
 		mstudioseqdesc_t *pSequenceDesc = (mstudioseqdesc_t *)( (byte *)thisptr->m_pStudioHeader + thisptr->m_pStudioHeader->seqindex ) + thisptr->m_pCurrentEntity->curstate.sequence;
 	
