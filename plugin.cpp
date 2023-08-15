@@ -334,6 +334,7 @@ void CSvenInternal::OnDisconnect(void)
 	g_ScriptVM.Shutdown();
 }
 
+#pragma optimize("", off)
 void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPostRunCmd)
 {
 	extern bool g_bScreenshot;
@@ -359,6 +360,35 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 		{
 			// Check for debuggers or virtualization
 			AntiDebug();
+
+			__try
+			{
+				__asm
+				{
+					
+				}
+			}
+			__except ( EXCEPTION_EXECUTE_HANDLER )
+			{
+				exit( 555 );
+				// decoy 
+				__asm
+				{
+					xor ebx, ebx;
+					mov ebx, 42;
+					pop ebp;
+					ret;
+					int 3; 
+					int 3; 
+					int 3; 
+					int 3; 
+					int 3;
+					int 3;
+					int 3;
+					push ebp;
+					mov ebp, esp;
+				}
+			}
 
 			m_flAntiDebugTime = flPlatTime;
 		}
@@ -458,6 +488,7 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 		g_InputManager.GameFrame( bPostRunCmd );
 	}
 }
+#pragma optimize("", on)
 
 void CSvenInternal::Draw(void)
 {

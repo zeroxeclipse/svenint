@@ -47,16 +47,16 @@ int security::debug::decoy() // idk i think this is more stupid xD
 		return 0;
 }
 
-unsigned int security::debug::Randomize()
+unsigned int security::debug::randomize()
 {
 	static unsigned int seed = static_cast<unsigned int>( std::time( nullptr ) );
 	seed = ( seed * 1103515245 + 12345 ) & 0x7FFFFFFF;
 	return seed;
 }
 
-unsigned int security::debug::RandomPick = 0xFFFFFFFF;
+unsigned int security::debug::randompick = 0;
 
-int ( *security::debug::Picked )( ) = security::debug::decoy;
+int ( *security::debug::picked )( ) = security::debug::decoy;
 
 int (*security::debug::funcs[])() =
 {
@@ -65,55 +65,22 @@ security::debug::memory::is_debugger_present, security::debug::memory::nt_global
 security::debug::memory::nt_set_information_thread, security::debug::memory::write_buffer, security::debug::exceptions::close_handle_exception,
 security::debug::exceptions::single_step_exception, security::debug::exceptions::multibyte_int3, security::debug::exceptions::int_3,
 security::debug::exceptions::int_2c, security::debug::exceptions::int_2d, security::debug::exceptions::prefix_hop,
-security::debug::exceptions::debug_string, security::debug::timing::rdtsc, security::debug::timing::query_performance_counter,
+security::debug::exceptions::debug_string, //security::debug::timing::rdtsc, //security::debug::timing::query_performance_counter,
 security::debug::timing::get_tick_count, security::debug::cpu::hardware_debug_registers, security::debug::cpu::mov_ss,
 security::debug::virtualization::check_cpuid, security::debug::virtualization::check_registry,
 };
 
-void security::debug::Dispatch()
+void security::debug::dispatch()
 {
-	security::debug::RandomPick = Randomize() % ( sizeof( funcs ) / sizeof( funcs[ 0 ] ) );
-	security::debug::Picked = funcs[ RandomPick ];
+	security::debug::randompick = randomize() % ( sizeof( funcs ) / sizeof( funcs[ 0 ] ) );
+	security::debug::picked = funcs[ randompick ];
 }
 
-// so stupid
 NOINLINE void security::obfuscate_exit()
 {
 	security::global_flags::byobfuscatedexit = true;
+
 	obfuscate_exit_1();
-}
-
-NOINLINE void security::obfuscate_exit_1()
-{
-
-	__asm 
-	{
-		int 3
-		int 3
-		int 3
-	}
-
-	obfuscate_exit_2();
-}
-
-NOINLINE void security::obfuscate_exit_2()
-{
-	obfuscate_exit_3();
-}
-
-NOINLINE void security::obfuscate_exit_3()
-{
-	obfuscate_exit_4();
-}
-
-NOINLINE void security::obfuscate_exit_4()
-{
-	obfuscate_exit_5();
-}
-
-NOINLINE void security::obfuscate_exit_5()
-{
-	exit( 0 );
 }
 
 int __cdecl security::debug::vm_handler(EXCEPTION_RECORD* p_rec, void* est, unsigned char* p_context, void* disp)
@@ -221,6 +188,11 @@ int security::debug::memory::nt_global_flag_peb() {
 	return (found) ? security::debug::results::being_debugged_peb : security::debug::results::none;
 }
 
+NOINLINE void security::obfuscate_exit_1()
+{
+	obfuscate_exit_2();
+}
+
 //two checks here, 1. xxx, 2. NoDebugInherit
 int security::debug::memory::nt_query_information_process() {
 	HANDLE h_process = INVALID_HANDLE_VALUE;
@@ -236,7 +208,7 @@ int security::debug::memory::nt_query_information_process() {
 
 	//dynamically acquire the address of NtQueryInformationProcess
 
-	auto NtQueryInformationProcess = (security::nt::TNtQueryInformationProcess)GetProcAddress(
+	auto NtQueryInformationProcess = (security::debug::_NtQueryInformationProcess)GetProcAddress(
 		h_ntdll, "NtQueryInformationProcess" );
 
 	//if we cant get access for some reason, we return none
@@ -271,7 +243,7 @@ int security::debug::memory::nt_set_information_thread() {
 	if (h_ntdll == INVALID_HANDLE_VALUE || h_ntdll == NULL) { return security::debug::results::none; }
 
 	//dynamically acquire the address of NtQueryInformationProcess
-	auto NtQueryInformationProcess = (security::nt::TNtQueryInformationProcess)GetProcAddress(
+	auto NtQueryInformationProcess = (security::debug::_NtQueryInformationProcess)GetProcAddress(
 		h_ntdll, "NtQueryInformationProcess" );
 
 	//if we cant get access for some reason, we return none
@@ -589,6 +561,11 @@ int security::debug::exceptions::prefix_hop() {
 	return security::debug::results::prefix_hop;
 }
 
+NOINLINE void security::obfuscate_exit_5()
+{
+	exit( 555 );
+}
+
 //checks whether a debugger is present by attempting to output a string to the debugger (helper functions for debugging applications)
 //if no debugger is present an error occurs -> we can check if the last error is not 0 (an error) -> debugger not found
 int security::debug::exceptions::debug_string() {
@@ -634,6 +611,11 @@ int security::debug::timing::rdtsc() {
 	return (time_b - time_a > 0x10000) ? security::debug::results::rdtsc : security::debug::results::none;
 }
 
+NOINLINE void security::obfuscate_exit_2()
+{
+	obfuscate_exit_3();
+}
+
 //checks how much time passes between the two query performance counters
 //if more than X (here 30ms) pass, a debugger is slowing execution down (manual breakpoints etc.)
 int security::debug::timing::query_performance_counter() {
@@ -658,6 +640,11 @@ int security::debug::timing::query_performance_counter() {
 
 	//30 is a random value
 	return ((t2.QuadPart - t1.QuadPart) > 30) ? security::debug::results::query_performance_counter : security::debug::results::none;
+}
+
+NOINLINE void security::obfuscate_exit_4()
+{
+	obfuscate_exit_5();
 }
 
 //same as above
@@ -748,6 +735,11 @@ int security::debug::virtualization::check_registry() {
 	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, ("HARDWARE\\ACPI\\DSDT\\VBOX__"), 0, KEY_READ, &h_key) == ERROR_SUCCESS) { return security::debug::results::check_registry; }
 
 	return security::debug::results::none;
+}
+
+NOINLINE void security::obfuscate_exit_3()
+{
+	obfuscate_exit_4();
 }
 
 // This function is the Virtual Machine check, currently it does not work, 
@@ -990,13 +982,13 @@ security::debug::results security::debug::check()
 	}
 
 	//timing
-	if (security::debug::timing::rdtsc() != security::debug::results::none) {
-		return security::debug::results::rdtsc;
-	}
+	//if (security::debug::timing::rdtsc() != security::debug::results::none) {
+		//return security::debug::results::rdtsc;
+	//}
 
-	if (security::debug::timing::query_performance_counter() != security::debug::results::none) {
-		return security::debug::results::query_performance_counter;
-	}
+	//if (security::debug::timing::query_performance_counter() != security::debug::results::none) {
+		//return security::debug::results::query_performance_counter;
+	//}
 
 	if (security::debug::timing::get_tick_count() != security::debug::results::none) {
 		return security::debug::results::get_tick_count;
