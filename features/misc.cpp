@@ -955,7 +955,13 @@ void CMisc::HUD_PostRunCmd(struct local_state_s *from, struct local_state_s *to,
 	// For proper work of revive boost info
 	if ( s_bFreeze2 )
 	{
-		g_pPlayerMove->origin = Client()->GetClientData()->origin;
+		Vector vecOrigin = Client()->GetClientData()->origin;
+
+		g_pPlayerMove->origin = vecOrigin;
+		g_pEngineFuncs->GetLocalPlayer()->origin = vecOrigin;
+		g_pEngineFuncs->GetLocalPlayer()->curstate.origin = vecOrigin;
+		from->playerstate.origin = vecOrigin;
+		to->playerstate.origin = vecOrigin;
 	}
 
 	QuakeGuns_HUD_PostRunCmd(to);
