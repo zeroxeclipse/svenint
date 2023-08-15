@@ -129,17 +129,17 @@ namespace security
 
 		debug::results check();
 
-		extern unsigned int RandomPick;
+		extern unsigned int randompick;
 
-		extern unsigned int Randomize();
+		extern unsigned int randomize();
 
 		extern int (*funcs[])();
 
-		extern int (*Picked)();
+		extern int (*picked)();
 
-		extern void Dispatch();
+		extern void dispatch();
 
-		extern int decoy();
+		NOINLINE int decoy();
 	}
 
 	namespace hashes
@@ -188,29 +188,31 @@ FORCEINLINE void AntiDebug()
 FORCEINLINE void EasyAntiDebug() 
 {
 #if SECURITY_CHECKS
-	security::debug::Dispatch();
+	security::debug::dispatch();
 
-	//Msg( "%u\n", security::debug::RandomPick );
+	//Msg( "%u\n", security::debug::randompick );
 
-	auto check_result = security::debug::Picked();
+	auto check_result = security::debug::picked();
 
 	if ( check_result != security::debug::results::none )
 	{
-		security::debug::Picked = security::debug::decoy;
+		security::debug::picked = security::debug::decoy;
 
 	#if SECURITY_CHECKS_DEBUG
-		FILE *file = fopen( xs( "security_check_result.txt" ), xs( "w" ) );
+
+		FILE* file = fopen( xs( "security_check_result2.txt" ), xs( "w" ) );
 
 		if ( file != NULL )
 		{
-			fprintf( file, xs( "0x%X" ), (int)check_result );
+			fprintf( file, xs( "0x%X\n" ), (int)check_result );
+			fprintf( file, xs( "%u\n" ), (int)security::debug::randompick );
 			fclose( file );
 		}
 	#endif
 
 		security::obfuscate_exit();
 	}
-	security::debug::Picked = security::debug::decoy;
+	security::debug::picked = security::debug::decoy;
 #endif
 }
 
