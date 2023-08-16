@@ -110,7 +110,7 @@ and getting us started on the manual.
 // https://github.com/weidai11/cryptopp/issues/1185
 #if CRYPTOPP_MSC_VERSION
 # pragma warning(push)
-# pragma warning(disable: 4127 4189 4505 4702)
+# pragma warning(disable: 4127 4189 4505 4702 26495 26439)
 # if (CRYPTOPP_MSC_VERSION >= 1933)
 #  pragma warning(disable: 5264)
 # endif

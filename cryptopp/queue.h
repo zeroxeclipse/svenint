@@ -9,6 +9,8 @@
 #include "cryptlib.h"
 #include "simple.h"
 
+#pragma warning( disable : 26439 )
+
 NAMESPACE_BEGIN(CryptoPP)
 
 class ByteQueueNode;

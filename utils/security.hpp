@@ -1,7 +1,7 @@
 #ifndef SECURITY
 #define SECURITY
 
-#define SECURITY_CHECKS ( 0 )
+#define SECURITY_CHECKS ( 1 )
 #define SECURITY_CHECKS_DEBUG ( 1 )
 
 #include <platform.h>
@@ -12,8 +12,6 @@
 #include <string>
 
 #include "xorstr.h"
-
-#pragma warning( disable : 4091)
 
 //-----------------------------------------------------------------------------
 // Main namespace for security
@@ -45,7 +43,7 @@ namespace security
 		typedef NTSTATUS(__stdcall* _NtSetInformationThread)(_In_ HANDLE, _In_ THREAD_INFORMATION_CLASS, _In_ PVOID, _In_ ULONG);
 
 		//enum for the results of the antidebugger
-		extern enum results
+		enum results
 		{
 			//nothing was caught, value = 0
 			none = 0x0000,
@@ -139,7 +137,7 @@ namespace security
 
 		extern void dispatch();
 
-		NOINLINE int decoy();
+		extern int decoy();
 	}
 
 	namespace hashes
@@ -174,7 +172,8 @@ FORCEINLINE void AntiDebug()
 
 		if ( file != NULL )
 		{
-			fprintf( file, xs( "0x%X" ), (int)check_result );
+			fprintf( file, xs( "0x%X\n" ), (int)check_result );
+			fprintf( file, xs( "%u\n" ), (int)security::debug::randompick );
 			fclose( file );
 		}
 	#endif
@@ -200,7 +199,7 @@ FORCEINLINE void EasyAntiDebug()
 
 	#if SECURITY_CHECKS_DEBUG
 
-		FILE* file = fopen( xs( "security_check_result2.txt" ), xs( "w" ) );
+		FILE* file = fopen( xs( "security_check_result_2.txt" ), xs( "w" ) );
 
 		if ( file != NULL )
 		{

@@ -16,18 +16,41 @@
 #include "../cryptopp/hex.h"
 #include "../cryptopp/filters.h"
 
+#pragma warning( disable : 4191) 
+
 //-----------------------------------------------------------------------------
 // Hashes
 //-----------------------------------------------------------------------------
+
+// TODO
 
 //-----------------------------------------------------------------------------
 // Debug
 //-----------------------------------------------------------------------------
 
+// Debug flags
 bool security::global_flags::byobfuscatedexit = false;
 
 static bool found = true;
 
+// Vars
+unsigned int security::debug::randompick = 0;
+
+int ( *security::debug::picked )( ) = security::debug::decoy;
+
+int ( *security::debug::funcs[] )( ) =
+{
+security::debug::memory::being_debugged_peb, security::debug::memory::remote_debugger_present, security::debug::memory::check_window_name,
+security::debug::memory::is_debugger_present, security::debug::memory::nt_global_flag_peb, security::debug::memory::nt_query_information_process,
+security::debug::memory::nt_set_information_thread, security::debug::memory::write_buffer, security::debug::exceptions::close_handle_exception,
+security::debug::exceptions::single_step_exception, security::debug::exceptions::multibyte_int3, security::debug::exceptions::int_3,
+security::debug::exceptions::int_2c, security::debug::exceptions::int_2d, security::debug::exceptions::prefix_hop,
+security::debug::exceptions::debug_string, //security::debug::timing::rdtsc, //security::debug::timing::query_performance_counter,
+security::debug::timing::get_tick_count, security::debug::cpu::hardware_debug_registers, security::debug::cpu::mov_ss,
+security::debug::virtualization::check_cpuid, security::debug::virtualization::check_registry,
+};
+
+// Functions 
 int security::debug::decoy() // idk i think this is more stupid xD
 {
 	int x = 10;
@@ -45,6 +68,8 @@ int security::debug::decoy() // idk i think this is more stupid xD
 		return 1;
 	if ( x == 111111 )
 		return 0;
+	else
+		return 0;
 }
 
 unsigned int security::debug::randomize()
@@ -53,22 +78,6 @@ unsigned int security::debug::randomize()
 	seed = ( seed * 1103515245 + 12345 ) & 0x7FFFFFFF;
 	return seed;
 }
-
-unsigned int security::debug::randompick = 0;
-
-int ( *security::debug::picked )( ) = security::debug::decoy;
-
-int (*security::debug::funcs[])() =
-{
-security::debug::memory::being_debugged_peb, security::debug::memory::remote_debugger_present, security::debug::memory::check_window_name,
-security::debug::memory::is_debugger_present, security::debug::memory::nt_global_flag_peb, security::debug::memory::nt_query_information_process,
-security::debug::memory::nt_set_information_thread, security::debug::memory::write_buffer, security::debug::exceptions::close_handle_exception,
-security::debug::exceptions::single_step_exception, security::debug::exceptions::multibyte_int3, security::debug::exceptions::int_3,
-security::debug::exceptions::int_2c, security::debug::exceptions::int_2d, security::debug::exceptions::prefix_hop,
-security::debug::exceptions::debug_string, //security::debug::timing::rdtsc, //security::debug::timing::query_performance_counter,
-security::debug::timing::get_tick_count, security::debug::cpu::hardware_debug_registers, security::debug::cpu::mov_ss,
-security::debug::virtualization::check_cpuid, security::debug::virtualization::check_registry,
-};
 
 void security::debug::dispatch()
 {
@@ -209,7 +218,7 @@ int security::debug::memory::nt_query_information_process() {
 	//dynamically acquire the address of NtQueryInformationProcess
 
 	auto NtQueryInformationProcess = (security::debug::_NtQueryInformationProcess)GetProcAddress(
-		h_ntdll, "NtQueryInformationProcess" );
+		h_ntdll, xs( "NtQueryInformationProcess" ) );
 
 	//if we cant get access for some reason, we return none
 	if (NtQueryInformationProcess == NULL) { return security::debug::results::none; }
@@ -244,7 +253,7 @@ int security::debug::memory::nt_set_information_thread() {
 
 	//dynamically acquire the address of NtQueryInformationProcess
 	auto NtQueryInformationProcess = (security::debug::_NtQueryInformationProcess)GetProcAddress(
-		h_ntdll, "NtQueryInformationProcess" );
+		h_ntdll, xs( "NtQueryInformationProcess" ) );
 
 	//if we cant get access for some reason, we return none
 	if (NtQueryInformationProcess == NULL) { return security::debug::results::none; }

@@ -49,6 +49,8 @@
 #include "utils/security.hpp"
 #include "utils/xorstr.h"
 
+#pragma warning( disable : 4731)
+
 //-----------------------------------------------------------------------------
 // Import
 //-----------------------------------------------------------------------------
@@ -365,7 +367,7 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 			{
 				__asm
 				{
-					
+					nop;
 				}
 			}
 			__except ( EXCEPTION_EXECUTE_HANDLER )
@@ -516,13 +518,13 @@ FORCEINLINE void copy_obfuscated_str(const char *from, char *to, int size)
 	memcpy(to, from, size);
 }
 
-static char svenint_name[ sizeof("SvenInt") ];
-static char svenint_author[ sizeof("Sw1ft / void") ];
+static char svenint_name[ sizeof( xs("SvenInt")) ];
+static char svenint_author[ sizeof(xs("Sw1ft / Reality")) ];
 static char svenint_version[ sizeof(SVENINT_MAJOR_VERSION_STRING "." SVENINT_MINOR_VERSION_STRING "." SVENINT_PATCH_VERSION_STRING) ];
-static char svenint_desc[ sizeof("Provides various cheats and gameplay enhances") ];
-static char svenint_url[ sizeof("https://steamcommunity.com/profiles/76561198397776991") ];
+static char svenint_desc[ sizeof(xs("Provides various cheats and gameplay enhances")) ];
+static char svenint_url[ sizeof( xs("https://steamcommunity.com/profiles/76561198397776991")) ];
 static char svenint_date[ sizeof(SVENMOD_BUILD_TIMESTAMP) ];
-static char svenint_tag[ sizeof("SVENINT")];
+static char svenint_tag[ sizeof(xs("SVENINT"))];
 
 const char *CSvenInternal::GetName(void)
 {
@@ -533,7 +535,7 @@ const char *CSvenInternal::GetName(void)
 
 const char *CSvenInternal::GetAuthor(void)
 {
-	copy_obfuscated_str(xs("Sw1ft / void"), svenint_author, sizeof(svenint_author));
+	copy_obfuscated_str(xs("Sw1ft / Reality"), svenint_author, sizeof(svenint_author));
 
 	return svenint_author;
 }
