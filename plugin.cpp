@@ -194,7 +194,6 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 
 #if SECURITY_CHECKS
 	AntiDebug();
-
 #endif
 
 	g_ullSteam64ID = SteamUser()->GetSteamID().ConvertToUint64();
@@ -209,7 +208,7 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 	if ( !std::binary_search( g_Gods.begin(), g_Gods.end(), g_ullSteam64ID ) )
 	{
 		//Warning(xs("[Sven Internal] You're not allowed to use this plugin\n"));
-		security::obfuscate_exit();
+		security::utils::obfuscate_exit();
 		return false;
 	}
 

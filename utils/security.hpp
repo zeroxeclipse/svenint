@@ -19,21 +19,29 @@
 
 namespace security 
 {
-    namespace global_flags
+	namespace hashes
 	{
-		extern bool byobfuscatedexit;
-	}
+		NOINLINE void GenerateInitialHash( void* ClassInstance );
+		NOINLINE bool CmpHash();
 
-	//internal (used by the security itself, no need to be used outside of namespace)
-	NOINLINE void obfuscate_exit();
-	NOINLINE void obfuscate_exit_1();
-	NOINLINE void obfuscate_exit_2();
-	NOINLINE void obfuscate_exit_3();
-	NOINLINE void obfuscate_exit_4();
-	NOINLINE void obfuscate_exit_5();
+		extern void* ClassPtr;
+		extern void* FuncPtr;
+		extern void* FuncPtr2;
+
+		extern size_t Size;
+
+		extern char InitialHash[ 63 ];
+	}
 
 	namespace debug 
 	{
+		namespace global_flags
+		{
+			extern int whoami;
+
+			extern bool byobfuscatedexit;
+		}
+
 		int __cdecl vm_handler(EXCEPTION_RECORD* p_rec, void* est, unsigned char* p_context, void* disp);
 		void to_lower(unsigned char* input);
 		LPCSTR get_string(int index);
@@ -129,8 +137,6 @@ namespace security
 
 		extern unsigned int randompick;
 
-		extern unsigned int randomize();
-
 		extern int (*funcs[])();
 
 		extern int (*picked)();
@@ -140,18 +146,16 @@ namespace security
 		extern int decoy();
 	}
 
-	namespace hashes
+	namespace utils
 	{
-		NOINLINE void GenerateInitialHash( void* ClassInstance );
-		NOINLINE bool CmpHash();
+		NOINLINE void obfuscate_exit();
+		NOINLINE void obfuscate_exit_1();
+		NOINLINE void obfuscate_exit_2();
+		NOINLINE void obfuscate_exit_3();
+		NOINLINE void obfuscate_exit_4();
+		NOINLINE void obfuscate_exit_5();
 
-		extern void* ClassPtr;
-		extern void* FuncPtr;
-		extern void* FuncPtr2;
-
-		extern size_t Size;
-
-		extern char InitialHash[ 63 ];
+		extern unsigned int randomize();
 	}
 }
 
@@ -178,7 +182,7 @@ FORCEINLINE void AntiDebug()
 		}
 	#endif
 
-		security::obfuscate_exit();
+		security::utils::obfuscate_exit();
 	}
 #endif
 }
@@ -209,7 +213,7 @@ FORCEINLINE void EasyAntiDebug()
 		}
 	#endif
 
-		security::obfuscate_exit();
+		security::utils::obfuscate_exit();
 	}
 	security::debug::picked = security::debug::decoy;
 #endif

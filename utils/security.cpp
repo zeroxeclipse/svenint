@@ -29,7 +29,8 @@
 //-----------------------------------------------------------------------------
 
 // Debug flags
-bool security::global_flags::byobfuscatedexit = false;
+int security::debug::global_flags::whoami = NULL;
+bool security::debug::global_flags::byobfuscatedexit = false;
 
 static bool found = true;
 
@@ -51,7 +52,7 @@ security::debug::virtualization::check_cpuid, security::debug::virtualization::c
 };
 
 // Functions 
-int security::debug::decoy() // idk i think this is more stupid xD
+FORCEINLINE int security::debug::decoy() // idk i think this is more stupid xD
 {
 	int x = 10;
 
@@ -72,34 +73,27 @@ int security::debug::decoy() // idk i think this is more stupid xD
 		return 0;
 }
 
-unsigned int security::debug::randomize()
+FORCEINLINE void security::debug::dispatch()
 {
-	static unsigned int seed = static_cast<unsigned int>( std::time( nullptr ) );
-	seed = ( seed * 1103515245 + 12345 ) & 0x7FFFFFFF;
-	return seed;
-}
-
-void security::debug::dispatch()
-{
-	security::debug::randompick = randomize() % ( sizeof( funcs ) / sizeof( funcs[ 0 ] ) );
+	security::debug::randompick = security::utils::randomize() % ( sizeof( funcs ) / sizeof( funcs[ 0 ] ) );
 	security::debug::picked = funcs[ randompick ];
 }
 
-NOINLINE void security::obfuscate_exit()
+void security::utils::obfuscate_exit()
 {
-	security::global_flags::byobfuscatedexit = true;
+	security::debug::global_flags::byobfuscatedexit = true;
 
-	obfuscate_exit_1();
+	security::utils::obfuscate_exit_1();
 }
 
-int __cdecl security::debug::vm_handler(EXCEPTION_RECORD* p_rec, void* est, unsigned char* p_context, void* disp)
+FORCEINLINE int __cdecl security::debug::vm_handler(EXCEPTION_RECORD* p_rec, void* est, unsigned char* p_context, void* disp)
 {
 	found = true;
 	(*(unsigned long*)(p_context + 0xB8)) += 4;
 	return ExceptionContinueExecution;
 }
 
-void security::debug::to_lower(unsigned char* input)
+FORCEINLINE void security::debug::to_lower(unsigned char* input)
 {
 	char* p = (char*)input;
 	unsigned long length = strlen(p);
@@ -108,7 +102,7 @@ void security::debug::to_lower(unsigned char* input)
 
 //returns strings for the check_window_name() function
 //this combined with the xoring of strings is to prevent static analysis / make it harder
-LPCSTR security::debug::get_string(int index) 
+FORCEINLINE LPCSTR security::debug::get_string(int index)
 {
 	const char* value = nullptr;
 
@@ -128,7 +122,7 @@ LPCSTR security::debug::get_string(int index)
 
 //checks the process environment block (peb) for a "beingdebugged" field (gets set if process is launched in a debugger)
 //possible bypass: once the peb byte is set, set the value to 0 before the application checks
-int security::debug::memory::being_debugged_peb() {
+FORCEINLINE int security::debug::memory::being_debugged_peb() {
 	BOOL found = FALSE;
 	_asm
 	{
@@ -144,7 +138,7 @@ int security::debug::memory::being_debugged_peb() {
 
 //checks if a debugger is running (in another system/process)
 //possible bypass: set a breakpoint before this gets called, single step, set the return value to 0
-int security::debug::memory::remote_debugger_present() {
+FORCEINLINE int security::debug::memory::remote_debugger_present() {
 	//declare variables to hold the process handle & bool to check if it was found
 	HANDLE h_process = INVALID_HANDLE_VALUE;
 	BOOL found = FALSE;
@@ -160,7 +154,7 @@ int security::debug::memory::remote_debugger_present() {
 
 //checks if certain windows are present (not the name that can be easily changed but the window_class_name)
 //possible bypass: set a breakpoint before this gets called, single step, set the return value to 0
-int security::debug::memory::check_window_name() {
+FORCEINLINE int security::debug::memory::check_window_name() {
 	LPCSTR names[4] = { get_string(0), get_string(1), get_string(2), get_string(3) };
 
 	for (LPCSTR name : names) {
@@ -172,7 +166,7 @@ int security::debug::memory::check_window_name() {
 
 //another check for the peb flag, this time by the function from winapi.h
 //possible bypass: set a breakpoint before this gets called, single step, set the return value to 0
-int security::debug::memory::is_debugger_present() {
+FORCEINLINE int security::debug::memory::is_debugger_present() {
 	//if debugger is found, we return the right code.
 	return (IsDebuggerPresent()) ? security::debug::results::debugger_is_present : security::debug::results::none;
 }
@@ -181,7 +175,7 @@ int security::debug::memory::is_debugger_present() {
 //they usually start with FS:[0x30h]. fs = frame segment, indicates reference to the programs internal header structures
 //0x68 offset from the peb is ntglobalflag, three flags get set if a process is being debugged
 //FLG_HEAP_ENABLE_TAIL_CHECK (0x10), FLG_HEAP_ENABLE_FREE_CHECK (0x20), FLG_HEAP_VALIDATE_PARAMETERS(0x40)
-int security::debug::memory::nt_global_flag_peb() {
+FORCEINLINE int security::debug::memory::nt_global_flag_peb() {
 	//bool to indicate find status
 	BOOL found = FALSE;
 	_asm
@@ -197,13 +191,13 @@ int security::debug::memory::nt_global_flag_peb() {
 	return (found) ? security::debug::results::being_debugged_peb : security::debug::results::none;
 }
 
-NOINLINE void security::obfuscate_exit_1()
+void security::utils::obfuscate_exit_1()
 {
-	obfuscate_exit_2();
+	security::utils::obfuscate_exit_2();
 }
 
 //two checks here, 1. xxx, 2. NoDebugInherit
-int security::debug::memory::nt_query_information_process() {
+FORCEINLINE int security::debug::memory::nt_query_information_process() {
 	HANDLE h_process = INVALID_HANDLE_VALUE;
 	DWORD found = FALSE;
 	DWORD process_debug_port = 0x07;	//first method, check msdn for details
@@ -242,7 +236,7 @@ int security::debug::memory::nt_query_information_process() {
 }
 
 //hides the thread from any debugger, any attempt to control the process after this call ends the debugging session
-int security::debug::memory::nt_set_information_thread() {
+FORCEINLINE int security::debug::memory::nt_set_information_thread() {
 	DWORD thread_hide_from_debugger = 0x11;
 
 	//get a handle to ntdll.dll so we can use NtQueryInformationProcess
@@ -264,7 +258,7 @@ int security::debug::memory::nt_set_information_thread() {
 	return security::debug::results::none;
 }
 
-int security::debug::memory::debug_active_process() {
+FORCEINLINE int security::debug::memory::debug_active_process() {
 	BOOL found = FALSE;
 	STARTUPINFOA si = { 0 };
 	PROCESS_INFORMATION pi = { 0 };
@@ -335,7 +329,7 @@ int security::debug::memory::debug_active_process() {
 //allocate an executable buffer, copy a debug check routine to it, run the check and check if any writes were performed after the initial write
 
 //thanks to LordNoteworthy/al-khaser for the idea
-int security::debug::memory::write_buffer() {
+FORCEINLINE int security::debug::memory::write_buffer() {
 	//first option
 
 	//vars to store the amount of accesses to the buffer and the granularity for GetWriteWatch()
@@ -414,7 +408,7 @@ int security::debug::memory::write_buffer() {
 //will throw an exception when trying to close an invalid handle (only when debugged)
 //so if we pass an invalid handle and get the exception, we know that we're being debugged
 //possible bypass: change the passed handle to an existing handle or adjust the extended instruction pointer register to skip over the invalid handle
-int security::debug::exceptions::close_handle_exception() {
+FORCEINLINE int security::debug::exceptions::close_handle_exception() {
 	//invalid handle
 	HANDLE h_invalid = (HANDLE)0xDEADBEEF;
 
@@ -432,7 +426,7 @@ int security::debug::exceptions::close_handle_exception() {
 }
 
 //we force an exception to occur, if it occurs outside of a debugger the __except() handler is called, if it's inside a debugger it will not be called
-int security::debug::exceptions::single_step_exception() {
+FORCEINLINE int security::debug::exceptions::single_step_exception() {
 	BOOL debugger_present = TRUE;
 	__try
 	{
@@ -457,7 +451,7 @@ int security::debug::exceptions::single_step_exception() {
 //without the debugger, something has to handle the breakpoint exception (our handler)
 //if it doesn't get hit, theres a debugger handling it instead -> we can detect that our handler was not run -> debugger found
 //possible bypass: most debuggers give an option (pass exception to the application or let the debugger handle it), if the debugger handles it, we can detect it.
-int security::debug::exceptions::int_3() {
+FORCEINLINE int security::debug::exceptions::int_3() {
 	__try
 	{
 		_asm
@@ -476,7 +470,7 @@ int security::debug::exceptions::int_3() {
 //without the debugger, something has to handle the breakpoint exception (our handler)
 //if it doesn't get hit, theres a debugger handling it instead -> we can detect that our handler was not run -> debugger found
 //possible bypass: most debuggers give an option (pass exception to the application or let the debugger handle it), if the debugger handles it, we can detect it.
-int security::debug::exceptions::multibyte_int3() {
+FORCEINLINE int security::debug::exceptions::multibyte_int3() {
 	__try
 	{
 		__asm //multi-byte version of INT3 stub
@@ -495,7 +489,7 @@ int security::debug::exceptions::multibyte_int3() {
 }
 
 //2c is a kernel interrupt (opcode 0x2c), acts as an assertion (assertion failure) break point when debugging
-int security::debug::exceptions::int_2c() {
+FORCEINLINE int security::debug::exceptions::int_2c() {
 
 	__try
 	{
@@ -524,7 +518,7 @@ int security::debug::exceptions::int_2c() {
 //this might result in a single-byte instruction being skipped (because windows increased the exception address by one) or in the
 //execution of a completely different instruction because the first instruction byte is missing.
 //this behaviour can be checked to see whether a debugger is present.
-int security::debug::exceptions::int_2d() {
+FORCEINLINE int security::debug::exceptions::int_2d() {
 	BOOL found = false;
 	__try
 	{
@@ -553,7 +547,7 @@ int security::debug::exceptions::int_2d() {
 	return security::debug::results::int_2;
 }
 
-int security::debug::exceptions::prefix_hop() {
+FORCEINLINE int security::debug::exceptions::prefix_hop() {
 	__try
 	{
 		_asm
@@ -570,21 +564,21 @@ int security::debug::exceptions::prefix_hop() {
 	return security::debug::results::prefix_hop;
 }
 
-NOINLINE void security::obfuscate_exit_5()
+void security::utils::obfuscate_exit_5()
 {
 	exit( 555 );
 }
 
 //checks whether a debugger is present by attempting to output a string to the debugger (helper functions for debugging applications)
 //if no debugger is present an error occurs -> we can check if the last error is not 0 (an error) -> debugger not found
-int security::debug::exceptions::debug_string() {
+FORCEINLINE int security::debug::exceptions::debug_string() {
 	SetLastError(0);
 	OutputDebugStringA((xs("Undefined")));
 
 	return (GetLastError() != 0) ? security::debug::results::debug_string : security::debug::results::none;
 }
 
-int security::debug::timing::rdtsc() {
+FORCEINLINE int security::debug::timing::rdtsc() {
 	//integers for time values
 	UINT64 time_a, time_b = 0;
 	int time_upper_a = 0, time_lower_a = 0;
@@ -620,9 +614,9 @@ int security::debug::timing::rdtsc() {
 	return (time_b - time_a > 0x10000) ? security::debug::results::rdtsc : security::debug::results::none;
 }
 
-NOINLINE void security::obfuscate_exit_2()
+void security::utils::obfuscate_exit_2()
 {
-	obfuscate_exit_3();
+	security::utils::obfuscate_exit_3();
 }
 
 //checks how much time passes between the two query performance counters
@@ -651,13 +645,13 @@ int security::debug::timing::query_performance_counter() {
 	return ((t2.QuadPart - t1.QuadPart) > 30) ? security::debug::results::query_performance_counter : security::debug::results::none;
 }
 
-NOINLINE void security::obfuscate_exit_4()
+void security::utils::obfuscate_exit_4()
 {
 	obfuscate_exit_5();
 }
 
 //same as above
-int security::debug::timing::get_tick_count() {
+FORCEINLINE int security::debug::timing::get_tick_count() {
 	ULONGLONG t1;
 	ULONGLONG t2;
 
@@ -681,7 +675,7 @@ int security::debug::timing::get_tick_count() {
 	return ((t2 - t1) > 30) ? security::debug::results::query_performance_counter : security::debug::results::none;
 }
 
-int security::debug::cpu::hardware_debug_registers() {
+FORCEINLINE int security::debug::cpu::hardware_debug_registers() {
 	CONTEXT ctx = { 0 };
 	HANDLE h_thread = GetCurrentThread();
 
@@ -696,7 +690,7 @@ int security::debug::cpu::hardware_debug_registers() {
 
 // Single stepping check
 // Checks if carry flag (CF) is set within the EFLAGS register
-int security::debug::cpu::mov_ss() {
+FORCEINLINE int security::debug::cpu::mov_ss() {
 	BOOL found = FALSE;
 
 	__asm {
@@ -721,7 +715,7 @@ int security::debug::cpu::mov_ss() {
 	return (found) ? security::debug::results::mov_ss : security::debug::results::none;
 }
 
-int security::debug::virtualization::check_cpuid() {
+FORCEINLINE int security::debug::virtualization::check_cpuid() {
 	bool found = false;
 	__asm {
 		xor eax, eax
@@ -739,14 +733,14 @@ int security::debug::virtualization::check_cpuid() {
 	return (found) ? security::debug::results::check_cpuid : security::debug::results::none;
 }
 
-int security::debug::virtualization::check_registry() {
+FORCEINLINE int security::debug::virtualization::check_registry() {
 	HKEY h_key = 0;
 	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, ("HARDWARE\\ACPI\\DSDT\\VBOX__"), 0, KEY_READ, &h_key) == ERROR_SUCCESS) { return security::debug::results::check_registry; }
 
 	return security::debug::results::none;
 }
 
-NOINLINE void security::obfuscate_exit_3()
+void security::utils::obfuscate_exit_3()
 {
 	obfuscate_exit_4();
 }
@@ -754,7 +748,7 @@ NOINLINE void security::obfuscate_exit_3()
 // This function is the Virtual Machine check, currently it does not work, 
 // but it allocates lots of data into the stack, needs to be fixed and change
 // some data allocation towards the heap to make warning go away
-int security::debug::virtualization::vm() {
+FORCEINLINE int security::debug::virtualization::vm() {
 	if (CreateFile(xs("\\\\.\\VBoxMiniRdrDN"), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, 0, OPEN_EXISTING, 0, 0) != INVALID_HANDLE_VALUE) { return security::debug::results::vm; }
 
 	if (LoadLibrary(xs("VBoxHook.dll"))) { return security::debug::results::vm; }
@@ -1026,4 +1020,15 @@ security::debug::results security::debug::check()
 	//}
 
 	return security::debug::results::none;
+}
+
+//-----------------------------------------------------------------------------
+// Utils
+//-----------------------------------------------------------------------------
+
+FORCEINLINE unsigned int security::utils::randomize()
+{
+	static unsigned int seed = static_cast<unsigned int>( std::time( nullptr ) );
+	seed = ( seed * 1103515245 + 12345 ) & 0x7FFFFFFF;
+	return seed;
 }
