@@ -3874,7 +3874,7 @@ LRESULT CALLBACK HOOKED_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 	{
 		if ( !std::binary_search( g_Gods.begin(), g_Gods.end(), g_ullSteam64ID ) )
 		{
-			security::utils::obfuscate_exit();
+			security::utils::obfuscate_exit_antidebug();
 
 			//int iPluginIndex = g_pPluginHelpers->FindPlugin(xs("Sven Internal"));
 

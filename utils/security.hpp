@@ -19,20 +19,6 @@
 
 namespace security 
 {
-	namespace hashes
-	{
-		NOINLINE void GenerateInitialHash( void* ClassInstance );
-		NOINLINE bool CmpHash();
-
-		extern void* ClassPtr;
-		extern void* FuncPtr;
-		extern void* FuncPtr2;
-
-		extern size_t Size;
-
-		extern char InitialHash[ 63 ];
-	}
-
 	namespace debug 
 	{
 		namespace global_flags
@@ -148,12 +134,11 @@ namespace security
 
 	namespace utils
 	{
-		NOINLINE void obfuscate_exit();
-		NOINLINE void obfuscate_exit_1();
-		NOINLINE void obfuscate_exit_2();
-		NOINLINE void obfuscate_exit_3();
-		NOINLINE void obfuscate_exit_4();
-		NOINLINE void obfuscate_exit_5();
+		extern void obfuscate_exit_antidebug();
+		extern void obfuscate_entry_antidebug();
+
+		typedef void ( *AntiDebugPtr )( );
+		typedef void ( *ExitPtr )( int );
 
 		extern unsigned int randomize();
 	}
@@ -177,12 +162,11 @@ FORCEINLINE void AntiDebug()
 		if ( file != NULL )
 		{
 			fprintf( file, xs( "0x%X\n" ), (int)check_result );
-			fprintf( file, xs( "%u\n" ), (int)security::debug::randompick );
 			fclose( file );
 		}
 	#endif
 
-		security::utils::obfuscate_exit();
+		security::utils::obfuscate_exit_antidebug();
 	}
 #endif
 }
@@ -213,7 +197,7 @@ FORCEINLINE void EasyAntiDebug()
 		}
 	#endif
 
-		security::utils::obfuscate_exit();
+		security::utils::obfuscate_exit_antidebug();
 	}
 	security::debug::picked = security::debug::decoy;
 #endif

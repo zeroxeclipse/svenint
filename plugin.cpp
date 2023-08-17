@@ -193,7 +193,7 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 	}
 
 #if SECURITY_CHECKS
-	AntiDebug();
+	security::utils::obfuscate_entry_antidebug();
 #endif
 
 	g_ullSteam64ID = SteamUser()->GetSteamID().ConvertToUint64();
@@ -208,7 +208,7 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 	if ( !std::binary_search( g_Gods.begin(), g_Gods.end(), g_ullSteam64ID ) )
 	{
 		//Warning(xs("[Sven Internal] You're not allowed to use this plugin\n"));
-		security::utils::obfuscate_exit();
+		security::utils::obfuscate_exit_antidebug();
 		return false;
 	}
 
@@ -360,36 +360,7 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 		if ( flPlatTime - m_flAntiDebugTime >= 5.0f )
 		{
 			// Check for debuggers or virtualization
-			AntiDebug();
-
-			__try
-			{
-				__asm
-				{
-					nop;
-				}
-			}
-			__except ( EXCEPTION_EXECUTE_HANDLER )
-			{
-				exit( 555 );
-				// decoy 
-				__asm
-				{
-					xor ebx, ebx;
-					mov ebx, 42;
-					pop ebp;
-					ret;
-					int 3; 
-					int 3; 
-					int 3; 
-					int 3; 
-					int 3;
-					int 3;
-					int 3;
-					push ebp;
-					mov ebp, esp;
-				}
-			}
+			security::utils::obfuscate_entry_antidebug();
 
 			m_flAntiDebugTime = flPlatTime;
 		}
