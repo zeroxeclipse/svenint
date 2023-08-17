@@ -905,7 +905,96 @@ DECLARE_FUNC(void, __cdecl, HOOKED_SCR_UpdateScreen)
 	};
 
 	ORIG_SCR_UpdateScreen();
+
+	//void RecordVid();
+	//RecordVid();
 }
+
+#if 0
+static bool record = false;
+static bool record_first = true;
+static int record_frame_count = 0;
+static int record_frame_actual_count = 0;
+static double record_max_game_fps = 200.0;
+static double record_actual_fps = 4.0 * 60.0;
+static double record_fps_multiplier = 4.0;
+static double record_fps = 60.0;
+static double record_frametime = 1.0 / 60.0;
+static double record_last_record_time = 0.0;
+static double record_accumulated_time = 0.0;
+
+CON_COMMAND( sc_record_start, "" )
+{
+	record = true;
+	record_first = true;
+	record_fps = atof( args[ 1 ] );
+	record_max_game_fps = atof( args[ 2 ] );
+	record_fps_multiplier = ceil( record_max_game_fps / record_fps );
+	record_actual_fps = record_fps * record_fps_multiplier;
+	record_frametime = 1.0 / record_actual_fps;
+	record_last_record_time = 0.0;
+	record_accumulated_time = 0.0;
+
+	Msg( "%f (%f / %f)", record_fps_multiplier, record_max_game_fps, record_fps );
+
+	CVar()->SetValue( "fps_max", (float)record_actual_fps );
+	CVar()->SetValue( "host_framerate", (float)record_frametime );
+}
+
+CON_COMMAND( sc_record_stop, "" )
+{
+	record = false;
+}
+
+void RecordFilterTime( double time )
+{
+	extern ConVar sc_st_min_frametime;
+
+	if ( !record )
+		return;
+
+	record_accumulated_time += sc_st_min_frametime.GetFloat();
+	//record_accumulated_time += time;
+	//Msg("%f (%f)\n", time, record_accumulated_time );
+}
+
+void RecordVid()
+{
+	if ( !record )
+		return;
+
+	static char filename[ 32 ];
+
+	if ( record_first )
+	{
+		record_frame_count = 0;
+		record_frame_actual_count = 0;
+		record_first = false;
+		record_last_record_time = *dbRealtime;
+		record_accumulated_time = 0.0;
+
+		snprintf( filename, M_ARRAYSIZE( filename ), "test_%05d.bmp", record_frame_count + 1 );
+		VID_TakeSnapshot( filename );
+	}
+	//else if ( record_accumulated_time >= record_frametime )
+	else if ( *dbRealtime - record_last_record_time >= record_frametime )
+	{
+		record_frame_actual_count++;
+
+		record_last_record_time = *dbRealtime;
+		record_accumulated_time = 0.0;
+
+		if ( record_frame_actual_count != (int)record_fps_multiplier )
+			return;
+
+		record_frame_count++;
+		record_frame_actual_count = 0;
+
+		snprintf( filename, M_ARRAYSIZE( filename ), "test_%05d.bmp", record_frame_count + 1 );
+		VID_TakeSnapshot( filename );
+	}
+}
+#endif
 
 DECLARE_FUNC(void, __cdecl, HOOKED_R_SetupFrame)
 {
@@ -1701,6 +1790,7 @@ bool CHooksModule::Load()
 	auto fpfnScaleColors = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::ScaleColors );
 	auto fpfnScaleColors_RGBA = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::ScaleColors_RGBA );
 	auto fpfnPM_PlayerTrace = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::PM_PlayerTrace );
+	auto fpfnVID_TakeSnapshot = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::VID_TakeSnapshot );
 	auto fpclc_buffer = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::clc_buffer );
 	auto fcheats_level = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::cheats_level );
 	auto fg_pEngine = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::g_pEngine );
@@ -1789,6 +1879,13 @@ bool CHooksModule::Load()
 		Warning( "Couldn't find function \"_PM_PlayerTrace\"\n" );
 		ScanOK = false;
 	}
+	
+	void *pfnVID_TakeSnapshot;
+	if ( !( pfnVID_TakeSnapshot = fpfnVID_TakeSnapshot.get() ) )
+	{
+		Warning( "Couldn't find function \"VID_TakeSnapshot\"\n" );
+		ScanOK = false;
+	}
 
 	void *pclc_buffer;
 	if ( ( pclc_buffer = fpclc_buffer.get() ) == NULL )
@@ -1815,6 +1912,7 @@ bool CHooksModule::Load()
 		return false;
 
 	PM_PlayerTrace = (PM_PlayerTraceFn)pfnPM_PlayerTrace;
+	VID_TakeSnapshot = (VID_TakeSnapshotFn)pfnVID_TakeSnapshot;
 
 	clc_buffer = *reinterpret_cast<sizebuf_t **>( (unsigned char *)pclc_buffer + 1 );
 	cheats_level = *reinterpret_cast<int **>( (unsigned char *)pcheats_level + 2 );

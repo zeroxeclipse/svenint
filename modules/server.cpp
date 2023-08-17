@@ -47,6 +47,7 @@ globalvars_t *gpGlobals = NULL;
 globalvars_t **gpGlobals_ptr = NULL;
 
 enginefuncs_t *g_pServerEngineFuncs = NULL;
+enginefuncs_t *g_pOrigServerEngineFuncs = NULL;
 DLL_FUNCTIONS *g_pServerFuncs = NULL;
 NEW_DLL_FUNCTIONS *g_pNewServerFuncs = NULL;
 
@@ -446,7 +447,7 @@ bool CServerModule::Init( void )
 		return false;
 	}
 
-	enginefuncs_t *pServerEngineFuncs = NULL;
+	g_pOrigServerEngineFuncs = NULL;
 
 	MemoryUtils()->InitDisasm( &inst, GiveFnptrsToDll, 32, 32 );
 
@@ -454,12 +455,12 @@ bool CServerModule::Init( void )
 	{
 		if ( inst.mnemonic == UD_Imov && inst.operand[ 0 ].type == UD_OP_REG && inst.operand[ 0 ].base == UD_R_EDI && inst.operand[ 1 ].type == UD_OP_IMM )
 		{
-			memcpy( &g_ServerEngineFuncs, pServerEngineFuncs = reinterpret_cast<enginefuncs_t *>( inst.operand[ 1 ].lval.udword ), sizeof( enginefuncs_t ) );
+			memcpy( &g_ServerEngineFuncs, g_pOrigServerEngineFuncs = reinterpret_cast<enginefuncs_t *>( inst.operand[ 1 ].lval.udword ), sizeof( enginefuncs_t ) );
 			break;
 		}
 	}
 
-	if ( pServerEngineFuncs == NULL )
+	if ( g_pOrigServerEngineFuncs == NULL )
 	{
 		Warning( "Failed to get server's engine functions\n" );
 		return false;

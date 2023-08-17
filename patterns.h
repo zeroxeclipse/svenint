@@ -13,6 +13,9 @@ namespace Patterns
 	{
 		EXTERN_PATTERN( flNextCmdTime );
 
+		EXTERN_PATTERN( host_framerate );
+		EXTERN_PATTERN( Host_FilterTime );
+
 		EXTERN_PATTERN( Netchan_CanPacket );
 		EXTERN_PATTERN( Netchan_Transmit );
 
@@ -34,6 +37,8 @@ namespace Patterns
 		EXTERN_PATTERN( R_SetupFrame );
 		EXTERN_PATTERN( R_ForceCVars );
 		EXTERN_PATTERN( R_LoadSkyboxInt );
+
+		EXTERN_PATTERN( VID_TakeSnapshot );
 
 		EXTERN_PATTERN( PM_PlayerTrace );
 
@@ -104,6 +109,10 @@ namespace Patterns
 		EXTERN_PATTERN( CBasePlayer__SpecialSpawn );
 		EXTERN_PATTERN( CBasePlayer__vtable );
 
+		EXTERN_PATTERN( CBaseEntity__FireBullets );
+		EXTERN_PATTERN( CCrossbow__PrimaryAttack );
+
+		EXTERN_PATTERN( UTIL_GetCircularGaussianSpread );
 		EXTERN_PATTERN( FireTargets );
 
 		EXTERN_PATTERN( CopyPEntityVars );
