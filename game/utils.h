@@ -18,6 +18,7 @@
 #include "../modules/server.h"
 
 typedef pmtrace_t ( __cdecl *PM_PlayerTraceFn )( float *start, float *end, int traceflags, int numents, physent_t *ents, int ignore_ent, int ( __cdecl *pfnEntFilter )( int ) );
+typedef void ( __cdecl *VID_TakeSnapshotFn )( const char *pszFilename );
 
 struct screen_info_t
 {
@@ -60,6 +61,7 @@ FORCEINLINE float Long32ToFloat( long val )
 
 // Client utilities
 extern PM_PlayerTraceFn PM_PlayerTrace;
+extern VID_TakeSnapshotFn VID_TakeSnapshot;
 
 bool UTIL_IsDead( void );
 bool UTIL_IsSpectating( void );

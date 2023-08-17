@@ -115,16 +115,16 @@ private:
 	unsigned short							*m_pJumpOpCode;
 	unsigned short							m_PatchedJumpOpCode;
 
-	void									*m_pfnCBaseEntity_FireBullets;
-	void									*m_pfnCFuncTankGun_Fire;
+	void									*m_pfnCBaseEntity__FireBullets;
 	void									*m_pfnUTIL_GetCircularGaussianSpread;
+	void									*m_pfnCCrossbow__PrimaryAttack;
 	void									*m_pfnHost_FilterTime;
 	void									*m_pfnCbuf_AddText;
 	void									*m_pfnServerCmd;
 
-	DetourHandle_t							m_hCBaseEntity_FireBullets;
-	DetourHandle_t							m_hCFuncTankGun_Fire;
+	DetourHandle_t							m_hCBaseEntity__FireBullets;
 	DetourHandle_t							m_hUTIL_GetCircularGaussianSpread;
+	DetourHandle_t							m_hCCrossbow__PrimaryAttack;
 	DetourHandle_t							m_hHost_FilterTime;
 	DetourHandle_t							m_hCbuf_AddText;
 	DetourHandle_t							m_hServerCmd;

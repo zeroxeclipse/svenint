@@ -165,8 +165,6 @@ CON_COMMAND(sc_strafe_vectorial, "Toggle Vectorial Strafing")
 // Updated strafe data
 //-----------------------------------------------------------------------------
 
-ConVar sc_ebal_rot( "sc_ebal_rot", "0.002" );
-
 void UpdateStrafeData( Strafe::StrafeData &strafeData, bool bStrafe, Strafe::StrafeDir dir, Strafe::StrafeType type, float flYaw, float flPointX, float flPointY )
 {
 	*reinterpret_cast<Vector *>( strafeData.player.Velocity ) = g_pPlayerMove->velocity;

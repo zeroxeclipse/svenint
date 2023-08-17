@@ -326,6 +326,7 @@ CON_COMMAND( sc_debug_draw_clear, "" )
 //-----------------------------------------------------------------------------
 
 PM_PlayerTraceFn PM_PlayerTrace = NULL;
+VID_TakeSnapshotFn VID_TakeSnapshot = NULL;
 
 bool UTIL_IsDead( void )
 {

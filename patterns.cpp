@@ -6,6 +6,9 @@ namespace Patterns
 	{
 		DEFINE_PATTERN( flNextCmdTime, "D9 1D ? ? ? ? 75 0A A1" );
 
+		DEFINE_PATTERN( Host_FilterTime, "E9 ? ? ? ? 90 90 90 8B 0D ? ? ? ? D8" );
+		DEFINE_PATTERN( host_framerate, "74 ? DD ? B8" );
+
 		DEFINE_PATTERN( Netchan_CanPacket, "D9 05 ? ? ? ? D9 EE DA E9 DF E0 F6 C4 44 8B 44 24 04" );
 		DEFINE_PATTERN( Netchan_Transmit, "B8 ? ? ? ? E8 ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 ? ? ? ? 8B 84 24 ? ? ? ? 53 55" );
 
@@ -27,6 +30,8 @@ namespace Patterns
 		DEFINE_PATTERN( R_SetupFrame, "83 EC 24 A1 ? ? ? ? 33 C4 89 44 24 20 33 C0 83 3D ? ? ? ? 01 0F 9F C0 50 E8 ? ? ? ? E8" );
 		DEFINE_PATTERN( R_ForceCVars, "83 7C 24 04 ? 0F 84 ? ? ? ? 81 3D ? ? ? ? FF" );
 		DEFINE_PATTERN( R_LoadSkyboxInt, "81 EC ? ? 00 00 A1 ? ? ? ? 33 C4 89 84 24 ? ? 00 00 53 8B 9C 24 ? ? 00 00 55 56 57 89 5C 24 24" );
+
+		DEFINE_PATTERN( VID_TakeSnapshot, "83 EC ? A1 ? ? ? ? 33 C4 89 44 24 40 83 3D ? ? ? ? ? 53" );
 
 		DEFINE_PATTERN( PM_PlayerTrace, "55 8B EC 83 E4 ? 81 EC ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 20 01 00 00" );
 
@@ -97,6 +102,10 @@ namespace Patterns
 		DEFINE_PATTERN( CBasePlayer__SpecialSpawn, "81 EC ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 38 03 00 00" );
 		DEFINE_PATTERN( CBasePlayer__vtable, "C7 06 ? ? ? ? 8D 9E 74 08 00 00 C7 86 00 06 00 00 FF FF FF FF" );
 
+		DEFINE_PATTERN( CBaseEntity__FireBullets, "55 8B EC 6A ? 68 ? ? ? ? 64 A1 ? ? ? ? 50 81 EC ? ? ? ? 53 56 57 A1 ? ? ? ? 33 C5 50 8D 45 F4 64 A3 ? ? ? ? 8B F9 89 7D F0" );
+		DEFINE_PATTERN( CCrossbow__PrimaryAttack, "56 8B F1 80 BE 05 02 00 00 ? 74 ? 8B 06 8B 80 98 02 00 00" );
+
+		DEFINE_PATTERN( UTIL_GetCircularGaussianSpread, "56 8B 74 24 08 57 8B 7C 24 10 66 0F 1F 44 00 00" );
 		DEFINE_PATTERN( FireTargets, "53 8B 5C 24 08 85 DB 0F 84 ? ? ? ? 80 3B ? 0F 84 ? ? ? ? 55" );
 
 		DEFINE_PATTERN( CopyPEntityVars, "E8 ? ? ? ? F3 0F 10 84 24 8C 01 00 00" );

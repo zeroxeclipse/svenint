@@ -43,20 +43,14 @@ extern movevars_t refparams_movevars;
 
 DECLARE_FUNC_PTR( vgui::HFont, __cdecl, VGUI2_GetEngineFont );
 
-DECLARE_CLASS_HOOK( void, CBaseEntity_FireBullets, void *thisptr, unsigned int, Vector, Vector, Vector, float, int, int, int, entvars_t *, int );
-DECLARE_CLASS_HOOK( void, CFuncTankGun_Fire, void *thisptr, const Vector &barrelEnd, const Vector &forward, entvars_t *pevAttacker );
+DECLARE_CLASS_HOOK( void, CBaseEntity__FireBullets, void *thisptr, unsigned int, Vector, Vector, Vector, float, int, int, int, entvars_t *, int );
 DECLARE_HOOK( void, __cdecl, UTIL_GetCircularGaussianSpread, float *, float * );
+DECLARE_CLASS_HOOK( void, CCrossbow__PrimaryAttack, void *thisptr );
 DECLARE_HOOK( qboolean, __cdecl, Host_FilterTime, float );
 
 //-----------------------------------------------------------------------------
 // Vars
 //-----------------------------------------------------------------------------
-
-DEFINE_PATTERN( CBaseEntity_FireBullets_sig, "55 8B EC 6A ? 68 ? ? ? ? 64 A1 ? ? ? ? 50 81 EC ? ? ? ? 53 56 57 A1 ? ? ? ? 33 C5 50 8D 45 F4 64 A3 ? ? ? ? 8B F9 89 7D F0" );
-DEFINE_PATTERN( CFuncTankGun_Fire_sig, "53 55 56 8B F1 57 F3 0F 10 86 A0 01 00 00" );
-DEFINE_PATTERN( UTIL_GetCircularGaussianSpread_sig, "56 8B 74 24 08 57 8B 7C 24 10 66 0F 1F 44 00 00" );
-DEFINE_PATTERN( Host_FilterTime_sig, "E9 ? ? ? ? 90 90 90 8B 0D ? ? ? ? D8" );
-DEFINE_PATTERN( host_framerate_patch_sig, "74 ? DD ? B8" );
 
 CSpeedrunTools g_SpeedrunTools;
 
@@ -720,32 +714,23 @@ CON_COMMAND( sc_test_revive, "" )
 // Hooks
 //-----------------------------------------------------------------------------
 
-static bool inside_CFuncTankGun_Fire = false;
-static bool inside_CBaseEntity_FireBullets = false;
-static void *inside_CBaseEntity_FireBullets_thisptr = NULL;
+// Spread unrandomizer
+static bool inside_CBaseEntity__FireBullets = false;
+static void *inside_CBaseEntity__FireBullets_thisptr = NULL;
 
-DECLARE_CLASS_FUNC( void, HOOKED_CBaseEntity_FireBullets, void *thisptr, unsigned int cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFeq, int iDamage, entvars_t *pAttacker, int fDraw )
+DECLARE_CLASS_FUNC( void, HOOKED_CBaseEntity__FireBullets, void *thisptr, unsigned int cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance, int iBulletType, int iTracerFeq, int iDamage, entvars_t *pAttacker, int fDraw )
 {
-	inside_CBaseEntity_FireBullets = true;
-	inside_CBaseEntity_FireBullets_thisptr = thisptr;
+	inside_CBaseEntity__FireBullets = true;
+	inside_CBaseEntity__FireBullets_thisptr = thisptr;
 
 	if ( sc_st_disable_spread.GetBool() )
 	{
 		vecSpread.Zero();
 	}
 
-	ORIG_CBaseEntity_FireBullets( thisptr, cShots, vecSrc, vecDirShooting, vecSpread, flDistance, iBulletType, iTracerFeq, iDamage, pAttacker, fDraw );
+	ORIG_CBaseEntity__FireBullets( thisptr, cShots, vecSrc, vecDirShooting, vecSpread, flDistance, iBulletType, iTracerFeq, iDamage, pAttacker, fDraw );
 
-	inside_CBaseEntity_FireBullets = false;
-}
-
-DECLARE_CLASS_FUNC( void, HOOKED_CFuncTankGun_Fire, void *thisptr, const Vector &barrelEnd, const Vector &forward, entvars_t *pevAttacker )
-{
-	inside_CFuncTankGun_Fire = true;
-
-	ORIG_CFuncTankGun_Fire( thisptr, barrelEnd, forward, pevAttacker );
-
-	inside_CFuncTankGun_Fire = false;
+	inside_CBaseEntity__FireBullets = false;
 }
 
 DECLARE_FUNC( void, __cdecl, HOOKED_UTIL_GetCircularGaussianSpread, float *x, float *y )
@@ -757,32 +742,7 @@ DECLARE_FUNC( void, __cdecl, HOOKED_UTIL_GetCircularGaussianSpread, float *x, fl
 		*x = *y = 0.f;
 	}
 	
-	//if ( inside_CFuncTankGun_Fire )
-	//{
-	//	scriptref_t hCallbackFunction;
-
-	//	if ( hCallbackFunction = g_ScriptVM.LookupFunction( "OnTankGunFireSpread" ) )
-	//	{
-	//		lua_State *pLuaState = g_ScriptVM.GetVM();
-
-	//		lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hCallbackFunction);
-
-	//		lua_pushnumber( pLuaState, (lua_Number)*x );
-	//		lua_pushnumber( pLuaState, (lua_Number)*y );
-
-	//		g_ScriptVM.ProtectedCall( pLuaState, 2, 2, 0 );
-
-	//		if ( lua_isnumber( pLuaState, -2 ) && lua_isnumber( pLuaState, -1 ) )
-	//		{
-	//			*x = (float)lua_tonumber( pLuaState, -2 );
-	//			*y = (float)lua_tonumber( pLuaState, -1 );
-	//		}
-
-	//		g_ScriptVM.ReleaseFunction( hCallbackFunction );
-	//	}
-	//}
-
-	if ( inside_CBaseEntity_FireBullets )
+	if ( inside_CBaseEntity__FireBullets )
 	{
 		scriptref_t hCallbackFunction;
 
@@ -790,7 +750,7 @@ DECLARE_FUNC( void, __cdecl, HOOKED_UTIL_GetCircularGaussianSpread, float *x, fl
 		{
 			lua_State *pLuaState = g_ScriptVM.GetVM();
 
-			entvars_t *pev = *(entvars_t **)( (unsigned long *)inside_CBaseEntity_FireBullets_thisptr + 1 );
+			entvars_t *pev = *(entvars_t **)( (unsigned long *)inside_CBaseEntity__FireBullets_thisptr + 1 );
 			edict_t *pEntity = g_pServerEngineFuncs->pfnFindEntityByVars( pev );
 
 			lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hCallbackFunction );
@@ -810,6 +770,93 @@ DECLARE_FUNC( void, __cdecl, HOOKED_UTIL_GetCircularGaussianSpread, float *x, fl
 
 			g_ScriptVM.ReleaseFunction( hCallbackFunction );
 		}
+	}
+}
+
+// CCrossbow::PrimaryAttack unrandomizer
+static int randomfloat_calls = 0;
+static bool randomfloat_supercede_value_1_shitbool = false;
+static bool randomfloat_supercede_value_2_shitbool = false;
+static float randomfloat_supercede_value_1 = 1.f;
+static float randomfloat_supercede_value_2 = 1.f;
+
+static float substitute_RandomFloat( float min, float max )
+{
+	randomfloat_calls++;
+
+	if ( randomfloat_calls == 1 )
+	{
+		if ( randomfloat_supercede_value_1_shitbool )
+		{
+			return randomfloat_supercede_value_1;
+		}
+	}
+	else
+	{
+		if ( randomfloat_supercede_value_2_shitbool )
+		{
+			return randomfloat_supercede_value_2;
+		}
+	}
+
+	//Msg( "RandomFloat( %f, %f )", min, max );
+
+	return 1.f;
+}
+
+DECLARE_CLASS_FUNC( void, HOOKED_CCrossbow__PrimaryAttack, void *thisptr )
+{
+	randomfloat_supercede_value_1_shitbool = randomfloat_supercede_value_2_shitbool = false;
+
+	scriptref_t hCallbackFunction;
+
+	if ( hCallbackFunction = g_ScriptVM.LookupFunction( "OnFireCrossbowSpread" ) )
+	{
+		lua_State *pLuaState = g_ScriptVM.GetVM();
+
+		entvars_t *pev = *(entvars_t **)( (unsigned long *)thisptr + 1 );
+		edict_t *pEntity = g_pServerEngineFuncs->pfnFindEntityByVars( pev );
+
+		lua_rawgeti( pLuaState, LUA_REGISTRYINDEX, (int)hCallbackFunction );
+
+		lua_pushedict( pLuaState, pEntity );
+		lua_pushinteger( pLuaState, (lua_Integer)g_pServerEngineFuncs->pfnIndexOfEdict( pEntity ) );
+
+		g_ScriptVM.ProtectedCall( pLuaState, 2, 4, 0 );
+
+		if ( lua_isboolean( pLuaState, -4 ) && lua_isboolean( pLuaState, -2 ) )
+		{
+			randomfloat_supercede_value_1_shitbool = lua_toboolean( pLuaState, -4 );
+			randomfloat_supercede_value_2_shitbool = lua_toboolean( pLuaState, -2 );
+
+			if ( randomfloat_supercede_value_1_shitbool || randomfloat_supercede_value_2_shitbool )
+			{
+				randomfloat_calls = 0;
+				randomfloat_supercede_value_1 = randomfloat_supercede_value_2 = 1.f;
+
+				if ( randomfloat_supercede_value_1_shitbool )
+					randomfloat_supercede_value_1 = (float)luaL_optnumber( pLuaState, -3, -1.0 );
+
+				if ( randomfloat_supercede_value_2_shitbool )
+					randomfloat_supercede_value_2 = (float)luaL_optnumber( pLuaState, -1, -1.0 );
+			}
+		}
+
+		g_ScriptVM.ReleaseFunction( hCallbackFunction );
+	}
+
+	if ( randomfloat_supercede_value_1_shitbool || randomfloat_supercede_value_2_shitbool )
+	{
+		float ( *ORIG_RandomFloat )( float, float ) = g_pOrigServerEngineFuncs->pfnRandomFloat;
+		g_pOrigServerEngineFuncs->pfnRandomFloat = substitute_RandomFloat;
+
+		ORIG_CCrossbow__PrimaryAttack( thisptr );
+
+		g_pOrigServerEngineFuncs->pfnRandomFloat = ORIG_RandomFloat;
+	}
+	else
+	{
+		ORIG_CCrossbow__PrimaryAttack( thisptr );
 	}
 }
 
@@ -3407,27 +3454,28 @@ bool CSpeedrunTools::Load( void )
 {
 	ud_t inst;
 	bool ScanOK = true;
+	HMODULE hServerDLL = Sys_GetModuleHandle( "server.dll" );
 
-	auto fpfnCBaseEntity_FireBullets = MemoryUtils()->FindPatternAsync( Sys_GetModuleHandle( "server.dll" ), CBaseEntity_FireBullets_sig );
-	auto fpfnCFuncTankGun_Fire = MemoryUtils()->FindPatternAsync( Sys_GetModuleHandle( "server.dll" ), CFuncTankGun_Fire_sig );
-	auto fpfnUTIL_GetCircularGaussianSpread = MemoryUtils()->FindPatternAsync( Sys_GetModuleHandle( "server.dll" ), UTIL_GetCircularGaussianSpread_sig );
-	auto fpfnHost_FilterTime = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Host_FilterTime_sig );
+	auto fpfnCBaseEntity__FireBullets = MemoryUtils()->FindPatternAsync( hServerDLL, Patterns::Server::CBaseEntity__FireBullets );
+	auto fpfnUTIL_GetCircularGaussianSpread = MemoryUtils()->FindPatternAsync( hServerDLL, Patterns::Server::UTIL_GetCircularGaussianSpread );
+	auto fpfnCCrossbow__PrimaryAttack = MemoryUtils()->FindPatternAsync( hServerDLL, Patterns::Server::CCrossbow__PrimaryAttack );
+	auto fpfnHost_FilterTime = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::Host_FilterTime );
 
-	if ( !( m_pfnCBaseEntity_FireBullets = fpfnCBaseEntity_FireBullets.get() ) )
+	if ( !( m_pfnCBaseEntity__FireBullets = fpfnCBaseEntity__FireBullets.get() ) )
 	{
 		Warning( "Couldn't find function \"CBaseEntity::FireBullets\"\n" );
-		ScanOK = false;
-	}
-	
-	if ( !( m_pfnCFuncTankGun_Fire = fpfnCFuncTankGun_Fire.get() ) )
-	{
-		Warning( "Couldn't find function \"CFuncTankGun::Fire\"\n" );
 		ScanOK = false;
 	}
 	
 	if ( !( m_pfnUTIL_GetCircularGaussianSpread = fpfnUTIL_GetCircularGaussianSpread.get() ) )
 	{
 		Warning( "Couldn't find function \"UTIL_GetCircularGaussianSpread\"\n" );
+		ScanOK = false;
+	}
+	
+	if ( !( m_pfnCCrossbow__PrimaryAttack = fpfnCCrossbow__PrimaryAttack.get() ) )
+	{
+		Warning( "Couldn't find function \"CCrossbow::PrimaryAttack\"\n" );
 		ScanOK = false;
 	}
 
@@ -3441,7 +3489,7 @@ bool CSpeedrunTools::Load( void )
 		return false;
 
 	m_pJumpOpCode = (unsigned short *)MemoryUtils()->FindPatternWithin( SvenModAPI()->Modules()->Hardware,
-																		host_framerate_patch_sig,
+																		Patterns::Hardware::host_framerate,
 																		m_pfnHost_FilterTime,
 																		(unsigned char *)m_pfnHost_FilterTime + 128 );
 
@@ -3506,12 +3554,12 @@ void CSpeedrunTools::PostLoad( void )
 
 	Hooks()->HookCvarChange( fps_max, CvarChangeHook_fps_max );
 
-	m_hCBaseEntity_FireBullets = DetoursAPI()->DetourFunction( m_pfnCBaseEntity_FireBullets, HOOKED_CBaseEntity_FireBullets, GET_FUNC_PTR( ORIG_CBaseEntity_FireBullets ) );
-	m_hCFuncTankGun_Fire = DetoursAPI()->DetourFunction( m_pfnCFuncTankGun_Fire, HOOKED_CFuncTankGun_Fire, GET_FUNC_PTR( ORIG_CFuncTankGun_Fire ) );
+	m_hCBaseEntity__FireBullets = DetoursAPI()->DetourFunction( m_pfnCBaseEntity__FireBullets, HOOKED_CBaseEntity__FireBullets, GET_FUNC_PTR( ORIG_CBaseEntity__FireBullets ) );
 	m_hUTIL_GetCircularGaussianSpread = DetoursAPI()->DetourFunction( m_pfnUTIL_GetCircularGaussianSpread, HOOKED_UTIL_GetCircularGaussianSpread, GET_FUNC_PTR( ORIG_UTIL_GetCircularGaussianSpread ) );
+	m_hCCrossbow__PrimaryAttack = DetoursAPI()->DetourFunction( m_pfnCCrossbow__PrimaryAttack, HOOKED_CCrossbow__PrimaryAttack, GET_FUNC_PTR( ORIG_CCrossbow__PrimaryAttack ) );
 	m_hHost_FilterTime = DetoursAPI()->DetourFunction( m_pfnHost_FilterTime, HOOKED_Host_FilterTime, GET_FUNC_PTR( ORIG_Host_FilterTime ) );
 
-	*(unsigned short *)m_pJumpOpCode = 0x9090; // NOP NOP
+	*(unsigned short *)m_pJumpOpCode = 0x9090; // NOPu NOPu
 }
 
 //-----------------------------------------------------------------------------
@@ -3524,8 +3572,8 @@ void CSpeedrunTools::Unload( void )
 
 	Hooks()->UnhookCvarChange( fps_max, CvarChangeHook_fps_max );
 
-	DetoursAPI()->RemoveDetour( m_hCBaseEntity_FireBullets );
-	DetoursAPI()->RemoveDetour( m_hCFuncTankGun_Fire );
+	DetoursAPI()->RemoveDetour( m_hCBaseEntity__FireBullets );
 	DetoursAPI()->RemoveDetour( m_hUTIL_GetCircularGaussianSpread );
+	DetoursAPI()->RemoveDetour( m_hCCrossbow__PrimaryAttack );
 	DetoursAPI()->RemoveDetour( m_hHost_FilterTime );
 }

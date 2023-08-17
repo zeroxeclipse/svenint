@@ -608,8 +608,106 @@ CON_COMMAND( sc_play_test_stop, "" )
 	__play_count = 0;
 }
 
+#include <IRender.h>
+
+static std::vector<Vector> points;
+static int points_it = 0;
+
+CON_COMMAND( sc_giga_test, "" )
+{
+	if ( args.ArgC() < 10 )
+		return;
+
+	float localSpaceToWorld[ 3 ][ 4 ];
+
+	Vector vecPoint;
+	points_it = 0;
+
+	float radius = 60.f;
+
+	int circle_points = atoi( args[ 1 ] );
+	int clock_points = atoi( args[ 2 ] );
+	float clock_angle = atof( args[ 3 ] );
+	Vector vecPos( atof( args[ 4 ] ), atof( args[ 5 ] ), atof( args[ 6 ] ) );
+	Vector vecAngles( atof( args[ 7 ] ), atof( args[ 8 ] ), atof( args[ 9 ] ) );
+
+	float delta_angle = 2.0 * M_PI / circle_points;
+
+	CVar()->SetValue( "fps_max", 30 * ( circle_points + clock_points ) );
+
+	for ( float angle = 0.f; angle < 2.0 * M_PI; angle += delta_angle )
+	{
+		vecPoint.Zero();
+
+		vecPoint.x = cos( angle );
+		vecPoint.y = sin( angle );
+
+		vecPoint *= radius;
+
+		points.push_back( vecPoint );
+	}
+
+	float delta_radius = radius / clock_points;
+
+	for ( float r = 0.f; r < radius; r += delta_radius )
+	{
+		vecPoint.Zero();
+
+		vecPoint.x = cos( clock_angle );
+		vecPoint.y = sin( clock_angle );
+
+		vecPoint *= r;
+
+		points.push_back( vecPoint );
+	}
+
+	AngleMatrix( vecAngles, localSpaceToWorld );
+
+	localSpaceToWorld[ 0 ][ 3 ] = vecPos.x;
+	localSpaceToWorld[ 1 ][ 3 ] = vecPos.y;
+	localSpaceToWorld[ 2 ][ 3 ] = vecPos.z;
+	
+	for ( const Vector &point : points )
+	{
+		Vector worldPoint;
+		VectorTransform( point, localSpaceToWorld, worldPoint );
+
+		*(Vector *)&point = worldPoint;
+
+		//Render()->DrawBox( worldPoint, Vector( -2, -2, -2 ), Vector( 2, 2, 2 ), { 232, 0, 232, 150 }, 5.f );
+	}
+}
+
+CON_COMMAND( sc_giga_test_stop, "" )
+{
+	points.clear();
+	points_it = 0;
+}
+
 void CMidiSoundPlayer::CreateMove( float frametime, usercmd_t *cmd, int active )
 {
+	if ( !points.empty() )
+	{
+		if ( points_it >= (int)points.size() )
+		{
+			points_it = 0;
+		}
+
+		Vector vecPoint = points[ points_it ];
+		Vector vecEyes = g_pPlayerMove->origin + g_pPlayerMove->view_ofs;
+
+		Vector vecAngles;
+		Vector vecDir = vecPoint - vecEyes;
+
+		VectorAngles( vecDir, vecAngles );
+		vecAngles.z = 0.f;
+
+		g_pEngineFuncs->SetViewAngles( vecAngles );
+		g_pEngineFuncs->ClientCmd( "npc_moveto" );
+
+		points_it++;
+	}
+
 	//if ( __play )
 	//{
 	//	if ( __executing_frame )

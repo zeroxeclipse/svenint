@@ -27,6 +27,7 @@ extern HMODULE g_hServerDLL;
 extern globalvars_t *gpGlobals;
 
 extern enginefuncs_t *g_pServerEngineFuncs;
+extern enginefuncs_t *g_pOrigServerEngineFuncs;
 extern DLL_FUNCTIONS *g_pServerFuncs;
 extern NEW_DLL_FUNCTIONS *g_pNewServerFuncs;
 
