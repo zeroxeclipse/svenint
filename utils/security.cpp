@@ -12,11 +12,7 @@
 #include "xorstr.h"
 #endif
 
-#include "../cryptopp/sha.h"
-#include "../cryptopp/hex.h"
-#include "../cryptopp/filters.h"
-
-#pragma warning( disable : 4191) 
+#pragma warning( disable : 4191 4731) 
 
 //-----------------------------------------------------------------------------
 // Hashes
@@ -29,7 +25,6 @@
 //-----------------------------------------------------------------------------
 
 // Debug flags
-int security::debug::global_flags::whoami = NULL;
 bool security::debug::global_flags::byobfuscatedexit = false;
 
 static bool found = true;
@@ -77,13 +72,6 @@ FORCEINLINE void security::debug::dispatch()
 {
 	security::debug::randompick = security::utils::randomize() % ( sizeof( funcs ) / sizeof( funcs[ 0 ] ) );
 	security::debug::picked = funcs[ randompick ];
-}
-
-void security::utils::obfuscate_exit()
-{
-	security::debug::global_flags::byobfuscatedexit = true;
-
-	security::utils::obfuscate_exit_1();
 }
 
 FORCEINLINE int __cdecl security::debug::vm_handler(EXCEPTION_RECORD* p_rec, void* est, unsigned char* p_context, void* disp)
@@ -189,11 +177,6 @@ FORCEINLINE int security::debug::memory::nt_global_flag_peb() {
 
 	//if found is true, we return the right code.
 	return (found) ? security::debug::results::being_debugged_peb : security::debug::results::none;
-}
-
-void security::utils::obfuscate_exit_1()
-{
-	security::utils::obfuscate_exit_2();
 }
 
 //two checks here, 1. xxx, 2. NoDebugInherit
@@ -327,7 +310,6 @@ FORCEINLINE int security::debug::memory::debug_active_process() {
 //allocate a buffer and pass it to an API where the buffer isn't touched (but it's still being passed as an argument), then check if its accessed more than once
 //allocate a buffer and store something "important" (IsDebuggerPresent() return value etc.), check if the memory was used once or not
 //allocate an executable buffer, copy a debug check routine to it, run the check and check if any writes were performed after the initial write
-
 //thanks to LordNoteworthy/al-khaser for the idea
 FORCEINLINE int security::debug::memory::write_buffer() {
 	//first option
@@ -505,7 +487,6 @@ FORCEINLINE int security::debug::exceptions::int_2c() {
 	return security::debug::results::int_2c;
 }
 
-
 //2d is a kernel interrupt (opcode 0x2D), when it gets executed, windows will use the extended instruction pointer register value as the exception address,
 //after then it increments the extended instruction pointer register value by 1.
 //windows also checks the eax register value to determine how to adjust the exception address
@@ -564,11 +545,6 @@ FORCEINLINE int security::debug::exceptions::prefix_hop() {
 	return security::debug::results::prefix_hop;
 }
 
-void security::utils::obfuscate_exit_5()
-{
-	exit( 555 );
-}
-
 //checks whether a debugger is present by attempting to output a string to the debugger (helper functions for debugging applications)
 //if no debugger is present an error occurs -> we can check if the last error is not 0 (an error) -> debugger not found
 FORCEINLINE int security::debug::exceptions::debug_string() {
@@ -614,14 +590,9 @@ FORCEINLINE int security::debug::timing::rdtsc() {
 	return (time_b - time_a > 0x10000) ? security::debug::results::rdtsc : security::debug::results::none;
 }
 
-void security::utils::obfuscate_exit_2()
-{
-	security::utils::obfuscate_exit_3();
-}
-
 //checks how much time passes between the two query performance counters
 //if more than X (here 30ms) pass, a debugger is slowing execution down (manual breakpoints etc.)
-int security::debug::timing::query_performance_counter() {
+FORCEINLINE int security::debug::timing::query_performance_counter() {
 	LARGE_INTEGER t1;
 	LARGE_INTEGER t2;
 
@@ -643,11 +614,6 @@ int security::debug::timing::query_performance_counter() {
 
 	//30 is a random value
 	return ((t2.QuadPart - t1.QuadPart) > 30) ? security::debug::results::query_performance_counter : security::debug::results::none;
-}
-
-void security::utils::obfuscate_exit_4()
-{
-	obfuscate_exit_5();
 }
 
 //same as above
@@ -738,11 +704,6 @@ FORCEINLINE int security::debug::virtualization::check_registry() {
 	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, ("HARDWARE\\ACPI\\DSDT\\VBOX__"), 0, KEY_READ, &h_key) == ERROR_SUCCESS) { return security::debug::results::check_registry; }
 
 	return security::debug::results::none;
-}
-
-void security::utils::obfuscate_exit_3()
-{
-	obfuscate_exit_4();
 }
 
 // This function is the Virtual Machine check, currently it does not work, 
@@ -1032,3 +993,136 @@ FORCEINLINE unsigned int security::utils::randomize()
 	seed = ( seed * 1103515245 + 12345 ) & 0x7FFFFFFF;
 	return seed;
 }
+
+#pragma optimize("", off)
+void security::utils::obfuscate_exit_antidebug()
+{
+	__try
+	{
+		_asm
+		{
+			int 3;
+		}
+	}
+
+	__except ( EXCEPTION_EXECUTE_HANDLER )
+	{
+		volatile ExitPtr exit_ptr = []( int status )
+		{
+			exit( status );
+		};
+
+		if ( 1 < 0 )
+		{
+			__asm
+			{
+				add ebx, eax
+				sub ecx, ebx
+				xor eax, eax
+				ret
+			}
+		}
+
+		exit_ptr( security::utils::randomize() % 999 );
+	}
+
+	if ( 0 > 1 )
+	{
+		__asm
+		{
+			xor ecx, edx
+			xor edx, esi
+			push ebp
+			pop ebp
+			mov eax, ebx
+			sub eax, ecx
+			call eax
+			xor eax, esi
+			lea esi, [ edi + 0x123 ]
+			mov edi, 0x789
+		}
+	}
+
+	typedef void ( *ExitPtr )( int );
+
+	volatile ExitPtr exit_ptr = []( int status )
+	{
+		exit( status );
+	};
+
+	if ( 0 > 1 )
+	{
+		__asm
+		{
+			sub esp, ebp
+			lea esi, [ edi + 0x456 ]
+			add eax, ebx
+			mov edi, 0xabc
+			mov eax, edi
+			mov eax, 0x5838F221
+			call eax
+		}
+	}
+
+	exit_ptr( security::utils::randomize() % 999);
+
+	__try
+	{
+		_asm
+		{
+			int 3;
+		}
+	}
+
+	__except ( EXCEPTION_EXECUTE_HANDLER )
+	{
+		__asm
+		{
+			nop
+		}
+	}
+}
+
+void security::utils::obfuscate_entry_antidebug()
+{
+	volatile AntiDebugPtr antidebugptr = reinterpret_cast<AntiDebugPtr>( &AntiDebug );
+
+	if ( 1 < 0 )
+	{
+		__asm
+		{
+			mov ecx, edx
+			cmp eax, edx
+			jmp security::debug::decoy
+			mov eax, ebx
+			cmp eax, ebx
+			jmp obfuscate_entry_antidebug
+			sub esp, ebp
+			lea esi, [ edi + 0x123 ]
+			mov edi, 0x789
+			mov ecx, ebp
+			call ecx
+			pop eax
+			ret
+		}
+	}
+
+	AntiDebugPtr();
+
+	__try
+	{
+		_asm
+		{
+			int 3;
+		}
+	}
+
+	__except ( EXCEPTION_EXECUTE_HANDLER )
+	{
+		__asm
+		{
+			nop
+		}
+	}
+}
+#pragma optimize("", on)
