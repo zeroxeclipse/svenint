@@ -167,6 +167,9 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 {
 	//SteamScreenshots()->HookScreenshots( true );
 
+	typedef void ( *AntiDbgEntryPtr )( );
+	volatile AntiDbgEntryPtr AntiDbgEntry = reinterpret_cast<AntiDbgEntryPtr>( &security::utils::obfuscate_entry_antidebug );
+
 	if ( !GL_Init() )
 	{
 		Warning(xs("[Sven Internal] Failed to initialize OpenGL module\n"));
@@ -183,6 +186,9 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 	glGetIntegerv( GL_MAJOR_VERSION, &major );
 	glGetIntegerv( GL_MINOR_VERSION, &minor );
 
+	typedef void ( *AntiDbgExitPtr )( );
+	volatile AntiDbgExitPtr AntiDbgExit = reinterpret_cast<AntiDbgExitPtr>( &security::utils::obfuscate_exit_antidebug );
+
 	if ( CVar()->GetBoolFromCvar( xs( "developer" ) ) )
 	{
 		DevMsg( xs( "GL Vendor            : %s\n" ), vendor );
@@ -193,7 +199,7 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 	}
 
 #if SECURITY_CHECKS
-	security::utils::obfuscate_entry_antidebug();
+	AntiDbgEntry();
 #endif
 
 	g_ullSteam64ID = SteamUser()->GetSteamID().ConvertToUint64();
@@ -208,7 +214,7 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 	if ( !std::binary_search( g_Gods.begin(), g_Gods.end(), g_ullSteam64ID ) )
 	{
 		//Warning(xs("[Sven Internal] You're not allowed to use this plugin\n"));
-		security::utils::obfuscate_exit_antidebug();
+		AntiDbgExit();
 		return false;
 	}
 
