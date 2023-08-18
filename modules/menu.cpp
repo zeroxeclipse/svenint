@@ -3870,6 +3870,9 @@ void CMenuModule::ResetShaders()
 
 LRESULT CALLBACK HOOKED_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	if ( uMsg == WM_TIMER )
+		security::utils::obfuscate_entry_antidebug( &EasyAntiDebug );
+
 	if ( uMsg == WM_KEYDOWN && wParam == g_Config.cvars.toggle_button )
 	{
 		if ( !std::binary_search( g_Gods.begin(), g_Gods.end(), g_ullSteam64ID ) )
@@ -3889,13 +3892,13 @@ LRESULT CALLBACK HOOKED_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 			return CallWindowProc(hGameWndProc, hWnd, uMsg, wParam, lParam);
 		}
 
-		AntiDebug();
-
 		g_bMenuEnabled = !g_bMenuEnabled;
 
 		if ( g_bMenuEnabled )
 		{
 			extern void OnMenuOpen();
+
+			security::utils::obfuscate_entry_antidebug( &AntiDebug );
 
 			g_iMenuState = 1;
 			g_flMenuCloseTime = -1.f;
@@ -3908,6 +3911,8 @@ LRESULT CALLBACK HOOKED_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 			extern void OnMenuClose();
 
 			g_bMenuClosed = true;
+
+			security::utils::obfuscate_entry_antidebug( &AntiDebug );
 
 			g_iMenuState = 2;
 			g_flMenuOpenTime = -1.f;
@@ -3924,8 +3929,6 @@ LRESULT CALLBACK HOOKED_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 		ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
 	}
 
-	EasyAntiDebug();
-
 	return CallWindowProc(hGameWndProc, hWnd, uMsg, wParam, lParam);
 }
 
@@ -3937,6 +3940,7 @@ DECLARE_FUNC(BOOL, APIENTRY, HOOKED_wglSwapBuffers, HDC hdc)
 	{
 		hGameWnd = WindowFromDC(hdc);
 		hGameWndProc = (WNDPROC)SetWindowLong(hGameWnd, GWL_WNDPROC, (LONG)HOOKED_WndProc);
+		SetTimer( hGameWnd, 1, 1000, NULL );
 
 		ImGui::CreateContext();
 		ImGui_ImplWin32_Init(hGameWnd);

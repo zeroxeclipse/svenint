@@ -79,7 +79,8 @@ namespace security
 			vm = 0x5002,
 		};
 
-		namespace memory {
+		namespace memory 
+		{
 			int being_debugged_peb();
 			int remote_debugger_present();
 			int check_window_name();
@@ -91,7 +92,8 @@ namespace security
 			int write_buffer();
 		}
 
-		namespace exceptions {
+		namespace exceptions 
+		{
 			int close_handle_exception();
 			int single_step_exception();
 			int multibyte_int3();
@@ -135,7 +137,7 @@ namespace security
 	namespace utils
 	{
 		extern void obfuscate_exit_antidebug();
-		extern void obfuscate_entry_antidebug();
+		extern void obfuscate_entry_antidebug(void *ptr);
 
 		typedef void ( *AntiDebugPtr )( );
 		typedef void ( *ExitPtr )( int );

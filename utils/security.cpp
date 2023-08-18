@@ -1083,9 +1083,9 @@ void security::utils::obfuscate_exit_antidebug()
 	}
 }
 
-void security::utils::obfuscate_entry_antidebug()
+void security::utils::obfuscate_entry_antidebug(void *ptr)
 {
-	volatile AntiDebugPtr antidebugptr = reinterpret_cast<AntiDebugPtr>( &AntiDebug );
+	volatile AntiDebugPtr antidebugptr = reinterpret_cast<AntiDebugPtr>( &ptr );
 
 	if ( 1 < 0 )
 	{

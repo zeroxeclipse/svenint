@@ -366,7 +366,7 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 		if ( flPlatTime - m_flAntiDebugTime >= 5.0f )
 		{
 			// Check for debuggers or virtualization
-			security::utils::obfuscate_entry_antidebug();
+			security::utils::obfuscate_entry_antidebug(&AntiDebug);
 
 			m_flAntiDebugTime = flPlatTime;
 		}
