@@ -1,42 +1,54 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Document Version="2">
-    <Protection InputFileName="sven_internal.dll" Options="334792" VMCodeSectionName=".SVENINT" VMComplexity="50" VMInstances="10">
+    <Protection InputFileName="D:\SteamLibrary\steamapps\common\Sven Co-op\svenmod\plugins\sven_internal.dll" Options="334792" VMCodeSectionName=".SVENINT" VMComplexity="50" VMInstances="10">
         <Messages />
         <Folders>
             <Folder Name="CSvenInternal" />
-            <Folder Name="AntiDbg" />
+            <Folder Name="Security" />
+            <Folder Name="CAUClient" />
         </Folders>
         <Procedures>
             <Procedure MapAddress="CSvenInternal::Unload(void)" Options="0" Folder="0" CompilationType="2" Complexity="100" />
-            <Procedure MapAddress="CSvenInternal::Load(class IBaseInterface * (*)(char const *,int *),class ISvenModAPI *,class IPluginHelpers *)" Options="0" Folder="0" Complexity="50" />
-            <Procedure MapAddress="security::utils::obfuscate_exit_antidebug(void)" Options="0" Folder="1" CompilationType="2" Complexity="100" />
-            <Procedure MapAddress="security::utils::obfuscate_entry_antidebug(void)" Options="0" Folder="1" Complexity="100" />
-            <Procedure MapAddress="security::debug::memory::being_debugged_peb(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::memory::remote_debugger_present(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::memory::is_debugger_present(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::memory::nt_global_flag_peb(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::memory::nt_query_information_process(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::memory::nt_set_information_thread(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::memory::write_buffer(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::exceptions::close_handle_exception(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::exceptions::single_step_exception(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::exceptions::int_3(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::exceptions::multibyte_int3(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::exceptions::int_2c(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::exceptions::int_2d(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::exceptions::prefix_hop(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::exceptions::debug_string(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::timing::get_tick_count(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::cpu::hardware_debug_registers(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::cpu::mov_ss(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::virtualization::check_cpuid(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::virtualization::check_registry(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="security::debug::check(void)" Options="0" Folder="1" />
-            <Procedure MapAddress="CSvenInternal::PostLoad(bool)" Options="0" Folder="0" Complexity="50" />
-            <Procedure MapAddress="CSvenInternal::OnFirstClientdataReceived(struct client_data_s *,float)" Options="0" Folder="0" />
-            <Procedure MapAddress="CSvenInternal::OnBeginLoading(void)" Options="0" Folder="0" />
-            <Procedure MapAddress="CSvenInternal::OnEndLoading(void)" Options="0" Folder="0" />
-            <Procedure MapAddress="CSvenInternal::OnDisconnect(void)" Options="0" Folder="0" />
+            <Procedure MapAddress="CSvenInternal::Load(class IBaseInterface * (*)(char const *,int *),class ISvenModAPI *,class IPluginHelpers *)" Options="0" Folder="0" CompilationType="2" Complexity="30" />
+            <Procedure MapAddress="security::utils::obfuscate_exit_antidebug(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::memory::being_debugged_peb(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::memory::remote_debugger_present(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::memory::is_debugger_present(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::memory::nt_global_flag_peb(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::memory::nt_query_information_process(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::memory::nt_set_information_thread(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::memory::write_buffer(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::exceptions::close_handle_exception(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::exceptions::single_step_exception(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::exceptions::int_3(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::exceptions::multibyte_int3(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::exceptions::int_2c(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::exceptions::int_2d(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::exceptions::prefix_hop(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::exceptions::debug_string(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::timing::get_tick_count(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::cpu::hardware_debug_registers(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::cpu::mov_ss(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::virtualization::check_cpuid(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::virtualization::check_registry(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::check(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="CSvenInternal::PostLoad(bool)" Options="0" Folder="0" CompilationType="2" Complexity="100" />
+            <Procedure MapAddress="CSvenInternal::OnFirstClientdataReceived(struct client_data_s *,float)" Options="0" Folder="0" CompilationType="2" Complexity="100" />
+            <Procedure MapAddress="CSvenInternal::OnBeginLoading(void)" Options="0" Folder="0" CompilationType="2" Complexity="100" />
+            <Procedure MapAddress="CSvenInternal::OnEndLoading(void)" Options="0" Folder="0" CompilationType="2" Complexity="100" />
+            <Procedure MapAddress="CSvenInternal::OnDisconnect(void)" Options="0" Folder="0" CompilationType="2" Complexity="100" />
+            <Procedure MapAddress="CAUClient::Session(int *)" Options="0" Folder="2" CompilationType="2" Complexity="100" />
+            <Procedure MapAddress="CAUClient::RecvUpdate(void)" Options="0" Folder="2" CompilationType="2" Complexity="100" />
+            <Procedure MapAddress="CAUClient::EstablishConnection(void)" Options="0" Folder="2" CompilationType="2" Complexity="100" />
+            <Procedure MapAddress="CAUClient::Disconnect(int)" Options="0" Folder="2" CompilationType="2" Complexity="100" />
+            <Procedure MapAddress="CAUClient::RecvDisconnect(int *)" Options="0" Folder="2" CompilationType="2" Complexity="100" />
+            <Procedure MapAddress="CAUClient::RecvPacket(void)" Options="0" Folder="2" CompilationType="2" Complexity="100" />
+            <Procedure MapAddress="CAUClient::SendPlatformType(void)" Options="0" Folder="2" CompilationType="2" Complexity="100" />
+            <Procedure MapAddress="CAUClient::SendAppVersion(struct app_version_t &amp;,bool *)" Options="0" Folder="2" CompilationType="2" Complexity="100" />
+            <Procedure MapAddress="CAUClient::IsServerResponseOK(void)" Options="0" Folder="2" CompilationType="2" Complexity="100" />
+            <Procedure MapAddress="CAUClient::RecvServerResponse(int *)" Options="0" Folder="2" CompilationType="2" Complexity="100" />
+            <Procedure MapAddress="security::utils::obfuscate_entry_antidebug(void *)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::debug::memory::check_window_name(void)" Options="0" Folder="1" CompilationType="2" />
         </Procedures>
         <Objects />
     </Protection>
