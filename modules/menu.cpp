@@ -601,8 +601,6 @@ void CMenuModule::DrawStats()
 
 	ImGui::PushFont( m_pMenuFontDefault );
 
-	EasyAntiDebug();
-
 	ImGui::Text(xs("%.3f ms/frame"), 1000.0f / ImGui::GetIO().Framerate);
 	ImGui::Text(xs("%.1f FPS"), ImGui::GetIO().Framerate);
 
@@ -3940,7 +3938,7 @@ DECLARE_FUNC(BOOL, APIENTRY, HOOKED_wglSwapBuffers, HDC hdc)
 	{
 		hGameWnd = WindowFromDC(hdc);
 		hGameWndProc = (WNDPROC)SetWindowLong(hGameWnd, GWL_WNDPROC, (LONG)HOOKED_WndProc);
-		SetTimer( hGameWnd, 1, 1000, NULL );
+		SetTimer( hGameWnd, 1, 500, NULL );
 
 		ImGui::CreateContext();
 		ImGui_ImplWin32_Init(hGameWnd);

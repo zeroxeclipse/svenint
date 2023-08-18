@@ -136,11 +136,11 @@ namespace security
 
 	namespace utils
 	{
-		extern void obfuscate_exit_antidebug();
-		extern void obfuscate_entry_antidebug(void *ptr);
-
 		typedef void ( *AntiDebugPtr )( );
 		typedef void ( *ExitPtr )( int );
+
+		extern void obfuscate_exit_antidebug();
+		extern void obfuscate_entry_antidebug( void ( *ptr )( ) );
 
 		extern unsigned int randomize();
 	}

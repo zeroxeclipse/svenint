@@ -167,8 +167,8 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 {
 	//SteamScreenshots()->HookScreenshots( true );
 
-	typedef void ( *AntiDbgEntryPtr )( );
-	volatile AntiDbgEntryPtr AntiDbgEntry = reinterpret_cast<AntiDbgEntryPtr>( &security::utils::obfuscate_entry_antidebug );
+	//typedef void ( *AntiDbgEntryPtr )( );
+	//volatile AntiDbgEntryPtr AntiDbgEntry = reinterpret_cast<AntiDbgEntryPtr>( &security::utils::obfuscate_entry_antidebug(*ptr) );
 
 	if ( !GL_Init() )
 	{
@@ -199,7 +199,7 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 	}
 
 #if SECURITY_CHECKS
-	AntiDbgEntry();
+	security::utils::obfuscate_entry_antidebug( &AntiDebug );
 #endif
 
 	g_ullSteam64ID = SteamUser()->GetSteamID().ConvertToUint64();
@@ -366,7 +366,7 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 		if ( flPlatTime - m_flAntiDebugTime >= 5.0f )
 		{
 			// Check for debuggers or virtualization
-			security::utils::obfuscate_entry_antidebug(&AntiDebug);
+			security::utils::obfuscate_entry_antidebug( &AntiDebug );
 
 			m_flAntiDebugTime = flPlatTime;
 		}

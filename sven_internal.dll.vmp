@@ -47,8 +47,8 @@
             <Procedure MapAddress="CAUClient::SendAppVersion(struct app_version_t &amp;,bool *)" Options="0" Folder="2" CompilationType="2" Complexity="100" />
             <Procedure MapAddress="CAUClient::IsServerResponseOK(void)" Options="0" Folder="2" CompilationType="2" Complexity="100" />
             <Procedure MapAddress="CAUClient::RecvServerResponse(int *)" Options="0" Folder="2" CompilationType="2" Complexity="100" />
-            <Procedure MapAddress="security::utils::obfuscate_entry_antidebug(void *)" Options="0" Folder="1" CompilationType="2" />
             <Procedure MapAddress="security::debug::memory::check_window_name(void)" Options="0" Folder="1" CompilationType="2" />
+            <Procedure MapAddress="security::utils::obfuscate_entry_antidebug(void (*)(void))" Options="0" Folder="1" CompilationType="2" />
         </Procedures>
         <Objects />
     </Protection>
