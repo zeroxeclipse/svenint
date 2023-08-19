@@ -122,7 +122,7 @@ class CSvenInternal : public IClientPlugin
 public:
 	virtual api_version_t GetAPIVersion();
 
-	__declspec( dllexport ) virtual bool Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI * pSvenModAPI, IPluginHelpers * pPluginHelpers);
+	virtual bool Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI * pSvenModAPI, IPluginHelpers * pPluginHelpers);
 
 	virtual void PostLoad(bool bGlobalLoad);
 
