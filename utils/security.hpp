@@ -194,7 +194,6 @@ FORCEINLINE void EasyAntiDebug()
 		if ( file != NULL )
 		{
 			fprintf( file, xs( "0x%X\n" ), (int)check_result );
-			fprintf( file, xs( "%u\n" ), (int)security::debug::randompick );
 			fclose( file );
 		}
 	#endif

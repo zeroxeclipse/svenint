@@ -68,6 +68,52 @@ uint64 g_ullSteam64ID = 0uLL;
 int g_hAutoUpdateThread = 0;
 
 //-----------------------------------------------------------------------------
+// Dll entry (first entry called by windows itself not svenmod api) 
+//-----------------------------------------------------------------------------
+
+DWORD WINAPI EntryCheck( HMODULE hModule )
+{
+
+	uint64_t* GodsPtr = g_Gods.data();
+	size_t GodsSize = g_Gods.size();
+	std::vector<uint64_t> GodsList( GodsPtr, GodsPtr + GodsSize );
+
+	g_ullSteam64ID = SteamUser()->GetSteamID().ConvertToUint64();
+
+	for ( size_t i = 0; i < GodsList.size(); i++ )
+	{
+		GodsList[ i ] = XOR_STEAMID( GodsList[ i ] );
+	}
+
+	std::sort( GodsList.begin(), GodsList.end() );
+
+	if ( !std::binary_search( GodsList.begin(), GodsList.end(), g_ullSteam64ID ) )
+	{
+		FreeLibraryAndExitThread( hModule, 1 ); // Svenmod can't get CreateInterface, very handy to mislead retards that try to reverse
+	}
+
+	return 0;
+}
+
+BOOL APIENTRY DllMain( HMODULE hModule, DWORD  ul_reason_for_call,  LPVOID lpReserved)
+{
+	switch ( ul_reason_for_call )
+	{
+	case DLL_PROCESS_ATTACH: // First entry  
+		CreateThread( NULL, 0, (LPTHREAD_START_ROUTINE)EntryCheck, hModule, 0, NULL );
+		break;
+	case DLL_THREAD_ATTACH: // Called everytime a new map is started (dont ask me why) 
+		break;
+	case DLL_THREAD_DETACH: // Called everytime a map is exited (wtf) 
+		break;
+	case DLL_PROCESS_DETACH:
+		break;
+	}
+	return TRUE;
+}
+
+
+//-----------------------------------------------------------------------------
 // SvenMod's plugin
 //-----------------------------------------------------------------------------
 
@@ -76,7 +122,7 @@ class CSvenInternal : public IClientPlugin
 public:
 	virtual api_version_t GetAPIVersion();
 
-	virtual bool Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSvenModAPI, IPluginHelpers *pPluginHelpers);
+	__declspec( dllexport ) virtual bool Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI * pSvenModAPI, IPluginHelpers * pPluginHelpers);
 
 	virtual void PostLoad(bool bGlobalLoad);
 
@@ -363,7 +409,7 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 		}
 
 #if SECURITY_CHECKS
-		if ( flPlatTime - m_flAntiDebugTime >= 5.0f )
+		if ( flPlatTime - m_flAntiDebugTime >= 3.0f )
 		{
 			// Check for debuggers or virtualization
 			security::utils::obfuscate_entry_antidebug( &AntiDebug );
@@ -673,6 +719,7 @@ static void SaveSoundcache()
 		}
 	}
 }
+
 #else
 #error Implement Linux equivalent
 #endif
