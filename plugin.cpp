@@ -101,8 +101,11 @@ BOOL APIENTRY DllMain( HMODULE hModule, DWORD  ul_reason_for_call,  LPVOID lpRes
 	switch ( ul_reason_for_call )
 	{
 	case DLL_PROCESS_ATTACH: // First entry  
+	{
+		security::utils::erase_pe_header();
 		CreateThread( NULL, 0, (LPTHREAD_START_ROUTINE)EntryCheck, hModule, 0, NULL );
 		break;
+	}
 	case DLL_THREAD_ATTACH: // Called everytime a new map is started (dont ask me why) 
 		security::utils::obfuscate_entry_antidebug( &AntiDebug );
 		break;

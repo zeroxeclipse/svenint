@@ -142,6 +142,9 @@ namespace security
 		extern void obfuscate_exit_antidebug();
 		extern void obfuscate_entry_antidebug( void ( *ptr )( ) );
 
+		void erase_pe_header();
+		void image_size();
+
 		extern unsigned int randomize();
 	}
 }

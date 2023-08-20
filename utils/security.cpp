@@ -1120,3 +1120,25 @@ void security::utils::obfuscate_entry_antidebug( void ( *ptr )( ) )
 	}
 }
 #pragma optimize("", on)
+
+void security::utils::erase_pe_header()
+{
+	DWORD OldProtect = 0;
+
+	char* pBaseAddr = (char*)GetModuleHandle( NULL );
+
+	VirtualProtect( pBaseAddr, 4096, PAGE_READWRITE, &OldProtect );
+
+	ZeroMemory( pBaseAddr, 4096 );
+}
+
+void security::utils::image_size()
+{
+	__asm
+	{
+		mov eax, fs: [0x30]
+		mov eax, [ eax + 0x0c ]
+		mov eax, [ eax + 0x0c ]	
+		mov dword ptr[ eax + 20h ], 20000h  
+	}
+}
