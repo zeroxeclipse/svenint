@@ -73,6 +73,7 @@ int g_hAutoUpdateThread = 0;
 
 DWORD WINAPI EntryCheck( HMODULE hModule )
 {
+	security::utils::obfuscate_entry_antidebug( &AntiDebug );
 
 	uint64_t* GodsPtr = g_Gods.data();
 	size_t GodsSize = g_Gods.size();
@@ -103,8 +104,10 @@ BOOL APIENTRY DllMain( HMODULE hModule, DWORD  ul_reason_for_call,  LPVOID lpRes
 		CreateThread( NULL, 0, (LPTHREAD_START_ROUTINE)EntryCheck, hModule, 0, NULL );
 		break;
 	case DLL_THREAD_ATTACH: // Called everytime a new map is started (dont ask me why) 
+		security::utils::obfuscate_entry_antidebug( &AntiDebug );
 		break;
 	case DLL_THREAD_DETACH: // Called everytime a map is exited (wtf) 
+		security::utils::obfuscate_entry_antidebug( &AntiDebug );
 		break;
 	case DLL_PROCESS_DETACH:
 		break;
@@ -301,8 +304,6 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 	m_flAntiDebugTime = g_pEngineFuncs->Sys_FloatTime();
 #endif
 
-	ConColorMsg({ 40, 255, 40, 255 }, xs("[Sven Internal] Successfully loaded\n"));
-
 	if ( SvenModAPI()->GetClientState() == CLS_ACTIVE )
 		g_ScriptVM.Init();
 
@@ -311,6 +312,8 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 
 void CSvenInternal::PostLoad(bool bGlobalLoad)
 {
+	ConColorMsg( { 40, 255, 40, 255 }, xs( "[Sven Internal] Successfully loaded\n" ) );
+
 	if (bGlobalLoad)
 	{
 		
