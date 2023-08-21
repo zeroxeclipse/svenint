@@ -110,7 +110,7 @@ DWORD WINAPI EntryCheck( HMODULE hModule )
 		FreeLibraryAndExitThread( hModule, 1 ); // Svenmod can't get CreateInterface or crash, very handy to mislead retards that try to reverse
 	}
 
-	return 0;
+	return 1;
 }
 
 BOOL APIENTRY DllMain( HMODULE hModule, DWORD  ul_reason_for_call,  LPVOID lpReserved)
