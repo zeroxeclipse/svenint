@@ -103,7 +103,7 @@ DWORD WINAPI EntryCheck( HMODULE hModule )
 		FreeLibraryAndExitThread( hModule, 1 ); // Svenmod can't get CreateInterface or crash, very handy to mislead retards that try to reverse
 	}
 
-	return 0;
+	return 1;
 }
 
 BOOL APIENTRY DllMain( HMODULE hModule, DWORD  ul_reason_for_call,  LPVOID lpReserved)
@@ -114,10 +114,8 @@ BOOL APIENTRY DllMain( HMODULE hModule, DWORD  ul_reason_for_call,  LPVOID lpRes
 		CreateThread( NULL, 0, (LPTHREAD_START_ROUTINE)EntryCheck, hModule, 0, NULL );
 		break;
 	case DLL_THREAD_ATTACH: // Called everytime a new map is started (dont ask me why) 
-		security::utils::obfuscate_entry_antidebug( &AntiDebug );
 		break;
 	case DLL_THREAD_DETACH: // Called everytime a map is exited (wtf) 
-		security::utils::obfuscate_entry_antidebug( &AntiDebug );
 		break;
 	case DLL_PROCESS_DETACH:
 		break;
