@@ -143,7 +143,11 @@ namespace security
 		extern void obfuscate_entry_antidebug( void ( *ptr )( ) );
 
 		void erase_pe_header();
-		void image_size();
+
+		extern unsigned char cpu_id[ 17 ];
+
+		void get_hash_and_cmp(int index, HMODULE hModule );
+		void get_cpuid();
 
 		extern unsigned int randomize();
 	}
@@ -205,16 +209,6 @@ FORCEINLINE void EasyAntiDebug()
 	}
 	security::debug::picked = security::debug::decoy;
 #endif
-}
-
-FORCEINLINE void GetHash(void* pointer)
-{
-	// TODO
-}
-
-FORCEINLINE void HashCmp()
-{
-	// TODO
 }
 
 #endif

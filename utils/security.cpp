@@ -8,6 +8,10 @@
 
 #include "security.hpp"
 
+#include "../cryptopp/sha.h"
+
+#include "../friends.h"
+
 #ifndef xs
 #include "xorstr.h"
 #endif
@@ -981,6 +985,10 @@ security::debug::results security::debug::check()
 // Utils
 //-----------------------------------------------------------------------------
 
+// Vars
+unsigned char security::utils::cpu_id[17] = {0};
+
+// Functions
 FORCEINLINE unsigned int security::utils::randomize()
 {
 	static unsigned int seed = static_cast<unsigned int>( std::time( nullptr ) );
@@ -1132,13 +1140,26 @@ void security::utils::erase_pe_header()
 	ZeroMemory( pBaseAddr, 4096 );
 }
 
-void security::utils::image_size()
+void security::utils::get_hash_and_cmp(int index, HMODULE hModule)
 {
-	__asm
+	CryptoPP::SHA256 hash;
+
+	byte digest[ CryptoPP::SHA256::DIGESTSIZE ];
+	hash.CalculateDigest( digest, security::utils::cpu_id, sizeof( security::utils::cpu_id ) ); 
+
+	if ( !( std::memcmp( digest, g_CpuIDsHash[ index ].data(), sizeof( digest ) ) == 0 ) )
 	{
-		mov eax, fs: [0x30]
-		mov eax, [ eax + 0x0c ]
-		mov eax, [ eax + 0x0c ]	
-		mov dword ptr[ eax + 20h ], 20000h  
+		if ( hModule != 0 )
+			FreeLibraryAndExitThread( hModule, 1 );
+
+		exit( 1 );
 	}
+}
+
+void security::utils::get_cpuid()
+{
+	int cpuInfo[ 4 ];
+	__cpuid( cpuInfo, 1 );
+
+	snprintf( reinterpret_cast<char*>( security::utils::cpu_id ), sizeof( security::utils::cpu_id ), xs("%08X%08X"), cpuInfo[ 3 ], cpuInfo[ 0 ] );
 }
