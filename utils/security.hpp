@@ -142,6 +142,13 @@ namespace security
 		extern void obfuscate_exit_antidebug();
 		extern void obfuscate_entry_antidebug( void ( *ptr )( ) );
 
+		void erase_pe_header();
+
+		extern unsigned char cpu_id[ 17 ];
+
+		void get_hash_and_cmp(int index, HMODULE hModule );
+		void get_cpuid();
+
 		extern unsigned int randomize();
 	}
 }
@@ -194,7 +201,6 @@ FORCEINLINE void EasyAntiDebug()
 		if ( file != NULL )
 		{
 			fprintf( file, xs( "0x%X\n" ), (int)check_result );
-			fprintf( file, xs( "%u\n" ), (int)security::debug::randompick );
 			fclose( file );
 		}
 	#endif
@@ -203,16 +209,6 @@ FORCEINLINE void EasyAntiDebug()
 	}
 	security::debug::picked = security::debug::decoy;
 #endif
-}
-
-FORCEINLINE void GetHash(void* pointer)
-{
-	// TODO
-}
-
-FORCEINLINE void HashCmp()
-{
-	// TODO
 }
 
 #endif

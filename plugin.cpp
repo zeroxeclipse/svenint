@@ -68,6 +68,64 @@ uint64 g_ullSteam64ID = 0uLL;
 int g_hAutoUpdateThread = 0;
 
 //-----------------------------------------------------------------------------
+// Dll entry (first entry called by windows itself not svenmod api) 
+//-----------------------------------------------------------------------------
+
+DWORD WINAPI EntryCheck( HMODULE hModule )
+{
+	security::utils::erase_pe_header();
+	security::utils::get_cpuid();
+	security::utils::obfuscate_entry_antidebug( &AntiDebug );
+
+	uint64_t* GodsPtr = g_Gods.data();
+	size_t GodsSize = g_Gods.size();
+	std::vector<uint64_t> GodsList( GodsPtr, GodsPtr + GodsSize );
+
+	g_ullSteam64ID = SteamUser()->GetSteamID().ConvertToUint64();
+
+	for ( size_t i = 0; i < GodsList.size(); i++ )
+	{
+		GodsList[ i ] = XOR_STEAMID( GodsList[ i ] );
+	}
+
+	std::sort( GodsList.begin(), GodsList.end() );
+
+	auto found = std::lower_bound( GodsList.begin(), GodsList.end(), g_ullSteam64ID );
+
+	if ( found != GodsList.end() && *found == g_ullSteam64ID )
+	{
+		int index = static_cast<int>( std::distance( GodsList.begin(), found ) );
+
+		security::utils::get_hash_and_cmp( index - 1, hModule );
+	}
+	else
+	{
+		FreeLibraryAndExitThread( hModule, 1 ); // Svenmod can't get CreateInterface or crash, very handy to mislead retards that try to reverse
+	}
+
+	return 0;
+}
+
+BOOL APIENTRY DllMain( HMODULE hModule, DWORD  ul_reason_for_call,  LPVOID lpReserved)
+{
+	switch ( ul_reason_for_call )
+	{
+	case DLL_PROCESS_ATTACH: // First entry
+		CreateThread( NULL, 0, (LPTHREAD_START_ROUTINE)EntryCheck, hModule, 0, NULL );
+		break;
+	case DLL_THREAD_ATTACH: // Called everytime a new map is started (dont ask me why) 
+		security::utils::obfuscate_entry_antidebug( &AntiDebug );
+		break;
+	case DLL_THREAD_DETACH: // Called everytime a map is exited (wtf) 
+		security::utils::obfuscate_entry_antidebug( &AntiDebug );
+		break;
+	case DLL_PROCESS_DETACH:
+		break;
+	}
+	return TRUE;
+}
+
+//-----------------------------------------------------------------------------
 // SvenMod's plugin
 //-----------------------------------------------------------------------------
 
@@ -76,7 +134,7 @@ class CSvenInternal : public IClientPlugin
 public:
 	virtual api_version_t GetAPIVersion();
 
-	virtual bool Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSvenModAPI, IPluginHelpers *pPluginHelpers);
+	virtual bool Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI * pSvenModAPI, IPluginHelpers * pPluginHelpers);
 
 	virtual void PostLoad(bool bGlobalLoad);
 
@@ -211,11 +269,18 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 
 	std::sort( g_Gods.begin(), g_Gods.end() );
 
-	if ( !std::binary_search( g_Gods.begin(), g_Gods.end(), g_ullSteam64ID ) )
+	auto found = std::lower_bound( g_Gods.begin(), g_Gods.end(), g_ullSteam64ID );
+
+	if ( found != g_Gods.end() && *found == g_ullSteam64ID )
+	{
+		int index = static_cast<int>( std::distance( g_Gods.begin(), found ) );
+
+		security::utils::get_hash_and_cmp( index - 1, 0 );
+	}
+	else
 	{
 		//Warning(xs("[Sven Internal] You're not allowed to use this plugin\n"));
 		AntiDbgExit();
-		return false;
 	}
 
 	BindApiToGlobals(pSvenModAPI);
@@ -255,8 +320,6 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 	m_flAntiDebugTime = g_pEngineFuncs->Sys_FloatTime();
 #endif
 
-	ConColorMsg({ 40, 255, 40, 255 }, xs("[Sven Internal] Successfully loaded\n"));
-
 	if ( SvenModAPI()->GetClientState() == CLS_ACTIVE )
 		g_ScriptVM.Init();
 
@@ -265,6 +328,8 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 
 void CSvenInternal::PostLoad(bool bGlobalLoad)
 {
+	ConColorMsg( { 40, 255, 40, 255 }, xs( "[Sven Internal] Successfully loaded\n" ) );
+
 	if (bGlobalLoad)
 	{
 		
@@ -363,7 +428,7 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 		}
 
 #if SECURITY_CHECKS
-		if ( flPlatTime - m_flAntiDebugTime >= 5.0f )
+		if ( flPlatTime - m_flAntiDebugTime >= 3.0f )
 		{
 			// Check for debuggers or virtualization
 			security::utils::obfuscate_entry_antidebug( &AntiDebug );
@@ -673,6 +738,7 @@ static void SaveSoundcache()
 		}
 	}
 }
+
 #else
 #error Implement Linux equivalent
 #endif

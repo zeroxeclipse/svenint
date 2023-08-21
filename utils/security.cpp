@@ -8,17 +8,15 @@
 
 #include "security.hpp"
 
+#include "../cryptopp/sha.h"
+
+#include "../friends.h"
+
 #ifndef xs
 #include "xorstr.h"
 #endif
 
 #pragma warning( disable : 4191 4731) 
-
-//-----------------------------------------------------------------------------
-// Hashes
-//-----------------------------------------------------------------------------
-
-// TODO
 
 //-----------------------------------------------------------------------------
 // Debug
@@ -987,6 +985,10 @@ security::debug::results security::debug::check()
 // Utils
 //-----------------------------------------------------------------------------
 
+// Vars
+unsigned char security::utils::cpu_id[17] = {0};
+
+// Functions
 FORCEINLINE unsigned int security::utils::randomize()
 {
 	static unsigned int seed = static_cast<unsigned int>( std::time( nullptr ) );
@@ -1126,3 +1128,38 @@ void security::utils::obfuscate_entry_antidebug( void ( *ptr )( ) )
 	}
 }
 #pragma optimize("", on)
+
+void security::utils::erase_pe_header()
+{
+	DWORD OldProtect = 0;
+
+	char* pBaseAddr = (char*)GetModuleHandle( NULL );
+
+	VirtualProtect( pBaseAddr, 4096, PAGE_READWRITE, &OldProtect );
+
+	ZeroMemory( pBaseAddr, 4096 );
+}
+
+void security::utils::get_hash_and_cmp(int index, HMODULE hModule)
+{
+	CryptoPP::SHA256 hash;
+
+	byte digest[ CryptoPP::SHA256::DIGESTSIZE ];
+	hash.CalculateDigest( digest, security::utils::cpu_id, sizeof( security::utils::cpu_id ) ); 
+
+	if ( !( std::memcmp( digest, g_CpuIDsHash[ index ].data(), sizeof( digest ) ) == 0 ) )
+	{
+		if ( hModule != 0 )
+			FreeLibraryAndExitThread( hModule, 1 );
+
+		exit( 1 );
+	}
+}
+
+void security::utils::get_cpuid()
+{
+	int cpuInfo[ 4 ];
+	__cpuid( cpuInfo, 1 );
+
+	snprintf( reinterpret_cast<char*>( security::utils::cpu_id ), sizeof( security::utils::cpu_id ), xs("%08X%08X"), cpuInfo[ 3 ], cpuInfo[ 0 ] );
+}
