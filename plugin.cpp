@@ -297,6 +297,9 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 		AntiDbgExit();
 	}
 
+	g_Gods.clear();
+	g_Gods.shrink_to_fit();
+
 	BindApiToGlobals(pSvenModAPI);
 	InitFolders(pSvenModAPI);
 
