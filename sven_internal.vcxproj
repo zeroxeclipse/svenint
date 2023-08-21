@@ -111,6 +111,7 @@
     <ClCompile Include="features\antiafk.cpp" />
     <ClCompile Include="features\bsp.cpp" />
     <ClCompile Include="features\camhack.cpp" />
+    <ClCompile Include="features\capture.cpp" />
     <ClCompile Include="features\chams.cpp" />
     <ClCompile Include="features\chat_colors.cpp" />
     <ClCompile Include="features\custom_vote_popup.cpp" />
@@ -256,6 +257,7 @@
     <ClInclude Include="features\antiafk.h" />
     <ClInclude Include="features\bsp.h" />
     <ClInclude Include="features\camhack.h" />
+    <ClInclude Include="features\capture.h" />
     <ClInclude Include="features\chams.h" />
     <ClInclude Include="features\chat_colors.h" />
     <ClInclude Include="features\custom_vote_popup.h" />

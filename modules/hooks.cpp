@@ -52,6 +52,7 @@
 #include "../features/models_manager.h"
 #include "../features/shaders.h"
 #include "../features/bsp.h"
+#include "../features/capture.h"
 
 //-----------------------------------------------------------------------------
 // Declare hooks
@@ -63,6 +64,8 @@ DECLARE_HOOK(void, __cdecl, IN_Move, float, usercmd_t *);
 
 DECLARE_CLASS_HOOK(void, CHud__Think, CHud *);
 DECLARE_CLASS_HOOK(void, CHudBaseTextBlock__Print, CHudBaseTextBlock *, const char *, int, int);
+
+DECLARE_CLASS_HOOK( void, CClient_SoundEngine__PlayFMODSound, void *thisptr, int fFlags, int entindex, float *vecOrigin, int iChannel, const char *pszSample, float flVolume, float flAttenuation, int iUnknown, int iPitch, int iSoundIndex, float flOffset );
 
 DECLARE_HOOK(qboolean, __cdecl, Netchan_CanPacket, netchan_t *);
 DECLARE_HOOK(void, __cdecl, ScaleColors, int *r, int *g, int *b, int alpha);
@@ -196,6 +199,7 @@ private:
 	void *m_pfnIN_Move;
 	void *m_pfnCHud__Think;
 	void *m_pfnCHudBaseTextBlock__Print;
+	void *m_pfnCClient_SoundEngine__PlayFMODSound;
 	void *m_pfnNetchan_CanPacket;
 	void *m_pfnScaleColors;
 	void *m_pfnScaleColors_RGBA;
@@ -215,6 +219,7 @@ private:
 	DetourHandle_t m_hIN_Move;
 	DetourHandle_t m_hCHud__Think;
 	DetourHandle_t m_hCHudBaseTextBlock__Print;
+	DetourHandle_t m_hCClient_SoundEngine__PlayFMODSound;
 	DetourHandle_t m_hNetchan_CanPacket;
 	DetourHandle_t m_hScaleColors;
 	DetourHandle_t m_hScaleColors_RGBA;
@@ -428,6 +433,22 @@ DECLARE_CLASS_FUNC(void, HOOKED_CHudBaseTextBlock__Print, CHudBaseTextBlock *thi
 	g_pHudText = thisptr;
 
 	ORIG_CHudBaseTextBlock__Print(thisptr, pszBuf, iBufSize, clientIndex);
+}
+
+//-----------------------------------------------------------------------------
+// Client sound engine hook
+//-----------------------------------------------------------------------------
+
+DECLARE_CLASS_FUNC( void, HOOKED_CClient_SoundEngine__PlayFMODSound, void *thisptr, int fFlags, int entindex, float *vecOrigin, int iChannel, const char *pszSample, float flVolume, float flAttenuation, int iUnknown, int iPitch, int iSoundIndex, float flOffset )
+{
+	bool bRunFunc = true;
+
+	bRunFunc = !g_Capture.CClient_SoundEngine__PlayFMODSound( thisptr, fFlags, entindex, vecOrigin, iChannel, pszSample, flVolume, flAttenuation, iUnknown, iPitch, iSoundIndex, flOffset );
+
+	if ( bRunFunc )
+		ORIG_CClient_SoundEngine__PlayFMODSound( thisptr, fFlags, entindex, vecOrigin, iChannel, pszSample, flVolume, flAttenuation, iUnknown, iPitch, iSoundIndex, flOffset );
+
+	g_Visual.CClient_SoundEngine__PlayFMODSoundPost( thisptr, fFlags, entindex, vecOrigin, iChannel, pszSample, flVolume, flAttenuation, iUnknown, iPitch, iSoundIndex, flOffset );
 }
 
 //-----------------------------------------------------------------------------
@@ -1698,6 +1719,7 @@ CHooksModule::CHooksModule()
 	m_pfnIN_Move = NULL;
 	m_pfnCHud__Think = NULL;
 	m_pfnCHudBaseTextBlock__Print = NULL;
+	m_pfnCClient_SoundEngine__PlayFMODSound = NULL;
 	m_pfnNetchan_CanPacket = NULL;
 	m_pfnScaleColors = NULL;
 	m_pfnScaleColors_RGBA = NULL;
@@ -1779,6 +1801,7 @@ bool CHooksModule::Load()
 	auto fpfnIN_Move = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::IN_Move );
 	auto fpfnCHud__Think = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::CHud__Think );
 	auto fpfnCHudBaseTextBlock__Print = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::CHudBaseTextBlock__Print );
+	auto fpfnCClient_SoundEngine__PlayFMODSound = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::CClient_SoundEngine__PlayFMODSound );
 	auto fpfnNetchan_CanPacket = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::Netchan_CanPacket );
 	auto fpfnSCR_UpdateScreen = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::SCR_UpdateScreen );
 	auto fpfnV_RenderView = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::V_RenderView );
@@ -1810,6 +1833,12 @@ bool CHooksModule::Load()
 	if ( !( g_pfnCHudBaseTextBlock__Print = m_pfnCHudBaseTextBlock__Print = fpfnCHudBaseTextBlock__Print.get() ) )
 	{
 		Warning( "Couldn't find function \"CHudBaseTextBlock::Print\"\n" );
+		ScanOK = false;
+	}
+	
+	if ( !( m_pfnCClient_SoundEngine__PlayFMODSound = fpfnCClient_SoundEngine__PlayFMODSound.get() ) )
+	{
+		Warning( "Couldn't find function \"CClient_SoundEngine::PlayFMODSound\"\n" );
 		ScanOK = false;
 	}
 
@@ -1993,23 +2022,24 @@ void CHooksModule::PostLoad()
 	ORIG_StudioDrawPlayer = g_pStudioAPI->StudioDrawPlayer;
 	g_pStudioAPI->StudioDrawPlayer = HOOKED_StudioDrawPlayer;
 
-	m_hIN_Move = DetoursAPI()->DetourFunction( m_pfnIN_Move, HOOKED_IN_Move, GET_FUNC_PTR(ORIG_IN_Move) );
-	m_hCHud__Think = DetoursAPI()->DetourFunction( m_pfnCHud__Think, HOOKED_CHud__Think, GET_FUNC_PTR(ORIG_CHud__Think) );
-	m_hCHudBaseTextBlock__Print = DetoursAPI()->DetourFunction( m_pfnCHudBaseTextBlock__Print, HOOKED_CHudBaseTextBlock__Print, GET_FUNC_PTR(ORIG_CHudBaseTextBlock__Print) );
-	m_hNetchan_CanPacket = DetoursAPI()->DetourFunction( m_pfnNetchan_CanPacket, HOOKED_Netchan_CanPacket, GET_FUNC_PTR(ORIG_Netchan_CanPacket) );
-	m_hScaleColors = DetoursAPI()->DetourFunction( m_pfnScaleColors, HOOKED_ScaleColors, GET_FUNC_PTR(ORIG_ScaleColors) );
-	m_hScaleColors_RGBA = DetoursAPI()->DetourFunction( m_pfnScaleColors_RGBA, HOOKED_ScaleColors_RGBA, GET_FUNC_PTR(ORIG_ScaleColors_RGBA) );
-	m_hSPR_Set = DetoursAPI()->DetourFunction( m_pfnSPR_Set, HOOKED_SPR_Set, GET_FUNC_PTR(ORIG_SPR_Set) );
+	m_hIN_Move = DetoursAPI()->DetourFunction( m_pfnIN_Move, HOOKED_IN_Move, GET_FUNC_PTR( ORIG_IN_Move ) );
+	m_hCHud__Think = DetoursAPI()->DetourFunction( m_pfnCHud__Think, HOOKED_CHud__Think, GET_FUNC_PTR( ORIG_CHud__Think ) );
+	m_hCHudBaseTextBlock__Print = DetoursAPI()->DetourFunction( m_pfnCHudBaseTextBlock__Print, HOOKED_CHudBaseTextBlock__Print, GET_FUNC_PTR( ORIG_CHudBaseTextBlock__Print ) );
+	m_hCClient_SoundEngine__PlayFMODSound = DetoursAPI()->DetourFunction( m_pfnCClient_SoundEngine__PlayFMODSound, HOOKED_CClient_SoundEngine__PlayFMODSound, GET_FUNC_PTR( ORIG_CClient_SoundEngine__PlayFMODSound ) );
+	m_hNetchan_CanPacket = DetoursAPI()->DetourFunction( m_pfnNetchan_CanPacket, HOOKED_Netchan_CanPacket, GET_FUNC_PTR( ORIG_Netchan_CanPacket ) );
+	m_hScaleColors = DetoursAPI()->DetourFunction( m_pfnScaleColors, HOOKED_ScaleColors, GET_FUNC_PTR( ORIG_ScaleColors ) );
+	m_hScaleColors_RGBA = DetoursAPI()->DetourFunction( m_pfnScaleColors_RGBA, HOOKED_ScaleColors_RGBA, GET_FUNC_PTR( ORIG_ScaleColors_RGBA ) );
+	m_hSPR_Set = DetoursAPI()->DetourFunction( m_pfnSPR_Set, HOOKED_SPR_Set, GET_FUNC_PTR( ORIG_SPR_Set ) );
 	//m_hCvar_FindVar = DetoursAPI()->DetourFunction( m_pfnCvar_FindVar, HOOKED_Cvar_FindVar, GET_FUNC_PTR(ORIG_Cvar_FindVar) );
-	m_hglBegin = DetoursAPI()->DetourFunction( m_pfnglBegin, HOOKED_glBegin, GET_FUNC_PTR(ORIG_glBegin) );
-	m_hglColor4f = DetoursAPI()->DetourFunction( m_pfnglColor4f, HOOKED_glColor4f, GET_FUNC_PTR(ORIG_glColor4f) );
-	m_hSCR_UpdateScreen = DetoursAPI()->DetourFunction( m_pfnSCR_UpdateScreen, HOOKED_SCR_UpdateScreen, GET_FUNC_PTR(ORIG_SCR_UpdateScreen) );
-	m_hV_RenderView = DetoursAPI()->DetourFunction( m_pfnV_RenderView, HOOKED_V_RenderView, GET_FUNC_PTR(ORIG_V_RenderView) );
+	m_hglBegin = DetoursAPI()->DetourFunction( m_pfnglBegin, HOOKED_glBegin, GET_FUNC_PTR( ORIG_glBegin ) );
+	m_hglColor4f = DetoursAPI()->DetourFunction( m_pfnglColor4f, HOOKED_glColor4f, GET_FUNC_PTR( ORIG_glColor4f ) );
+	m_hSCR_UpdateScreen = DetoursAPI()->DetourFunction( m_pfnSCR_UpdateScreen, HOOKED_SCR_UpdateScreen, GET_FUNC_PTR( ORIG_SCR_UpdateScreen ) );
+	m_hV_RenderView = DetoursAPI()->DetourFunction( m_pfnV_RenderView, HOOKED_V_RenderView, GET_FUNC_PTR( ORIG_V_RenderView ) );
 	//m_hR_RenderScene = DetoursAPI()->DetourFunction( m_pfnR_RenderScene, HOOKED_R_RenderScene, GET_FUNC_PTR(ORIG_R_RenderScene) );
-	m_hR_SetupFrame = DetoursAPI()->DetourFunction( m_pfnR_SetupFrame, HOOKED_R_SetupFrame, GET_FUNC_PTR(ORIG_R_SetupFrame) );
-	m_hR_ForceCVars = DetoursAPI()->DetourFunction( m_pfnR_ForceCVars, HOOKED_R_ForceCVars, GET_FUNC_PTR(ORIG_R_ForceCVars ) );
-	m_hCRC_MapFile = DetoursAPI()->DetourFunction( m_pfnCRC_MapFile, HOOKED_CRC_MapFile, GET_FUNC_PTR(ORIG_CRC_MapFile) );
-	m_hMod_LeafPVS = DetoursAPI()->DetourFunction( m_pfnMod_LeafPVS, HOOKED_Mod_LeafPVS, GET_FUNC_PTR(ORIG_Mod_LeafPVS ) );
+	m_hR_SetupFrame = DetoursAPI()->DetourFunction( m_pfnR_SetupFrame, HOOKED_R_SetupFrame, GET_FUNC_PTR( ORIG_R_SetupFrame ) );
+	m_hR_ForceCVars = DetoursAPI()->DetourFunction( m_pfnR_ForceCVars, HOOKED_R_ForceCVars, GET_FUNC_PTR( ORIG_R_ForceCVars ) );
+	m_hCRC_MapFile = DetoursAPI()->DetourFunction( m_pfnCRC_MapFile, HOOKED_CRC_MapFile, GET_FUNC_PTR( ORIG_CRC_MapFile ) );
+	m_hMod_LeafPVS = DetoursAPI()->DetourFunction( m_pfnMod_LeafPVS, HOOKED_Mod_LeafPVS, GET_FUNC_PTR( ORIG_Mod_LeafPVS ) );
 	m_hCGame__SleepUntilInput = DetoursAPI()->DetourFunction( m_pfnCGame__SleepUntilInput, HOOKED_CGame__SleepUntilInput, GET_FUNC_PTR( ORIG_CGame__SleepUntilInput ) );
 
 	m_hStudioSetupBones = DetoursAPI()->DetourVirtualFunction( g_pStudioRenderer, 7, HOOKED_StudioSetupBones, GET_FUNC_PTR( ORIG_StudioSetupBones ) );
@@ -2036,6 +2066,7 @@ void CHooksModule::Unload()
 	DetoursAPI()->RemoveDetour( m_hIN_Move );
 	DetoursAPI()->RemoveDetour( m_hCHud__Think );
 	DetoursAPI()->RemoveDetour( m_hCHudBaseTextBlock__Print );
+	DetoursAPI()->RemoveDetour( m_hCClient_SoundEngine__PlayFMODSound );
 	DetoursAPI()->RemoveDetour( m_hNetchan_CanPacket );
 	DetoursAPI()->RemoveDetour( m_hScaleColors );
 	DetoursAPI()->RemoveDetour( m_hScaleColors_RGBA );

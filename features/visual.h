@@ -60,6 +60,8 @@ public:
 	void AddSound(const Vector &vecOrigin);
 	void AddHitmarker(const Vector &vecOrigin, float flStayTime);
 
+	void CClient_SoundEngine__PlayFMODSoundPost( void *thisptr, int fFlags, int entindex, float *vecOrigin, int iChannel, const char *pszSample, float flVolume, float flAttenuation, int iUnknown, int iPitch, int iSoundIndex, float flOffset );
+
 private:
 	void ESP();
 	void ShowSounds();
@@ -98,11 +100,9 @@ private:
 
 	bool m_bOnGround;
 
-	void *m_pfnCClient_SoundEngine__PlayFMODSound;
 	void *m_pfnV_FadeAlpha;
 	void *m_pfnEV_HLDM_PlayTextureSound;
 
-	DetourHandle_t m_hCClient_SoundEngine__PlayFMODSound;
 	DetourHandle_t m_hV_FadeAlpha;
 	DetourHandle_t m_hEV_HLDM_PlayTextureSound;
 	//DetourHandle_t m_hHUD_PlayerMoveTexture;

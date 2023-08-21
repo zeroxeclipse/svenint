@@ -440,6 +440,9 @@
     <ClCompile Include="features\midi_sound_player.cpp">
       <Filter>Sven Internal\Features</Filter>
     </ClCompile>
+    <ClCompile Include="features\capture.cpp">
+      <Filter>Sven Internal\Features</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">
@@ -851,6 +854,9 @@
       <Filter>Sven Internal\Scripts</Filter>
     </ClInclude>
     <ClInclude Include="features\midi_sound_player.h">
+      <Filter>Sven Internal\Features</Filter>
+    </ClInclude>
+    <ClInclude Include="features\capture.h">
       <Filter>Sven Internal\Features</Filter>
     </ClInclude>
   </ItemGroup>

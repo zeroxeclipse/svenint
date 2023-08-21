@@ -60,7 +60,6 @@ Hitbox g_Bones[MAXCLIENTS + 1];
 bone_s g_Bones[MAXENTS + 1];
 #endif
 
-DECLARE_CLASS_HOOK(void, CClient_SoundEngine__PlayFMODSound, void *thisptr, int a2, int a3, float *pos, int a5, char *name, float a7, float a8, int a9, int a10, int a11, float a12);
 DECLARE_HOOK(int, __cdecl, V_FadeAlpha);
 //DECLARE_HOOK(void, __cdecl, EV_HLDM_PlayTextureSound, int idx, pmtrace_t *trace, float *vecSrc, float *vecEnd, int iBulletType);
 //DECLARE_HOOK(char, __cdecl, HUD_PlayerMoveTexture, const char *name);
@@ -1751,37 +1750,35 @@ void CVisual::AddHitmarker(const Vector &vecOrigin, float flStayTime)
 	m_vHitMarkers.push_back( { vecOrigin, flStayTime } );
 }
 
-//-----------------------------------------------------------------------------
-// Hooks
-//-----------------------------------------------------------------------------
-
-DECLARE_CLASS_FUNC(void, HOOKED_CClient_SoundEngine__PlayFMODSound, void *thisptr, int a2, int a3, float *pos, int a5, char *name, float a7, float a8, int a9, int a10, int a11, float a12)
+void CVisual::CClient_SoundEngine__PlayFMODSoundPost( void *thisptr, int fFlags, int entindex, float *vecOrigin, int iChannel, const char *pszSample, float flVolume, float flAttenuation, int iUnknown, int iPitch, int iSoundIndex, float flOffset )
 {
-	auto StringStartsWith = [](const char *prefix, const char *str) -> bool
+	auto StringStartsWith = []( const char *prefix, const char *str ) -> bool
 	{
-		size_t prefix_len = strlen(prefix), str_len = strlen(str);
-		return str_len < prefix_len ? false : memcmp(prefix, str, prefix_len) == 0;
+		size_t prefix_len = strlen( prefix ), str_len = strlen( str );
+		return str_len < prefix_len ? false : memcmp( prefix, str, prefix_len ) == 0;
 	};
-
-	ORIG_CClient_SoundEngine__PlayFMODSound(thisptr, a2, a3, pos, a5, name, a7, a8, a9, a10, a11, a12);
 
 	if ( !g_Config.cvars.show_sound_origin )
 		return;
 
-	if ( pos == NULL || name == NULL || *name == '\0' || (pos[0] == 0.f && pos[1] == 0.f && pos[2] == 0.f) )
+	if ( vecOrigin == NULL || pszSample == NULL || *pszSample == '\0' || ( vecOrigin[ 0 ] == 0.f && vecOrigin[ 1 ] == 0.f && vecOrigin[ 2 ] == 0.f ) )
 		return;
 
-	if ( !StringStartsWith("debris", name) && !StringStartsWith("weapons", name) &&  !StringStartsWith("hlclassic/weapons", name) && !StringStartsWith("buttons", name) &&
-		!StringStartsWith("common", name) && !StringStartsWith("ambience", name) /* && !StringStartsWith("player/pl_shell", name) */ && !StringStartsWith("player", name) &&
-		!StringStartsWith("items", name) )
+	if ( !StringStartsWith( "debris", pszSample ) && !StringStartsWith( "weapons", pszSample ) && !StringStartsWith( "hlclassic/weapons", pszSample ) && !StringStartsWith( "buttons", pszSample ) &&
+		 !StringStartsWith( "common", pszSample ) && !StringStartsWith( "ambience", pszSample ) /* && !StringStartsWith("player/pl_shell", pszSample) */ && !StringStartsWith( "player", pszSample ) &&
+		 !StringStartsWith( "items", pszSample ) )
 	{
 		//Msg("CClient_SoundEngine::PlayFMODSound(%X, %d, %d, Vector(%.6f, %.6f, %.6f), %d, %s, %.2f, %.2f, %d, %d, %d, %.2f)\n",
 		//	thisptr, a2, a3, VectorExpand(*(Vector *)pos), a5, name, a7, a8, a9, a10, a11, a12);
 
 		//Render()->DrawBox( pos, Vector(-2, -2, -2), Vector(2, 2, 2), { 232, 0, 232, 128 }, 5.f );
-		g_Visual.AddSound( pos );
+		g_Visual.AddSound( vecOrigin );
 	}
 }
+
+//-----------------------------------------------------------------------------
+// Hooks
+//-----------------------------------------------------------------------------
 
 DECLARE_FUNC(int, __cdecl, HOOKED_V_FadeAlpha)
 {
@@ -1878,7 +1875,6 @@ CVisual::CVisual()
 
 	m_bOnGround = true;
 
-	m_pfnCClient_SoundEngine__PlayFMODSound = NULL;
 	m_pfnV_FadeAlpha = NULL;
 
 	m_hV_FadeAlpha = 0;
@@ -1904,14 +1900,6 @@ bool CVisual::Load()
 		return false;
 	}
 
-	m_pfnCClient_SoundEngine__PlayFMODSound = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Client, Patterns::Client::CClient_SoundEngine__PlayFMODSound );
-
-	if ( m_pfnCClient_SoundEngine__PlayFMODSound == NULL )
-	{
-		Warning("Failed to find function \"CClient_SoundEngine::PlayFMODSound\"\n");
-		return false;
-	}
-	
 	m_pfnV_FadeAlpha = MemoryUtils()->FindPattern( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::V_FadeAlpha );
 
 	if ( m_pfnV_FadeAlpha == NULL )
@@ -1952,7 +1940,6 @@ void CVisual::PostLoad()
 
 	g_pBoneTransform = (bone_matrix3x4_t *)g_pEngineStudio->StudioGetLightTransform();
 
-	m_hCClient_SoundEngine__PlayFMODSound = DetoursAPI()->DetourFunction( m_pfnCClient_SoundEngine__PlayFMODSound, HOOKED_CClient_SoundEngine__PlayFMODSound, GET_FUNC_PTR(ORIG_CClient_SoundEngine__PlayFMODSound) );
 	m_hV_FadeAlpha = DetoursAPI()->DetourFunction( m_pfnV_FadeAlpha, HOOKED_V_FadeAlpha, GET_FUNC_PTR( ORIG_V_FadeAlpha ) );
 	//m_hEV_HLDM_PlayTextureSound = DetoursAPI()->DetourFunction( m_pfnEV_HLDM_PlayTextureSound, HOOKED_EV_HLDM_PlayTextureSound, GET_FUNC_PTR(ORIG_EV_HLDM_PlayTextureSound) );
 	//m_hHUD_PlayerMoveTexture = DetoursAPI()->DetourFunction( pfnHUD_PlayerMoveTexture, HOOKED_HUD_PlayerMoveTexture, GET_FUNC_PTR(ORIG_HUD_PlayerMoveTexture) );
@@ -1968,7 +1955,6 @@ void CVisual::Unload()
 	if ( VGUI()->Surface()->IsTextureIDValid( m_hHitMarkerTexture ) )
 		VGUI()->Surface()->DeleteTextureByID( m_hHitMarkerTexture );
 
-	DetoursAPI()->RemoveDetour( m_hCClient_SoundEngine__PlayFMODSound );
 	DetoursAPI()->RemoveDetour( m_hV_FadeAlpha );
 	//DetoursAPI()->RemoveDetour( m_hEV_HLDM_PlayTextureSound );
 	//DetoursAPI()->RemoveDetour( m_hHUD_PlayerMoveTexture );

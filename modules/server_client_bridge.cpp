@@ -82,10 +82,10 @@ static int UserMsgHook_SvenInt(const char *pszUserMsg, int iSize, void *pBuffer)
         vecOrigin.y = Long32ToFloat( message.ReadLong() );
         vecOrigin.z = Long32ToFloat( message.ReadLong() );
 
-        if ( !g_bPlayingbackDemo )
-        {
+        //if ( !g_bPlayingbackDemo )
+        //{
             g_SpeedrunTools.DrawPlayerHull_Comm( displayInfo.client, displayInfo.dead, vecOrigin, !!displayInfo.duck );
-        }
+        //}
     }
     else if ( type == SVENINT_COMM_SCRIPTS )
     {
