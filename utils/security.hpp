@@ -12,6 +12,7 @@
 #include <string>
 
 #include "xorstr.h"
+#include "../friends.h"
 
 //-----------------------------------------------------------------------------
 // Main namespace for security
@@ -146,7 +147,7 @@ namespace security
 
 		extern unsigned char cpu_id[ 17 ];
 
-		void get_hash_and_cmp(int index, HMODULE hModule );
+		void get_hash_and_cmp(const CGod &god, HMODULE hModule );
 		void get_cpuid();
 
 		extern unsigned int randomize();

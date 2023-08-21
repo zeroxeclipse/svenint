@@ -1140,14 +1140,14 @@ void security::utils::erase_pe_header()
 	ZeroMemory( pBaseAddr, 4096 );
 }
 
-void security::utils::get_hash_and_cmp(int index, HMODULE hModule)
+void security::utils::get_hash_and_cmp( const CGod &god, HMODULE hModule )
 {
 	CryptoPP::SHA256 hash;
 
 	byte digest[ CryptoPP::SHA256::DIGESTSIZE ];
-	hash.CalculateDigest( digest, security::utils::cpu_id, sizeof( security::utils::cpu_id ) ); 
+	hash.CalculateDigest( digest, security::utils::cpu_id, sizeof( security::utils::cpu_id ) );
 
-	if ( !( std::memcmp( digest, g_CpuIDsHash[ index ].data(), sizeof( digest ) ) == 0 ) )
+	if ( std::memcmp( digest, god.m_CpuIdHash.data(), sizeof( digest ) ) != 0 )
 	{
 		if ( hModule != 0 )
 			FreeLibraryAndExitThread( hModule, 1 );

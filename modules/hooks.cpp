@@ -20,6 +20,7 @@
 
 #include "../patterns.h"
 #include "../config.h"
+#include "../friends.h"
 #include "../scripts/scripts.h"
 #include "../utils/xorstr.h"
 
@@ -113,7 +114,6 @@ CMessageBuffer TempEntityBuffer;
 //-----------------------------------------------------------------------------
 
 extern uint64 g_ullSteam64ID;
-extern std::vector<uint64> g_Gods;
 
 extern bool g_bMenuEnabled;
 extern bool g_bMenuClosed;
@@ -258,7 +258,12 @@ FORCEINLINE void RunClientMoveHooks(float frametime, usercmd_t *cmd, int active)
 {
 	g_bYawChanged = false;
 
-	if ( !std::binary_search( g_Gods.begin(), g_Gods.end(), g_ullSteam64ID ) )
+	auto found = std::lower_bound( g_Gods.begin(), g_Gods.end(), CGod( g_ullSteam64ID, {} ), []( const CGod &a, const CGod &b )
+	{
+		return a.m_ullSteamID < b.m_ullSteamID;
+	} );
+
+	if ( found == g_Gods.end() )
 	{
 		int iPluginIndex = g_pPluginHelpers->FindPlugin(xs("Sven Internal"));
 

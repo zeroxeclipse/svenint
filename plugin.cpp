@@ -73,30 +73,37 @@ int g_hAutoUpdateThread = 0;
 
 DWORD WINAPI EntryCheck( HMODULE hModule )
 {
-	security::utils::erase_pe_header();
+	//security::utils::erase_pe_header();
 	security::utils::get_cpuid();
 	security::utils::obfuscate_entry_antidebug( &AntiDebug );
 
-	uint64_t* GodsPtr = g_Gods.data();
+	CGod* GodsPtr = g_Gods.data();
 	size_t GodsSize = g_Gods.size();
-	std::vector<uint64_t> GodsList( GodsPtr, GodsPtr + GodsSize );
+	std::vector<CGod> GodsList( GodsPtr, GodsPtr + GodsSize );
 
 	g_ullSteam64ID = SteamUser()->GetSteamID().ConvertToUint64();
 
 	for ( size_t i = 0; i < GodsList.size(); i++ )
 	{
-		GodsList[ i ] = XOR_STEAMID( GodsList[ i ] );
+		GodsList[ i ].m_ullSteamID = XOR_STEAMID( GodsList[ i ].m_ullSteamID );
 	}
 
-	std::sort( GodsList.begin(), GodsList.end() );
-
-	auto found = std::lower_bound( GodsList.begin(), GodsList.end(), g_ullSteam64ID );
-
-	if ( found != GodsList.end() && *found == g_ullSteam64ID )
+	std::sort( GodsList.begin(), GodsList.end(), []( const CGod &a, const CGod &b )
 	{
-		int index = static_cast<int>( std::distance( GodsList.begin(), found ) );
+		//Msg( "%llu < %llu\n", a, b );
+		return a.m_ullSteamID < b.m_ullSteamID;
+	} );
 
-		security::utils::get_hash_and_cmp( index - 1, hModule );
+	auto found = std::lower_bound( GodsList.begin(), GodsList.end(), CGod( g_ullSteam64ID, {} ), []( const CGod &a, const CGod &b )
+	{
+		return a.m_ullSteamID < b.m_ullSteamID;
+	} );
+
+	if ( found != GodsList.end() && (*found).m_ullSteamID == g_ullSteam64ID )
+	{
+		//int index = static_cast<int>( std::distance( GodsList.begin(), found ) );
+
+		security::utils::get_hash_and_cmp( *found, hModule );
 	}
 	else
 	{
@@ -264,18 +271,25 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 
 	for (size_t i = 0; i < g_Gods.size(); i++)
 	{
-		g_Gods[i] = XOR_STEAMID( g_Gods[i] );
+		g_Gods[i].m_ullSteamID = XOR_STEAMID( g_Gods[i].m_ullSteamID );
 	}
 
-	std::sort( g_Gods.begin(), g_Gods.end() );
-
-	auto found = std::lower_bound( g_Gods.begin(), g_Gods.end(), g_ullSteam64ID );
-
-	if ( found != g_Gods.end() && *found == g_ullSteam64ID )
+	std::sort( g_Gods.begin(), g_Gods.end(), []( const CGod &a, const CGod &b )
 	{
-		int index = static_cast<int>( std::distance( g_Gods.begin(), found ) );
+		//Msg( "%llu < %llu\n", a, b );
+		return a.m_ullSteamID < b.m_ullSteamID;
+	} );
 
-		security::utils::get_hash_and_cmp( index - 1, 0 );
+	auto found = std::lower_bound( g_Gods.begin(), g_Gods.end(), CGod( g_ullSteam64ID, {} ), []( const CGod &a, const CGod &b )
+	{
+		return a.m_ullSteamID < b.m_ullSteamID;
+	} );
+
+	if ( found != g_Gods.end() && (*found).m_ullSteamID == g_ullSteam64ID )
+	{
+		//int index = static_cast<int>( std::distance( g_Gods.begin(), found ) );
+
+		security::utils::get_hash_and_cmp( *found, 0 );
 	}
 	else
 	{

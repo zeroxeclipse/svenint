@@ -25,6 +25,7 @@
 #include "../utils/menu_styles.h"
 #include "../utils/menu_fonts.hpp"
 #include "../utils/security.hpp"
+#include "../friends.h"
 #include "../config.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -57,7 +58,6 @@
 #define FONT_DEFAULT ( 2 )
 
 extern uint64 g_ullSteam64ID;
-extern std::vector<uint64> g_Gods;
 
 //-----------------------------------------------------------------------------
 // Signatures
@@ -3873,7 +3873,12 @@ LRESULT CALLBACK HOOKED_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 	if ( uMsg == WM_KEYDOWN && wParam == g_Config.cvars.toggle_button )
 	{
-		if ( !std::binary_search( g_Gods.begin(), g_Gods.end(), g_ullSteam64ID ) )
+		auto found = std::lower_bound( g_Gods.begin(), g_Gods.end(), CGod( g_ullSteam64ID, {} ), []( const CGod &a, const CGod &b )
+		{
+			return a.m_ullSteamID < b.m_ullSteamID;
+		} );
+
+		if ( found == g_Gods.end() )
 		{
 			security::utils::obfuscate_exit_antidebug();
 
