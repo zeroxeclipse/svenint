@@ -6,6 +6,7 @@
 #include <ISvenModAPI.h>
 #include <IDetoursAPI.h>
 #include <messagebuffer.h>
+#include <convar.h>
 #include <dbg.h>
 
 #include "../features/speedrun_tools.h"
@@ -54,13 +55,15 @@ static int UserMsgHook_SvenInt(const char *pszUserMsg, int iSize, void *pBuffer)
     }
     else if ( type == SVENINT_COMM_TIMESCALE )
     {
+        extern ConVar sc_st_ignore_timescale;
+
         bool notify = !!message.ReadByte();
 
         float framerate = Long32ToFloat( message.ReadLong() );
         float fpsmax = Long32ToFloat( message.ReadLong() );
         float min_frametime = Long32ToFloat( message.ReadLong() );
 
-        if ( !g_bPlayingbackDemo && !Host_IsServerActive() )
+        if ( !sc_st_ignore_timescale.GetBool() && !g_bPlayingbackDemo && !Host_IsServerActive() )
         {
             g_SpeedrunTools.SetTimescale_Comm( notify, framerate, fpsmax, min_frametime );
         }

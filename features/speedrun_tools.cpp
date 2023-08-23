@@ -81,6 +81,7 @@ static bool s_bNotifyTimescaleChanged = false;
 //-----------------------------------------------------------------------------
 
 ConVar sc_st_ignore_fps_change( "sc_st_ignore_fps_change", "0", FCVAR_CLIENTDLL, "Ignore FPS change" );
+ConVar sc_st_ignore_timescale( "sc_st_ignore_timescale", "0", FCVAR_CLIENTDLL, "Ignore timescale set/change" );
 ConVar sc_st_min_frametime( "sc_st_min_frametime", "0", FCVAR_CLIENTDLL, "Min frametime to run a frame" );
 ConVar sc_st_transmit_timer( "sc_st_transmit_timer", "1", FCVAR_CLIENTDLL, "Transmit to all clients the segment's time" );
 ConVar sc_st_transmit_timescale( "sc_st_transmit_timescale", "1", FCVAR_CLIENTDLL, "Transmit to all clients current timescale" );
