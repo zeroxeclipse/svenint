@@ -7,10 +7,16 @@
 #pragma once
 #endif
 
+#include <GL/GL.h>
+#include <Windows.h>
+#include <string>
+
 #include <base_feature.h>
 #include <IDetoursAPI.h>
 #include <IMemoryUtils.h>
+#include <ISvenModAPI.h>
 
+/*
 //-----------------------------------------------------------------------------
 // Macro definitions
 //-----------------------------------------------------------------------------
@@ -81,6 +87,7 @@ struct dma_t
 	// // unsigned int channels; // 0x28 NOT CONFIRMED
 	// unsigned char *buffer; // 0x28 OK
 };
+*/
 
 //-----------------------------------------------------------------------------
 // CCapture
@@ -98,10 +105,40 @@ public:
 public:
 	bool CClient_SoundEngine__PlayFMODSound( void *thisptr, int fFlags, int entindex, float *vecOrigin, int iChannel, const char *pszSample, float flVolume, float flAttenuation, int iUnknown, int iPitch, int iSoundIndex, float flOffset );
 
+	bool Start( const char *pszFilename, double fps, double slowdown, double sampling_fps );
+	bool Stop( void );
+
+	void SaveImage( void );
+
+	bool OpenPipe();
+	bool ClosePipe();
+
+	void PostUpdateScreen( void );
+	void GameFrame( client_state_t state );
+
 	bool IsRecording( void ) const;
 
 private:
 	bool m_bRecording;
+	bool m_bFirstCapture;
+	int m_iCaptureFrameCount;
+	int m_iFpsMultiplier;
+	double m_lastRecordTime;
+	double m_captureFps;
+	double m_samplingFps;
+	double m_fps;
+	double m_frametime;
+
+	std::string m_sFilename;
+
+	int m_iWidth;
+	int m_iHeight;
+	int m_nPixelsBufferSize;
+	char *m_pPixelsBuffer;
+
+	HANDLE m_hReadPipe;
+	HANDLE m_hWritePipe;
+	PROCESS_INFORMATION m_pi;
 };
 
 extern CCapture g_Capture;

@@ -44,6 +44,7 @@
 #include "features/keyspam.h"
 #include "features/bsp.h"
 #include "features/input_manager.h"
+#include "features/capture.h"
 
 #include "steam/steam_api.h"
 #include "utils/security.hpp"
@@ -241,21 +242,21 @@ bool CSvenInternal::Load(CreateInterfaceFn pfnSvenModFactory, ISvenModAPI *pSven
 		return false;
 	}
 
-	// Print GL version
-	const GLubyte *renderer = glGetString( GL_RENDERER );
-	const GLubyte *vendor = glGetString( GL_VENDOR );
-	const GLubyte *version = glGetString( GL_VERSION );
-	const GLubyte *glslVersion = glGetString( GL_SHADING_LANGUAGE_VERSION );
-
-	GLint major, minor;
-	glGetIntegerv( GL_MAJOR_VERSION, &major );
-	glGetIntegerv( GL_MINOR_VERSION, &minor );
-
 	typedef void ( *AntiDbgExitPtr )( );
 	volatile AntiDbgExitPtr AntiDbgExit = reinterpret_cast<AntiDbgExitPtr>( &security::utils::obfuscate_exit_antidebug );
 
 	if ( CVar()->GetBoolFromCvar( xs( "developer" ) ) )
 	{
+		// Print GL version
+		const GLubyte *renderer = glGetString( GL_RENDERER );
+		const GLubyte *vendor = glGetString( GL_VENDOR );
+		const GLubyte *version = glGetString( GL_VERSION );
+		const GLubyte *glslVersion = glGetString( GL_SHADING_LANGUAGE_VERSION );
+
+		GLint major, minor;
+		glGetIntegerv( GL_MAJOR_VERSION, &major );
+		glGetIntegerv( GL_MINOR_VERSION, &minor );
+
 		DevMsg( xs( "GL Vendor            : %s\n" ), vendor );
 		DevMsg( xs( "GL Renderer          : %s\n" ), renderer );
 		DevMsg( xs( "GL Version (string)  : %s\n" ), version );
@@ -493,6 +494,8 @@ void CSvenInternal::GameFrame(client_state_t state, double frametime, bool bPost
 
 			g_AUColorMsgQueue.clear();
 		}
+
+		g_Capture.GameFrame( state );
 
 		if ( state >= CLS_CONNECTED )
 		{
