@@ -612,6 +612,12 @@ CON_COMMAND( sc_play_test_stop, "" )
 
 static std::vector<Vector> points;
 static int points_it = 0;
+static int points_it2 = 0;
+static int circle_points = 1;
+static int clock_points = 1;
+static double clock_angle = 0.f;
+static Vector clock_pos;
+static Vector clock_ang;
 
 CON_COMMAND( sc_giga_test, "" )
 {
@@ -625,15 +631,16 @@ CON_COMMAND( sc_giga_test, "" )
 
 	float radius = 60.f;
 
-	int circle_points = atoi( args[ 1 ] );
-	int clock_points = atoi( args[ 2 ] );
-	float clock_angle = atof( args[ 3 ] );
-	Vector vecPos( atof( args[ 4 ] ), atof( args[ 5 ] ), atof( args[ 6 ] ) );
-	Vector vecAngles( atof( args[ 7 ] ), atof( args[ 8 ] ), atof( args[ 9 ] ) );
+	circle_points = atoi( args[ 1 ] );
+	clock_points = atoi( args[ 2 ] );
+	clock_angle = atof( args[ 3 ] );
+	clock_pos = Vector( atof( args[ 4 ] ), atof( args[ 5 ] ), atof( args[ 6 ] ) );
+	clock_ang = Vector( atof( args[ 7 ] ), atof( args[ 8 ] ), atof( args[ 9 ] ) );
 
 	float delta_angle = 2.0 * M_PI / circle_points;
 
-	CVar()->SetValue( "fps_max", 30 * ( circle_points + clock_points ) );
+	CVar()->SetValue( "fps_max", 10 * ( circle_points + clock_points ) );
+	points_it2 = 0;
 
 	for ( float angle = 0.f; angle < 2.0 * M_PI; angle += delta_angle )
 	{
@@ -661,11 +668,11 @@ CON_COMMAND( sc_giga_test, "" )
 		points.push_back( vecPoint );
 	}
 
-	AngleMatrix( vecAngles, localSpaceToWorld );
+	AngleMatrix( clock_ang, localSpaceToWorld );
 
-	localSpaceToWorld[ 0 ][ 3 ] = vecPos.x;
-	localSpaceToWorld[ 1 ][ 3 ] = vecPos.y;
-	localSpaceToWorld[ 2 ][ 3 ] = vecPos.z;
+	localSpaceToWorld[ 0 ][ 3 ] = clock_pos.x;
+	localSpaceToWorld[ 1 ][ 3 ] = clock_pos.y;
+	localSpaceToWorld[ 2 ][ 3 ] = clock_pos.z;
 	
 	for ( const Vector &point : points )
 	{
@@ -691,6 +698,60 @@ void CMidiSoundPlayer::CreateMove( float frametime, usercmd_t *cmd, int active )
 		if ( points_it >= (int)points.size() )
 		{
 			points_it = 0;
+			points.clear();
+			points_it2++;
+
+			float localSpaceToWorld[ 3 ][ 4 ];
+
+			Vector vecPoint;
+
+			float radius = 60.f;
+			float delta_angle = 2.0 * M_PI / circle_points;
+
+			clock_angle += ( 2.0 * M_PI * ( 1.0 / double( ( circle_points + clock_points ) ) ) );
+			Msg("%f\n", clock_angle );
+
+			for ( float angle = 0.f; angle < 2.0 * M_PI; angle += delta_angle )
+			{
+				vecPoint.Zero();
+
+				vecPoint.x = cos( angle );
+				vecPoint.y = sin( angle );
+
+				vecPoint *= radius;
+
+				points.push_back( vecPoint );
+			}
+
+			float delta_radius = radius / clock_points;
+
+			for ( float r = 0.f; r < radius; r += delta_radius )
+			{
+				vecPoint.Zero();
+
+				vecPoint.x = cos( clock_angle );
+				vecPoint.y = sin( clock_angle );
+
+				vecPoint *= r;
+
+				points.push_back( vecPoint );
+			}
+
+			AngleMatrix( clock_ang, localSpaceToWorld );
+
+			localSpaceToWorld[ 0 ][ 3 ] = clock_pos.x;
+			localSpaceToWorld[ 1 ][ 3 ] = clock_pos.y;
+			localSpaceToWorld[ 2 ][ 3 ] = clock_pos.z;
+
+			for ( const Vector &point : points )
+			{
+				Vector worldPoint;
+				VectorTransform( point, localSpaceToWorld, worldPoint );
+
+				*(Vector *)&point = worldPoint;
+
+				//Render()->DrawBox( worldPoint, Vector( -2, -2, -2 ), Vector( 2, 2, 2 ), { 232, 0, 232, 150 }, 5.f );
+			}
 		}
 
 		Vector vecPoint = points[ points_it ];
@@ -701,6 +762,10 @@ void CMidiSoundPlayer::CreateMove( float frametime, usercmd_t *cmd, int active )
 
 		VectorAngles( vecDir, vecAngles );
 		vecAngles.z = 0.f;
+
+		//char command_buffer[ 64 ];
+		//snprintf( command_buffer, M_ARRAYSIZE( command_buffer ), "setang %f %f 0;npc_moveto", vecAngles.x, vecAngles.y );
+		//g_pEngineFuncs->ClientCmd( command_buffer );
 
 		g_pEngineFuncs->SetViewAngles( vecAngles );
 		g_pEngineFuncs->ClientCmd( "npc_moveto" );
