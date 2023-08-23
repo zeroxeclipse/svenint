@@ -43,6 +43,7 @@ namespace Patterns
 		DEFINE_PATTERN( ClientDLL_HudRedraw, "E8 ? ? ? ? 85 C0 75 ? A1 ? ? ? ? 85 C0" );
 
 		DEFINE_PATTERN( IsSafeFileToDownload, "81 EC ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 04 01 00 00 8B 84 24 0C 01 00 00 56 85 C0" );
+		DEFINE_PATTERN( ReadWaveFile, "51 56 68 ? ? ? ? FF 74 24 10 E8" );
 
 		DEFINE_PATTERN( CRC_MapFile, "81 EC ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 84 04 00 00" );
 		DEFINE_PATTERN( ResourceList_Offset, "A1 ? ? ? ? 85 C0 74 ? 83 3D ? ? ? ? ? 74 ? 89 86 84 00 00 00" );

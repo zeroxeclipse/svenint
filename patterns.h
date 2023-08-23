@@ -50,6 +50,7 @@ namespace Patterns
 		EXTERN_PATTERN( ClientDLL_HudRedraw );
 
 		EXTERN_PATTERN( IsSafeFileToDownload );
+		EXTERN_PATTERN( ReadWaveFile );
 
 		EXTERN_PATTERN( CRC_MapFile );
 		EXTERN_PATTERN( ResourceList_Offset );

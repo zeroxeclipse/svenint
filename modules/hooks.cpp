@@ -86,6 +86,7 @@ DECLARE_HOOK(void, __cdecl, R_SetupFrame);
 DECLARE_HOOK(void, __cdecl, R_ForceCVars, int);
 
 DECLARE_HOOK(int, __cdecl, CRC_MapFile, uint32 *ulCRC, char *pszMapName);
+DECLARE_HOOK( bool, __cdecl, ReadWaveFile, const char *pszFilename, char *&pMicInputFileData, int &nMicInputFileBytes, int &bitsPerSample, int &numChannels, int &sampleRate );
 
 DECLARE_HOOK(void *, __cdecl, Mod_LeafPVS, mleaf_t *leaf, model_t *model);
 
@@ -167,6 +168,7 @@ void *g_pfnCHudBaseTextBlock__Print = NULL;
 
 static int s_iWaterLevel = 0;
 static bool s_bCheckMapCRC = false;
+static bool s_bScrUpdateScreenNext = false;
 
 //-----------------------------------------------------------------------------
 // ConVars
@@ -213,6 +215,7 @@ private:
 	void *m_pfnR_SetupFrame;
 	void *m_pfnR_ForceCVars;
 	void *m_pfnCRC_MapFile;
+	void *m_pfnReadWaveFile;
 	void *m_pfnMod_LeafPVS;
 	void *m_pfnCGame__SleepUntilInput;
 
@@ -233,6 +236,7 @@ private:
 	DetourHandle_t m_hR_SetupFrame;
 	DetourHandle_t m_hR_ForceCVars;
 	DetourHandle_t m_hCRC_MapFile;
+	DetourHandle_t m_hReadWaveFile;
 	DetourHandle_t m_hMod_LeafPVS;
 	DetourHandle_t m_hCGame__SleepUntilInput;
 
@@ -895,6 +899,171 @@ DECLARE_CLASS_FUNC( void, HOOKED_CGame__SleepUntilInput, void *thisptr, int unk 
 }
 
 //-----------------------------------------------------------------------------
+// Fix voice_inputfromfile
+//-----------------------------------------------------------------------------
+
+struct WaveHeader
+{
+	char                RIFF[ 4 ];      // RIFF Header
+	unsigned long       ChunkSize;      // RIFF Chunk Size
+	char                WAVE[ 4 ];      // WAVE Header
+	char                fmt[ 4 ];       // FMT header
+	unsigned long       Subchunk1Size;  // Size of the fmt chunk
+	unsigned short      AudioFormat;    // Audio format 1=PCM,6=mulaw,7=alaw, 257=IBM Mu-Law, 258=IBM A-Law, 259=ADPCM
+	unsigned short      NumOfChan;      // Number of channels 1=Mono 2=Sterio
+	unsigned long       SamplesPerSec;  // Sampling Frequency in Hz
+	unsigned long       bytesPerSec;    // bytes per second
+	unsigned short      blockAlign;     // 2=16-bit mono, 4=16-bit stereo
+	unsigned short      bitsPerSample;  // Number of bits per sample
+	// unsigned short      extraData;		// Extra data
+	char                Subchunk2ID[ 4 ]; // "data"  string
+	unsigned long       Subchunk2Size;  // Sampled data length
+};
+
+DECLARE_FUNC( bool, __cdecl, HOOKED_ReadWaveFile, const char *pszFilename, char *&pMicInputFileData, int &nMicInputFileBytes, int &bitsPerSample, int &numChannels, int &sampleRate )
+{
+	int tmp, dataSize, extraDataOffset, bytesRead;
+	FileHandle_t hFile = g_pFileSystem->Open( pszFilename, "rb" );
+
+	if ( hFile == NULL )
+		return false;
+
+	// Read RIFF
+	bytesRead = g_pFileSystem->Read( &tmp, sizeof( int ), hFile);
+
+	if ( bytesRead != sizeof( int ) || tmp != 0x46464952 ) // RIFF
+	{
+		g_pFileSystem->Close( hFile );
+		return false;
+	}
+	
+	// Read WAVE
+	g_pFileSystem->Seek( hFile, 8, FILESYSTEM_SEEK_HEAD );
+	bytesRead = g_pFileSystem->Read( &tmp, sizeof( int ), hFile);
+
+	if ( bytesRead != sizeof( int ) || tmp != 0x45564157 ) // WAVE
+	{
+		g_pFileSystem->Close( hFile );
+		return false;
+	}
+	
+	// Read fmt
+	bytesRead = g_pFileSystem->Read( &tmp, sizeof( int ), hFile);
+
+	if ( bytesRead != sizeof( int ) || tmp != 0x20746D66 ) // fmt
+	{
+		g_pFileSystem->Close( hFile );
+		return false;
+	}
+	
+	// Read Subchunk1Size
+	bytesRead = g_pFileSystem->Read( &tmp, sizeof( int ), hFile);
+
+	if ( bytesRead != sizeof( int ) )
+	{
+		g_pFileSystem->Close( hFile );
+		return false;
+	}
+
+	// Guess long header
+	switch ( tmp )
+	{
+	case 16:
+		extraDataOffset = 0;
+		break;
+
+	case 18:
+		extraDataOffset = 2;
+		break;
+
+	default:
+		g_pFileSystem->Close( hFile );
+		return false;
+	}
+
+	// Read subchunk2Id
+	g_pFileSystem->Seek( hFile, 36 + extraDataOffset, FILESYSTEM_SEEK_HEAD );
+	bytesRead = g_pFileSystem->Read( &tmp, sizeof( int ), hFile );
+
+	if ( bytesRead != sizeof( int ) || tmp != 0x61746164 ) // data
+	{
+		g_pFileSystem->Close( hFile );
+		return false;
+	}
+
+	// Read subchunk2Size
+	bytesRead = g_pFileSystem->Read( &dataSize, sizeof( int ), hFile );
+
+	if ( bytesRead != sizeof( int ) )
+	{
+		g_pFileSystem->Close( hFile );
+		return false;
+	}
+
+	pMicInputFileData = new char[ dataSize ];
+	nMicInputFileBytes = dataSize;
+
+	// Read data
+	bytesRead = g_pFileSystem->Read( pMicInputFileData, dataSize, hFile );
+
+	if ( bytesRead != dataSize )
+	{
+		g_pFileSystem->Close( hFile );
+
+		if ( pMicInputFileData != NULL )
+			delete[] pMicInputFileData;
+
+		return false;
+	}
+
+	if ( pMicInputFileData == NULL )
+	{
+		g_pFileSystem->Close( hFile );
+		return false;
+	}
+
+	// Read bitsPerSample
+	tmp = 0;
+	g_pFileSystem->Seek( hFile, 34, FILESYSTEM_SEEK_HEAD );
+	bytesRead = g_pFileSystem->Read( &tmp, sizeof( short ), hFile );
+
+	if ( bytesRead != sizeof( short ) )
+	{
+		g_pFileSystem->Close( hFile );
+		return false;
+	}
+
+	bitsPerSample = tmp;
+	
+	// Read numChannels
+	tmp = 0;
+	g_pFileSystem->Seek( hFile, 22, FILESYSTEM_SEEK_HEAD );
+	bytesRead = g_pFileSystem->Read( &tmp, sizeof( short ), hFile );
+
+	if ( bytesRead != sizeof( short ) )
+	{
+		g_pFileSystem->Close( hFile );
+		return false;
+	}
+
+	numChannels = tmp;
+	
+	// Read sampleRate
+	bytesRead = g_pFileSystem->Read( &tmp, sizeof( int ), hFile );
+
+	if ( bytesRead != sizeof( int ) )
+	{
+		g_pFileSystem->Close( hFile );
+		return false;
+	}
+
+	sampleRate = tmp;
+
+	g_pFileSystem->Close( hFile );
+	return true;
+}
+
+//-----------------------------------------------------------------------------
 // Renderer hooks
 //-----------------------------------------------------------------------------
 
@@ -932,95 +1101,13 @@ DECLARE_FUNC(void, __cdecl, HOOKED_SCR_UpdateScreen)
 
 	ORIG_SCR_UpdateScreen();
 
-	//void RecordVid();
-	//RecordVid();
-}
-
-#if 0
-static bool record = false;
-static bool record_first = true;
-static int record_frame_count = 0;
-static int record_frame_actual_count = 0;
-static double record_max_game_fps = 200.0;
-static double record_actual_fps = 4.0 * 60.0;
-static double record_fps_multiplier = 4.0;
-static double record_fps = 60.0;
-static double record_frametime = 1.0 / 60.0;
-static double record_last_record_time = 0.0;
-static double record_accumulated_time = 0.0;
-
-CON_COMMAND( sc_record_start, "" )
-{
-	record = true;
-	record_first = true;
-	record_fps = atof( args[ 1 ] );
-	record_max_game_fps = atof( args[ 2 ] );
-	record_fps_multiplier = ceil( record_max_game_fps / record_fps );
-	record_actual_fps = record_fps * record_fps_multiplier;
-	record_frametime = 1.0 / record_actual_fps;
-	record_last_record_time = 0.0;
-	record_accumulated_time = 0.0;
-
-	Msg( "%f (%f / %f)", record_fps_multiplier, record_max_game_fps, record_fps );
-
-	CVar()->SetValue( "fps_max", (float)record_actual_fps );
-	CVar()->SetValue( "host_framerate", (float)record_frametime );
-}
-
-CON_COMMAND( sc_record_stop, "" )
-{
-	record = false;
-}
-
-void RecordFilterTime( double time )
-{
-	extern ConVar sc_st_min_frametime;
-
-	if ( !record )
-		return;
-
-	record_accumulated_time += sc_st_min_frametime.GetFloat();
-	//record_accumulated_time += time;
-	//Msg("%f (%f)\n", time, record_accumulated_time );
-}
-
-void RecordVid()
-{
-	if ( !record )
-		return;
-
-	static char filename[ 32 ];
-
-	if ( record_first )
+	if ( s_bScrUpdateScreenNext )
 	{
-		record_frame_count = 0;
-		record_frame_actual_count = 0;
-		record_first = false;
-		record_last_record_time = *dbRealtime;
-		record_accumulated_time = 0.0;
+		g_Capture.PostUpdateScreen();
 
-		snprintf( filename, M_ARRAYSIZE( filename ), "test_%05d.bmp", record_frame_count + 1 );
-		VID_TakeSnapshot( filename );
-	}
-	//else if ( record_accumulated_time >= record_frametime )
-	else if ( *dbRealtime - record_last_record_time >= record_frametime )
-	{
-		record_frame_actual_count++;
-
-		record_last_record_time = *dbRealtime;
-		record_accumulated_time = 0.0;
-
-		if ( record_frame_actual_count != (int)record_fps_multiplier )
-			return;
-
-		record_frame_count++;
-		record_frame_actual_count = 0;
-
-		snprintf( filename, M_ARRAYSIZE( filename ), "test_%05d.bmp", record_frame_count + 1 );
-		VID_TakeSnapshot( filename );
+		s_bScrUpdateScreenNext = false;
 	}
 }
-#endif
 
 DECLARE_FUNC(void, __cdecl, HOOKED_R_SetupFrame)
 {
@@ -1364,6 +1451,8 @@ HOOK_RESULT HOOK_RETURN_VALUE CClientHooks::KB_Find(kbutton_t **button, const ch
 
 HOOK_RESULT CClientHooks::CAM_Think(void)
 {
+	s_bScrUpdateScreenNext = true;
+
 	return HOOK_CONTINUE;
 }
 
@@ -1738,6 +1827,7 @@ CHooksModule::CHooksModule()
 	m_pfnR_SetupFrame = NULL;
 	m_pfnR_ForceCVars = NULL;
 	m_pfnCRC_MapFile = NULL;
+	m_pfnReadWaveFile = NULL;
 	m_pfnMod_LeafPVS = NULL;
 	m_pfnCGame__SleepUntilInput = NULL;
 
@@ -1813,6 +1903,7 @@ bool CHooksModule::Load()
 	auto fpfnR_SetupFrame = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::R_SetupFrame );
 	auto fpfnR_ForceCVars = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::R_ForceCVars );
 	auto fpfnCRC_MapFile = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::CRC_MapFile );
+	auto fpfnReadWaveFile = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::ReadWaveFile );
 	auto fpfnMod_LeafPVS = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::Mod_LeafPVS );
 	auto fpfnCGame__SleepUntilInput = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::CGame__SleepUntilInput );
 	auto fpfnScaleColors = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::ScaleColors );
@@ -1880,6 +1971,12 @@ bool CHooksModule::Load()
 	if ( !( m_pfnCRC_MapFile = fpfnCRC_MapFile.get() ) )
 	{
 		Warning( "Couldn't find function \"CRC_MapFile\"\n" );
+		ScanOK = false;
+	}
+
+	if ( !( m_pfnReadWaveFile = fpfnReadWaveFile.get() ) )
+	{
+		Warning( "Couldn't find function \"ReadWaveFile\"\n" );
 		ScanOK = false;
 	}
 	
@@ -2044,6 +2141,7 @@ void CHooksModule::PostLoad()
 	m_hR_SetupFrame = DetoursAPI()->DetourFunction( m_pfnR_SetupFrame, HOOKED_R_SetupFrame, GET_FUNC_PTR( ORIG_R_SetupFrame ) );
 	m_hR_ForceCVars = DetoursAPI()->DetourFunction( m_pfnR_ForceCVars, HOOKED_R_ForceCVars, GET_FUNC_PTR( ORIG_R_ForceCVars ) );
 	m_hCRC_MapFile = DetoursAPI()->DetourFunction( m_pfnCRC_MapFile, HOOKED_CRC_MapFile, GET_FUNC_PTR( ORIG_CRC_MapFile ) );
+	m_hReadWaveFile = DetoursAPI()->DetourFunction( m_pfnReadWaveFile, HOOKED_ReadWaveFile, GET_FUNC_PTR( ORIG_ReadWaveFile ) );
 	m_hMod_LeafPVS = DetoursAPI()->DetourFunction( m_pfnMod_LeafPVS, HOOKED_Mod_LeafPVS, GET_FUNC_PTR( ORIG_Mod_LeafPVS ) );
 	m_hCGame__SleepUntilInput = DetoursAPI()->DetourFunction( m_pfnCGame__SleepUntilInput, HOOKED_CGame__SleepUntilInput, GET_FUNC_PTR( ORIG_CGame__SleepUntilInput ) );
 
@@ -2085,6 +2183,7 @@ void CHooksModule::Unload()
 	DetoursAPI()->RemoveDetour( m_hR_SetupFrame );
 	DetoursAPI()->RemoveDetour( m_hR_ForceCVars );
 	DetoursAPI()->RemoveDetour( m_hCRC_MapFile );
+	DetoursAPI()->RemoveDetour( m_hReadWaveFile );
 	DetoursAPI()->RemoveDetour( m_hMod_LeafPVS );
 	DetoursAPI()->RemoveDetour( m_hCGame__SleepUntilInput );
 
