@@ -443,6 +443,9 @@
     <ClCompile Include="features\capture.cpp">
       <Filter>Sven Internal\Features</Filter>
     </ClCompile>
+    <ClCompile Include="features\edge_pixels_player.cpp">
+      <Filter>Sven Internal</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">
@@ -859,6 +862,7 @@
     <ClInclude Include="features\capture.h">
       <Filter>Sven Internal\Features</Filter>
     </ClInclude>
+    <ClInclude Include="features\edge_pixels_player.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

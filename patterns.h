@@ -46,6 +46,7 @@ namespace Patterns
 		EXTERN_PATTERN( CL_ParseConsistencyInfo );
 		EXTERN_PATTERN( CL_BatchResourceRequest );
 		EXTERN_PATTERN( CL_PlayerFlashlight );
+		EXTERN_PATTERN( CL_TempEntInit );
 
 		EXTERN_PATTERN( ClientDLL_HudRedraw );
 

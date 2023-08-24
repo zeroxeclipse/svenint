@@ -116,6 +116,7 @@
     <ClCompile Include="features\chat_colors.cpp" />
     <ClCompile Include="features\custom_vote_popup.cpp" />
     <ClCompile Include="features\dynamic_glow.cpp" />
+    <ClCompile Include="features\edge_pixels_player.cpp" />
     <ClCompile Include="features\firstperson_roaming.cpp" />
     <ClCompile Include="features\flashlight.cpp" />
     <ClCompile Include="features\input_manager.cpp" />
@@ -262,6 +263,7 @@
     <ClInclude Include="features\chat_colors.h" />
     <ClInclude Include="features\custom_vote_popup.h" />
     <ClInclude Include="features\dynamic_glow.h" />
+    <ClInclude Include="features\edge_pixels_player.h" />
     <ClInclude Include="features\firstperson_roaming.h" />
     <ClInclude Include="features\flashlight.h" />
     <ClInclude Include="features\input_manager.h" />

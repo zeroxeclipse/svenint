@@ -722,7 +722,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGuiCustom.Spacing(4);
 
-		ImGui::Combo(" ", &g_Config.cvars.draw_entities, (const char**)draw_entities_items, IM_ARRAYSIZE(draw_entities_items));
+		ImGui::Combo(xs(" "), &g_Config.cvars.draw_entities, (const char**)draw_entities_items, IM_ARRAYSIZE(draw_entities_items));
 
 		ImGuiCustom.Spacing(8);
 
@@ -1341,7 +1341,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 		
-		if (ImGui::BeginCombo("", xs("Triggers To Show"), ImGuiComboFlags_HeightLargest))
+		if (ImGui::BeginCombo( xs( ""), xs("Triggers To Show"), ImGuiComboFlags_HeightLargest))
 		{
 			ImGui::Checkbox(xs("Show Trigger Once"), &g_Config.cvars.show_trigger_once);
 
@@ -1542,7 +1542,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("", xs("SSAO"), ImGuiComboFlags_HeightLargest))
+		if (ImGui::BeginCombo( xs( ""), xs("SSAO"), ImGuiComboFlags_HeightLargest))
 		{
 			ImGui::Text(xs("Screen-Space Ambient Occlusion"));
 
@@ -1643,7 +1643,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo(" ", xs("Color Correction"), ImGuiComboFlags_HeightLargest))
+		if (ImGui::BeginCombo( xs( " "), xs("Color Correction"), ImGuiComboFlags_HeightLargest))
 		{
 			ImGui::Checkbox(xs("Enable Color Correction##shader"), &g_Config.cvars.shaders_color_correction);
 
@@ -1722,7 +1722,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("  ", xs("Chromatic Aberration"), ImGuiComboFlags_HeightLarge))
+		if (ImGui::BeginCombo( xs( "  "), xs("Chromatic Aberration"), ImGuiComboFlags_HeightLarge))
 		{
 			ImGui::Checkbox(xs("Enable Chromatic Aberration##shaders"), &g_Config.cvars.shaders_chromatic_aberration);
 
@@ -1773,7 +1773,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("   ", xs("Vignette"), 0))
+		if (ImGui::BeginCombo( xs( "   "), xs("Vignette"), 0))
 		{
 			ImGui::Checkbox(xs("Enable Vignette##shaders"), &g_Config.cvars.shaders_vignette);
 
@@ -1808,7 +1808,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGuiCustom.Spacing(4);
 
-		if (ImGui::BeginCombo("", xs("Menu Background Blur"), ImGuiComboFlags_HeightLarge))
+		if (ImGui::BeginCombo( xs( ""), xs("Menu Background Blur"), ImGuiComboFlags_HeightLarge))
 		{
 			ImGui::Checkbox(xs("Enable Menu Blur##mblur"), &g_Config.cvars.menu_blur);
 
@@ -1848,7 +1848,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 		
-		if (ImGui::BeginCombo(" ", xs("Depth of Field Blur"), ImGuiComboFlags_HeightLarge))
+		if (ImGui::BeginCombo( xs( " "), xs("Depth of Field Blur"), ImGuiComboFlags_HeightLarge))
 		{
 			ImGui::Checkbox(xs("Enable DoF Blur##shader"), &g_Config.cvars.shaders_dof_blur);
 
@@ -1893,7 +1893,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("  ", xs("Motion Blur"), 0))
+		if (ImGui::BeginCombo( xs( "  "), xs("Motion Blur"), 0))
 		{
 			ImGui::Checkbox(xs("Enable Motion Blur##shader"), &g_Config.cvars.shaders_motion_blur);
 
@@ -1923,7 +1923,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("   ", xs("Radial Blur"), 0))
+		if (ImGui::BeginCombo( xs( "   "), xs("Radial Blur"), 0))
 		{
 			ImGui::Checkbox(xs("Enable Radial Blur##shader"), &g_Config.cvars.shaders_radial_blur);
 
@@ -1948,7 +1948,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("    ", xs("Bokeh Blur"), 0))
+		if (ImGui::BeginCombo( xs( "    "), xs("Bokeh Blur"), 0))
 		{
 			ImGui::Checkbox(xs("Enable Bokeh Blur##shader"), &g_Config.cvars.shaders_bokeh_blur);
 
@@ -1978,7 +1978,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("     ", xs("Gaussian Blur"), 0))
+		if (ImGui::BeginCombo( xs( "     "), xs("Gaussian Blur"), 0))
 		{
 			ImGui::Checkbox(xs("Enable Gaussian Blur##shader"), &g_Config.cvars.shaders_gaussian_blur);
 
@@ -1998,7 +1998,7 @@ void CMenuModule::DrawVisualsTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("      ", xs("Gaussian Blur Fast"), 0))
+		if (ImGui::BeginCombo( xs( "      "), xs("Gaussian Blur Fast"), 0))
 		{
 			ImGui::Checkbox(xs("Enable Gaussian Blur Fast##shader"), &g_Config.cvars.shaders_gaussian_blur_fast);
 
@@ -2605,7 +2605,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGuiCustom.Spacing(8);
 
-		if (ImGui::BeginCombo("", xs("Spinner & View Angles"), ImGuiComboFlags_HeightLarge))
+		if (ImGui::BeginCombo( xs( ""), xs("Spinner & View Angles"), ImGuiComboFlags_HeightLarge))
 		{
 			ImGui::Text(xs("Spinner"));
 
@@ -2684,7 +2684,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGuiCustom.Spacing(4);
 
-		if (ImGui::BeginCombo("", xs("Aim Type"), 0))
+		if (ImGui::BeginCombo( xs( ""), xs("Aim Type"), 0))
 		{
 			ImGui::Checkbox(xs("Aim to Hitboxes"), &g_Config.cvars.aimbot_aim_hitboxes);
 			ImGui::Checkbox(xs("Aim to Head"), &g_Config.cvars.aimbot_aim_head);
@@ -2754,7 +2754,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGuiCustom.Spacing(4);
 
-		ImGui::SliderFloat("  ", &g_Config.cvars.color_pulsator_delay, 0.1f, 2.5f);
+		ImGui::SliderFloat( xs( "  "), &g_Config.cvars.color_pulsator_delay, 0.1f, 2.5f);
 
 		ImGui::Spacing();
 
@@ -2947,7 +2947,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("", xs("View Angles"), 0))
+		if (ImGui::BeginCombo( xs( ""), xs("View Angles"), 0))
 		{
 			ImGui::Checkbox(xs("Show View Angles##st"), &g_Config.cvars.st_show_view_angles);
 
@@ -2959,7 +2959,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo(" ", xs("Position"), 0))
+		if (ImGui::BeginCombo( xs( " "), xs("Position"), 0))
 		{
 			ImGui::Checkbox(xs("Show Position##st"), &g_Config.cvars.st_show_pos); ImGui::SameLine();
 
@@ -2973,7 +2973,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("  ", xs("Velocity"), 0))
+		if (ImGui::BeginCombo( xs( "  "), xs("Velocity"), 0))
 		{
 			ImGui::Checkbox(xs("Show Velocity##st"), &g_Config.cvars.st_show_velocity);
 
@@ -2985,7 +2985,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("   ", xs("Gauss Boost"), 0))
+		if (ImGui::BeginCombo( xs( "   "), xs("Gauss Boost"), 0))
 		{
 			ImGui::Checkbox(xs("Show Gauss Boost Info##st"), &g_Config.cvars.st_show_gauss_boost_info);
 
@@ -2997,7 +2997,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("    ", xs("Selfgauss"), 0))
+		if (ImGui::BeginCombo( xs( "    "), xs("Selfgauss"), 0))
 		{
 			ImGui::Checkbox(xs("Show Selfgauss Info##st"), &g_Config.cvars.st_show_selfgauss_info);
 
@@ -3009,7 +3009,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("     ", xs("Entity"), 0))
+		if (ImGui::BeginCombo( xs( "     "), xs("Entity"), 0))
 		{
 			ImGui::Checkbox(xs("Show Entity Info##st"), &g_Config.cvars.st_show_entity_info); ImGui::SameLine();
 			ImGui::Checkbox(xs("Check Players##st_entinfo"), &g_Config.cvars.st_show_entity_info_check_players);
@@ -3021,7 +3021,7 @@ void CMenuModule::DrawUtilityTabContent()
 		
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("      ", xs("Revive"), 0))
+		if (ImGui::BeginCombo( xs( "      "), xs("Revive"), 0))
 		{
 			ImGui::Checkbox(xs("Show Revive Info##st"), &g_Config.cvars.st_show_revive_info); ImGui::SameLine();
 			ImGui::Checkbox(xs("Show With Any Weapon##st_revive"), &g_Config.cvars.st_show_revive_info_any_weapon);
@@ -3047,7 +3047,7 @@ void CMenuModule::DrawUtilityTabContent()
 		
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("       ", xs("Revive Boost"), ImGuiComboFlags_HeightLargest ))
+		if (ImGui::BeginCombo( xs( "       "), xs("Revive Boost"), ImGuiComboFlags_HeightLargest ))
 		{
 			ImGui::Checkbox(xs("Show Revive Boost Info##st"), &g_Config.cvars.st_show_revive_boost_info); ImGui::SameLine();
 			ImGui::Checkbox( xs( "Show With Any Weapon##st_revive_boost" ), &g_Config.cvars.st_show_revive_boost_any_weapon );
@@ -3139,7 +3139,7 @@ void CMenuModule::DrawUtilityTabContent()
 		
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("        ", xs("Revive / Unstuck Area"), ImGuiComboFlags_HeightLargest ))
+		if (ImGui::BeginCombo( xs( "        "), xs("Revive / Unstuck Area"), ImGuiComboFlags_HeightLargest ))
 		{
 			ImGui::Checkbox(xs("Show Revive / Unstuck Area Info##st"), &g_Config.cvars.st_show_revive_area_info);
 
@@ -3200,7 +3200,7 @@ void CMenuModule::DrawUtilityTabContent()
 		
 		ImGui::Spacing();
 
-		if (ImGui::BeginCombo("         ", xs("Landing Prediction"), ImGuiComboFlags_HeightLargest ))
+		if (ImGui::BeginCombo( xs( "         "), xs("Landing Prediction"), ImGuiComboFlags_HeightLargest ))
 		{
 			ImGui::Checkbox(xs("Show Land Point##st"), &g_Config.cvars.st_show_land_point );
 
@@ -3291,7 +3291,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGui::PushItemWidth(200);
 
-		if (ImGui::BeginCombo("", xs("First-Person Roaming"), 0))
+		if (ImGui::BeginCombo( xs( ""), xs("First-Person Roaming"), 0))
 		{
 			ImGui::Checkbox(xs("Enable First-Person Roaming"), &g_Config.cvars.fp_roaming);
 
@@ -3316,7 +3316,7 @@ void CMenuModule::DrawUtilityTabContent()
 
 		ImGuiCustom.Spacing(4);
 
-		if (ImGui::BeginCombo(" ", xs("Enhanced Thirdperson"), ImGuiComboFlags_HeightLargest))
+		if (ImGui::BeginCombo( xs( " "), xs("Enhanced Thirdperson"), ImGuiComboFlags_HeightLargest))
 		{
 			extern void ConCommand_ThirdPerson_ResetPosition();
 			extern void ConCommand_ThirdPerson_ResetAngles();
@@ -3649,7 +3649,7 @@ void CMenuModule::DrawSettingsTabContent()
 		{
 			ImGui::PushItemWidth(100);
 			ImGui::SameLine();
-			if (ImGui::BeginCombo("", xs("Customize"), ImGuiComboFlags_HeightLargest))
+			if (ImGui::BeginCombo( xs( ""), xs("Customize"), ImGuiComboFlags_HeightLargest))
 			{
 				if ( ImGui::Button(xs("Reset##custom_style")) )
 				{
@@ -3729,11 +3729,11 @@ void CMenuModule::DrawSettingsTabContent()
 
 		ImGui::Spacing();
 
-		ImGui::ColorEdit3("", g_Config.cvars.logo_color);
+		ImGui::ColorEdit3( xs( ""), g_Config.cvars.logo_color);
 
 		ImGuiCustom.Spacing(8);
 
-		if (ImGui::BeginCombo(" ", xs("Rainbow Colors"), ImGuiComboFlags_HeightLargest))
+		if (ImGui::BeginCombo( xs( " "), xs("Rainbow Colors"), ImGuiComboFlags_HeightLargest))
 		{
 			ImGui::Checkbox(xs("Rainbow Logo"), &g_Config.cvars.menu_rainbow[0]);
 			ImGui::Checkbox(xs("Rainbow Separator"), &g_Config.cvars.menu_rainbow[1]);

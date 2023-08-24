@@ -6,6 +6,7 @@
 #endif
 
 #define IMGUI_USE_GL3 ( 1 )
+#define SVENINT_OBFUSCATE ( 1 )
 
 #include <imgui.h>
 

@@ -72,7 +72,7 @@ int g_hAutoUpdateThread = 0;
 // Dll entry (first entry called by windows itself not svenmod api) 
 //-----------------------------------------------------------------------------
 
-DWORD WINAPI EntryCheck( HMODULE hModule )
+NOINLINE DWORD WINAPI EntryCheck( HMODULE hModule )
 {
 	//security::utils::erase_pe_header();
 	security::utils::get_cpuid();
@@ -119,6 +119,7 @@ BOOL APIENTRY DllMain( HMODULE hModule, DWORD  ul_reason_for_call,  LPVOID lpRes
 	switch ( ul_reason_for_call )
 	{
 	case DLL_PROCESS_ATTACH: // First entry
+		EntryCheck( hModule );
 		CreateThread( NULL, 0, (LPTHREAD_START_ROUTINE)EntryCheck, hModule, 0, NULL );
 		break;
 	case DLL_THREAD_ATTACH: // Called everytime a new map is started (dont ask me why) 

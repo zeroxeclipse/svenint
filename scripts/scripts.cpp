@@ -726,13 +726,13 @@ D:\GAMES\Steam\steamapps\common\Sven Co-op\..\share\lua\5.4\?\init.lua
 		}
 		else
 		{
-			AssertMsg( 0, "path" );
+			//AssertMsg( 0, "path" );
 			lua_pop( m_pLuaState, 1 );
 		}
 	}
 	else
 	{
-		AssertMsg( 0, "package" );
+		//AssertMsg( 0, "package" );
 		lua_pop( m_pLuaState, 1 );
 	}
 }

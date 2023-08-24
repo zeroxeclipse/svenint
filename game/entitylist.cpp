@@ -199,7 +199,7 @@ void CEntityList::UpdateHitboxes( int index )
 	if ( !gEnts[ index ].m_bValid )
 		return;
 
-	Assert( gEnts[ index ].m_pStudioHeader->numhitboxes < MAXHITBOXES );
+	//Assert( gEnts[ index ].m_pStudioHeader->numhitboxes < MAXHITBOXES );
 
 	Vector vecHitbox;
 

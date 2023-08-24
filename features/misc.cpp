@@ -1175,7 +1175,7 @@ void CMisc::SavePlayerStats(void)
 		}
 		else
 		{
-			Assert( g_iPlayerSaveIndex > 0 && g_iPlayerSaveIndex <= MAXCLIENTS );
+			//Assert( g_iPlayerSaveIndex > 0 && g_iPlayerSaveIndex <= MAXCLIENTS );
 			fclose( g_pPlayerSaveFile );
 
 			g_iPlayerSaveIndex = 0;

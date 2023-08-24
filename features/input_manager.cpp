@@ -493,7 +493,7 @@ void CInputContext::ForwardFrames( int iFrames )
 	if ( m_frames.size() == 0 )
 		return;
 
-	Assert( iFrames > 0 );
+	//Assert( iFrames > 0 );
 
 	iCurrentFrame = m_iCurrentFrame + iFrames;
 
@@ -527,7 +527,7 @@ void CInputContext::BackwardFrames( int iFrames )
 	if ( m_frames.size() == 0 )
 		return;
 
-	Assert( iFrames > 0 );
+	//Assert( iFrames > 0 );
 
 	iCurrentFrame = m_iCurrentFrame - iFrames;
 

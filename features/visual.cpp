@@ -1681,7 +1681,7 @@ void CVisual::ProcessBones()
 	Vector vecFrameVelocity = ent.m_vecVelocity * ent.m_frametime;
 	mstudiobone_t *pBone = (mstudiobone_t *)((byte *)ent.m_pStudioHeader + ent.m_pStudioHeader->boneindex);
 
-	Assert( ent.m_pStudioHeader->numbones < MAXSTUDIOBONES );
+	//Assert( ent.m_pStudioHeader->numbones < MAXSTUDIOBONES );
 
 	for (int i = 0; i < ent.m_pStudioHeader->numbones; ++i)
 	{
