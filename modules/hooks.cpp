@@ -102,6 +102,8 @@ NetMsgHookFn ORIG_NetMsgHook_SendCvarValue = NULL;
 NetMsgHookFn ORIG_NetMsgHook_SendCvarValue2 = NULL;
 NetMsgHookFn ORIG_NetMsgHook_TempEntity = NULL;
 
+UserMsgHookFn ORIG_UserMsgHook_SayText = NULL;
+
 CommandCallbackFn ORIG_restart = NULL;
 CommandCallbackFn ORIG_snapshot = NULL;
 CommandCallbackFn ORIG_screenshot = NULL;
@@ -184,6 +186,9 @@ ConVar sc_force_highest_cheats_level( "sc_force_highest_cheats_level", "0", FCVA
 ConVar sc_disable_nofocus_sleep( "sc_disable_nofocus_sleep", "0", FCVAR_CLIENTDLL, "Disable longer sleep time when the game's window is not active" );
 ConVar sc_viewmodel_semitransparent( "sc_viewmodel_semitransparent", "0", FCVAR_CLIENTDLL, "Semi-transparent viewmodel" );
 
+ConVar sc_disable_svenint_chat( "sc_disable_svenint_chat", "0", FCVAR_CLIENTDLL, "" );
+ConVar sc_disable_players_chat( "sc_disable_players_chat", "0", FCVAR_CLIENTDLL, "" );
+
 //-----------------------------------------------------------------------------
 // Hooks module feature
 //-----------------------------------------------------------------------------
@@ -249,6 +254,8 @@ private:
 	DetourHandle_t m_hNetMsgHook_SendCvarValue;
 	DetourHandle_t m_hNetMsgHook_SendCvarValue2;
 	DetourHandle_t m_hNetMsgHook_TempEntity;
+
+	DetourHandle_t m_hUserMsgHook_SayText;
 
 	DetourHandle_t m_hRestartCmd;
 	DetourHandle_t m_hSnapshotCmd;
@@ -808,6 +815,47 @@ void HOOKED_NetMsgHook_TempEntity(void)
 
 	//Utils()->ApplyReadToNetMessageBuffer( &TempEntityBuffer );
 	ORIG_NetMsgHook_TempEntity();
+}
+
+DECLARE_FUNC( int, __cdecl, HOOKED_UserMsgHook_SayText, const char *pszUserMsg, int iSize, void *pBuffer )
+{
+	if ( sc_disable_svenint_chat.GetBool() || sc_disable_players_chat.GetBool() )
+	{
+		CMessageBuffer message( pBuffer, iSize, true );
+
+		int src;
+		int client = message.ReadByte();
+		const char *pszMessage = message.ReadString();
+
+		if ( *pszMessage == '\0' )
+			return 0;
+
+		if ( *pszMessage > 0 && *pszMessage <= 3 )
+		{
+			src = *pszMessage;
+			pszMessage = pszMessage + 1;
+		}
+		else
+		{
+			src = 0;
+			client = 0;
+		}
+
+		if ( sc_disable_players_chat.GetBool() && ( src == 2 || src == 3 ) )
+		{
+			return 0;
+		}
+
+		if ( sc_disable_svenint_chat.GetBool() && ( src == 0 || client == 0 ) )
+		{
+			if ( strstr( pszMessage, "cooldown is over" ) || strstr( pszMessage, "SvenInt" ) )
+			{
+				return 0;
+			}
+		}
+	}
+
+	return ORIG_UserMsgHook_SayText( pszUserMsg, iSize, pBuffer );
 }
 
 DECLARE_FUNC(qboolean, __cdecl, HOOKED_Netchan_CanPacket, netchan_t *netchan)
@@ -2156,6 +2204,8 @@ void CHooksModule::PostLoad()
 	m_hNetMsgHook_SendCvarValue2 = Hooks()->HookNetworkMessage( SVC_SENDCVARVALUE2, HOOKED_NetMsgHook_SendCvarValue2, &ORIG_NetMsgHook_SendCvarValue2 );
 	m_hNetMsgHook_TempEntity = Hooks()->HookNetworkMessage( SVC_TEMPENTITY, HOOKED_NetMsgHook_TempEntity, &ORIG_NetMsgHook_TempEntity );
 
+	m_hUserMsgHook_SayText = Hooks()->HookUserMessage( "SayText", HOOKED_UserMsgHook_SayText, &ORIG_UserMsgHook_SayText);
+
 	m_hRestartCmd = Hooks()->HookConsoleCommand( xs( "restart"), HOOKED_restart, &ORIG_restart );
 	m_hSnapshotCmd = Hooks()->HookConsoleCommand( xs( "snapshot"), HOOKED_snapshot, &ORIG_snapshot );
 	m_hScreenshotCmd = Hooks()->HookConsoleCommand( xs( "screenshot"), HOOKED_screenshot, &ORIG_screenshot );
@@ -2197,6 +2247,8 @@ void CHooksModule::Unload()
 	Hooks()->UnhookNetworkMessage( m_hNetMsgHook_SendCvarValue );
 	Hooks()->UnhookNetworkMessage( m_hNetMsgHook_SendCvarValue2 );
 	Hooks()->UnhookNetworkMessage( m_hNetMsgHook_TempEntity );
+
+	Hooks()->UnhookUserMessage( m_hUserMsgHook_SayText );
 
 	Hooks()->UnhookNetworkMessage( m_hRestartCmd );
 	Hooks()->UnhookNetworkMessage( m_hSnapshotCmd );

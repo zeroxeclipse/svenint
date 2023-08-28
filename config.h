@@ -60,6 +60,7 @@ public:
 		float menu_rainbow_hue_delta = 0.005f;
 		float menu_rainbow_saturation = 0.8f;
 		float menu_rainbow_lightness = 0.5f;
+		const char *autoexec_config = NULL;
 
 		//-----------------------------------------------------------------------------
 		// Shaders
@@ -800,5 +801,6 @@ extern char g_szShadersPresetInputText[MAX_PATH];
 
 extern char g_szCurrentConfigInputText[MAX_PATH];
 extern char g_szCurrentShaderConfigInputText[MAX_PATH];
+extern char g_szAutoExecConfigText[MAX_PATH];
 
 #endif // CONFIG_H

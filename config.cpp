@@ -28,6 +28,8 @@ char g_szShadersPresetInputText[ MAX_PATH ] = { 0 };
 char g_szCurrentConfigInputText[ MAX_PATH ] = { 0 };
 char g_szCurrentShaderConfigInputText[ MAX_PATH ] = { 0 };
 
+char g_szAutoExecConfigText[ MAX_PATH ] = { 0 };
+
 static char s_szConfigsDir[ MAX_PATH ] = { 0 };
 static char s_szShadersConfigsDir[ MAX_PATH ] = { 0 };
 
@@ -205,6 +207,7 @@ bool CConfig::Load()
 			ConfigManager()->ImportParam( "MenuBlurRadius", cvars.menu_blur_radius );
 			ConfigManager()->ImportParam( "MenuBlurBokeh", cvars.menu_blur_bokeh );
 			ConfigManager()->ImportParam( "MenuBlurSamples", cvars.menu_blur_samples );
+			ConfigManager()->ImportParam( "AutoExecConfig", cvars.autoexec_config );
 
 			ConfigManager()->EndSectionImport();
 		}
@@ -1039,6 +1042,18 @@ bool CConfig::Load()
 		// Load default shaders preset
 		LoadShadersPreset();
 
+		if ( cvars.autoexec_config != NULL )
+		{
+			char command_buffer[ 64 ];
+			snprintf( command_buffer, M_ARRAYSIZE( command_buffer ), "exec %s.cfg", cvars.autoexec_config );
+			g_pEngineFuncs->ClientCmd( command_buffer );
+
+			strncpy( g_szAutoExecConfigText, cvars.autoexec_config, strlen( cvars.autoexec_config ) + 1 );
+
+			free( (void *)cvars.autoexec_config );
+			cvars.autoexec_config = NULL;
+		}
+
 		return true;
 	}
 
@@ -1083,6 +1098,9 @@ void CConfig::Save()
 			ConfigManager()->ExportParam( "MenuBlurRadius", cvars.menu_blur_radius );
 			ConfigManager()->ExportParam( "MenuBlurBokeh", cvars.menu_blur_bokeh );
 			ConfigManager()->ExportParam( "MenuBlurSamples", cvars.menu_blur_samples );
+
+			if ( g_szAutoExecConfigText[ 0 ] != '\0' )
+				ConfigManager()->ExportParam( "AutoExecConfig", g_szAutoExecConfigText );
 
 			ConfigManager()->EndSectionExport();
 		}

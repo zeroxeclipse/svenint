@@ -260,10 +260,10 @@ void CMenuModule::LoadTextures()
 	// This is a mess... but im too stupid to figure out another way | xd don't worry same for me
 	std::string bPath = SvenModAPI()->GetBaseDirectory();
 
-	std::string sint_logo = "\\sven_internal\\images\\logo.png";
+	std::string sint_logo = xs("\\sven_internal\\images\\logo.png");
 	std::string sint_logo_fPath = bPath + sint_logo;
 
-	std::string sint_image = "\\sven_internal\\images\\menu_image.png";
+	std::string sint_image = xs("\\sven_internal\\images\\menu_image.png");
 	std::string sint_image_fPath = bPath + sint_image;
 
 	bool bLogoTextureLoaded = LoadTextureFromFile( sint_logo_fPath.c_str(), &m_hLogoTex, &m_iLogoWidth, &m_iLogoHeight );
@@ -3451,7 +3451,7 @@ void CMenuModule::DrawTabConfigsContent()
 	switch (selectedSubTab3)
 	case 0: // List
 	{
-		ImGui::BeginChild(xs("configs"), ImVec2(328, 280), true);
+		ImGui::BeginChild(xs("configs"), ImVec2(328, 315), true);
 
 		ImGui::Text(xs("List of Configs"));
 
@@ -3513,6 +3513,10 @@ void CMenuModule::DrawTabConfigsContent()
 
 		if (ImGui::Button(xs("Rename")))
 			g_Config.Rename();
+
+		ImGuiCustom.Spacing( 8 );
+
+		ImGui::InputText( xs( "Autoexec CFG" ), g_szAutoExecConfigText, IM_ARRAYSIZE( g_szAutoExecConfigText ) );
 
 		ImGui::EndChild();
 		

@@ -104,7 +104,8 @@ public:
 #endif
 
 
-#ifdef _DEBUG
+//#ifdef _DEBUG
+#if ( 0 )
 #define XorStr(s)	s
 #define xs(_s)		_s
 #define XorStr2(s)	s

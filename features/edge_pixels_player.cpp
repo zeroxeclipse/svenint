@@ -7,9 +7,13 @@
 
 #include "../patterns.h"
 #include "../game/utils.h"
+#include "../game/demo_message.h"
 #include "../utils/xorstr.h"
 
 #include "edge_pixels_player.h"
+
+extern ref_params_t refparams;
+extern bool g_bPlayingbackDemo;
 
 //-----------------------------------------------------------------------------
 // Declare Hooks
@@ -21,7 +25,7 @@ DECLARE_HOOK( void, __cdecl, CL_TempEntInit, void );
 // Vars
 //-----------------------------------------------------------------------------
 
-constexpr int max_tents = 8192;
+constexpr int max_tents = 32768;
 
 TEMPENTITY *gTempEnts = NULL;
 TEMPENTITY **gpTempEntFree = NULL;
@@ -32,87 +36,280 @@ CEdgePixelsPlayer g_EdgePixelsPlayer;
 // ConVars / ConCommands
 //-----------------------------------------------------------------------------
 
-static std::vector<Vector> points;
-static int points_it = 0;
-static int points_it2 = 0;
-static int circle_points = 1;
-static int clock_points = 1;
-static double clock_angle = 0.f;
-static Vector clock_pos;
-static Vector clock_ang;
+ConVar sc_epp_play_in_demo( "sc_epp_play_in_demo", "1", FCVAR_CLIENTDLL );
 
-CON_COMMAND( sc_giga_test, "" )
+CON_COMMAND( sc_epp_start, "" )
 {
-	if ( args.ArgC() < 10 )
-		return;
-
-	float localSpaceToWorld[ 3 ][ 4 ];
-
-	Vector vecPoint;
-	points_it = 0;
-
-	float radius = 60.f;
-
-	circle_points = atoi( args[ 1 ] );
-	clock_points = atoi( args[ 2 ] );
-	clock_angle = atof( args[ 3 ] );
-	clock_pos = Vector( atof( args[ 4 ] ), atof( args[ 5 ] ), atof( args[ 6 ] ) );
-	clock_ang = Vector( atof( args[ 7 ] ), atof( args[ 8 ] ), atof( args[ 9 ] ) );
-
-	float delta_angle = 2.0 * M_PI / circle_points;
-
-	CVar()->SetValue( "fps_max", 10 * ( circle_points + clock_points ) );
-	points_it2 = 0;
-
-	for ( float angle = 0.f; angle < 2.0 * M_PI; angle += delta_angle )
+	if ( args.ArgC() > 10 )
 	{
-		vecPoint.Zero();
+		bool bDemoPlayback = false;
 
-		vecPoint.x = cos( angle );
-		vecPoint.y = sin( angle );
+		const char *filename = args[ 1 ];
+		double width = atof( args[ 2 ] );
+		double height = atof( args[ 3 ] );
+		Vector vecPos( atof( args[ 4 ] ), atof( args[ 5 ] ), atof( args[ 6 ] ) );
+		Vector vecAngles( atof( args[ 7 ] ), atof( args[ 8 ] ), atof( args[ 9 ] ) );
+		int drawcalls = atoi( args[ 10 ] );
 
-		vecPoint *= radius;
+		if ( args.ArgC() > 11 )
+			bDemoPlayback = !!atoi( args[ 11 ] );
 
-		points.push_back( vecPoint );
-	}
-
-	float delta_radius = radius / clock_points;
-
-	for ( float r = 0.f; r < radius; r += delta_radius )
-	{
-		vecPoint.Zero();
-
-		vecPoint.x = cos( clock_angle );
-		vecPoint.y = sin( clock_angle );
-
-		vecPoint *= r;
-
-		points.push_back( vecPoint );
-	}
-
-	AngleMatrix( clock_ang, localSpaceToWorld );
-
-	localSpaceToWorld[ 0 ][ 3 ] = clock_pos.x;
-	localSpaceToWorld[ 1 ][ 3 ] = clock_pos.y;
-	localSpaceToWorld[ 2 ][ 3 ] = clock_pos.z;
-
-	for ( const Vector &point : points )
-	{
-		Vector worldPoint;
-		VectorTransform( point, localSpaceToWorld, worldPoint );
-
-		*(Vector *)&point = worldPoint;
-
-		//Render()->DrawBox( worldPoint, Vector( -2, -2, -2 ), Vector( 2, 2, 2 ), { 232, 0, 232, 150 }, 5.f );
+		g_EdgePixelsPlayer.Start( filename, width, height, vecPos, vecAngles, drawcalls, bDemoPlayback );
 	}
 }
 
-CON_COMMAND( sc_giga_test_stop, "" )
+CON_COMMAND( sc_epp_stop, "" )
 {
-	points.clear();
-	points_it = 0;
+	g_EdgePixelsPlayer.Stop();
 }
 
+//-----------------------------------------------------------------------------
+// CEdgePixelsPlayer implementation
+//-----------------------------------------------------------------------------
+
+CEdgePixelsPlayer::CEdgePixelsPlayer()
+{
+	m_bPlaying = false;
+	m_bDemoPlayback = false;
+	m_pFile = NULL;
+	m_ulFileSize = 0;
+	m_width = 0.0;
+	m_height = 0.0;
+	m_frametime = 0.0;
+	m_lastPlayed = 0.0;
+	m_iDrawCalls = 1;
+	npc_moveto = NULL;
+}
+
+//-----------------------------------------------------------------------------
+// Start playing
+//-----------------------------------------------------------------------------
+
+bool CEdgePixelsPlayer::Start( const char *pszFilename, double width, double height, const Vector &vecPos, const Vector &vecAngles, int iDrawCalls, bool bDemoPlayback /* = false */ )
+{
+	if ( pszFilename == NULL )
+		return false;
+
+	int tmp;
+
+	m_width = height; // yeah
+	m_height = width;
+	m_vecPos = vecPos;
+	m_vecAngles = vecAngles;
+	m_iDrawCalls = V_max( 1, iDrawCalls );
+
+	m_pFile = fopen( pszFilename, "rb" );
+
+	if ( m_pFile == NULL )
+		return false;
+
+	fseek( m_pFile, 0, SEEK_END );
+	m_ulFileSize = ftell( m_pFile );
+	fseek( m_pFile, 0, SEEK_SET );
+
+	m_sFilename = pszFilename;
+
+	fread( &tmp, sizeof( int ), 1, m_pFile ); // width
+	fread( &tmp, sizeof( int ), 1, m_pFile ); // height
+
+	fread( &tmp, sizeof( int ), 1, m_pFile );
+	m_frametime = 1.0 / static_cast<double>( tmp );
+	m_lastPlayed = 0.0;
+
+	m_drawAngles.clear();
+	m_drawAnglesQueue.clear();
+
+	m_bPlaying = true;
+	m_bDemoPlayback = bDemoPlayback;
+
+#if 0
+	Msg( "pszFilename: %s\n", pszFilename );
+	Msg( "width: %f\n", width );
+	Msg( "height: %f\n", height );
+	Msg( "vecPos: %.3f %.3f %.3f\n", VectorExpand( vecPos ) );
+	Msg( "vecAngles: %.3f %.3f %.3f\n", VectorExpand( vecAngles ) );
+	Msg( "iDrawCalls: %d\n", iDrawCalls );
+	Msg( "frametime: %f\n", m_frametime );
+#endif
+
+	g_DemoMessage.WriteEdgePixelsPlayer( pszFilename, width, height, vecPos, vecAngles, iDrawCalls );
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+// Stop playing
+//-----------------------------------------------------------------------------
+
+bool CEdgePixelsPlayer::Stop( void )
+{
+	if ( !m_bPlaying )
+		return false;
+
+	m_bPlaying = false;
+
+	fclose( m_pFile );
+	m_pFile = NULL;
+
+	m_drawAngles.clear();
+	m_drawAnglesQueue.clear();
+
+	g_DemoMessage.WriteEdgePixelsPlayerStop();
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+// CreateMove
+//-----------------------------------------------------------------------------
+
+void CEdgePixelsPlayer::CreateMove( float frametime, usercmd_t *cmd, int active )
+{
+	if ( m_bPlaying && m_pFile != NULL )
+	{
+		if ( feof( m_pFile ) || (unsigned long)ftell( m_pFile ) >= m_ulFileSize )
+		{
+			Stop();
+			return;
+		}
+
+		Vector localPoint, worldPoint, vecDir, vecAngles, vecEyes;
+
+		if ( !m_bDemoPlayback && !g_bPlayingbackDemo )
+		{
+			vecEyes = g_pPlayerMove->origin + g_pPlayerMove->view_ofs;
+		}
+		else
+		{
+			vecEyes = *(Vector *)( refparams.simorg ) + *(Vector *)( refparams.viewheight );
+		}
+
+	#if 0
+		if ( m_iDrawCalls == 1 )
+		{
+			if ( !m_drawAngles.empty() )
+			{
+				for ( Vector &ang : m_drawAngles )
+				{
+					g_pEngineFuncs->SetViewAngles( ang );
+					npc_moveto->function();
+				}
+
+				m_drawAngles.erase( m_drawAngles.begin() );
+			}
+		}
+		else if ( !m_drawAnglesQueue.empty() )
+	#else
+		if ( !m_drawAnglesQueue.empty() )
+	#endif
+		{
+			std::vector<Vector> &drawAngles = m_drawAnglesQueue[ 0 ];
+
+			for ( Vector &ang : drawAngles )
+			{
+				g_pEngineFuncs->SetViewAngles( ang );
+				npc_moveto->function();
+			}
+
+			m_drawAnglesQueue.erase( m_drawAnglesQueue.begin() );
+		}
+
+		if ( *dbRealtime - m_lastPlayed >= m_frametime )
+		{
+			m_lastPlayed = *dbRealtime;
+
+			m_drawAngles.clear();
+			m_drawAnglesQueue.clear();
+
+			int pixels;
+			fread( &pixels, sizeof( int ), 1, m_pFile );
+
+			if ( pixels > 0 )
+			{
+				double ndc[ 2 ];
+				float localSpaceToWorld[ 3 ][ 4 ];
+
+				AngleMatrix( m_vecAngles, localSpaceToWorld );
+
+				localSpaceToWorld[ 0 ][ 3 ] = m_vecPos.x;
+				localSpaceToWorld[ 1 ][ 3 ] = m_vecPos.y;
+				localSpaceToWorld[ 2 ][ 3 ] = m_vecPos.z;
+
+				for ( int i = 0; i < pixels; i++ )
+				{
+					worldPoint.Zero();
+					localPoint.Zero();
+
+					fread( &ndc, sizeof( ndc ), 1, m_pFile );
+
+					localPoint.x = static_cast<float>( ( 2.0 * ndc[ 0 ] - 1.0 ) * m_width );
+					localPoint.y = static_cast<float>( ( 2.0 * ndc[ 1 ] - 1.0 ) * m_height );
+
+					VectorTransform( localPoint, localSpaceToWorld, worldPoint );
+
+					vecDir = worldPoint - vecEyes;
+					VectorAngles( vecDir, vecAngles );
+					vecAngles.x *= -1.f;
+					vecAngles.z = 0.f;
+
+					NormalizeAngles( vecAngles );
+
+					m_drawAngles.push_back( vecAngles );
+				}
+
+				std::random_shuffle( m_drawAngles.begin(), m_drawAngles.end() );
+
+				if ( m_iDrawCalls == 1 )
+				{
+					for ( int i = 0; i < pixels; i++ )
+					{
+						g_pEngineFuncs->SetViewAngles( m_drawAngles[ i ] );
+						npc_moveto->function();
+					}
+				}
+				else
+				{
+					int queued_draw_calls_cur = 0;
+					int queued_draw_calls_pixels_delta = pixels / m_iDrawCalls;
+
+					m_drawAnglesQueue.push_back( std::vector<Vector>() );
+
+					for ( int i = 0; i < pixels; i++ )
+					{
+						if ( queued_draw_calls_cur * queued_draw_calls_pixels_delta <= i )
+						{
+							m_drawAnglesQueue.push_back( std::vector<Vector>() );
+							queued_draw_calls_cur++;
+						}
+
+						m_drawAnglesQueue.back().push_back( m_drawAngles[ i ] );
+					}
+
+					std::random_shuffle( m_drawAnglesQueue.begin(), m_drawAnglesQueue.end() );
+
+					std::vector<Vector> &drawAngles = m_drawAnglesQueue[ 0 ];
+
+					for ( Vector &ang : drawAngles )
+					{
+						g_pEngineFuncs->SetViewAngles( ang );
+						npc_moveto->function();
+					}
+
+					m_drawAnglesQueue.erase( m_drawAnglesQueue.begin() );
+				}
+
+				m_drawAngles.clear();
+			}
+		}
+
+		vecDir = m_vecPos - vecEyes;
+		VectorAngles( vecDir, vecAngles );
+		vecAngles.x *= -1.f;
+		vecAngles.z = 0.f;
+
+		NormalizeAngles( vecAngles );
+		g_pEngineFuncs->SetViewAngles( vecAngles );
+	}
+
+/*
 static FILE *giga2_file = NULL;
 static double giga2_width = 0.0;
 static double giga2_height = 0.0;
@@ -120,6 +317,7 @@ static double giga2_framerate = 15.0;
 static double giga2_last_play = 0.0;
 static Vector giga2_pos;
 static Vector giga2_ang;
+static std::vector<std::vector<Vector>> drawQueue;
 
 CON_COMMAND( sc_giga_test2, "" )
 {
@@ -155,20 +353,6 @@ CON_COMMAND( sc_giga_test2_stop, "" )
 	giga2_file = NULL;
 }
 
-//-----------------------------------------------------------------------------
-// CEdgePixelsPlayer implementation
-//-----------------------------------------------------------------------------
-
-CEdgePixelsPlayer::CEdgePixelsPlayer()
-{
-}
-
-//-----------------------------------------------------------------------------
-// CreateMove
-//-----------------------------------------------------------------------------
-
-void CEdgePixelsPlayer::CreateMove( float frametime, usercmd_t *cmd, int active )
-{
 	if ( giga2_file != NULL )
 	{
 		if ( feof( giga2_file ) )
@@ -176,6 +360,32 @@ void CEdgePixelsPlayer::CreateMove( float frametime, usercmd_t *cmd, int active 
 			fclose( giga2_file );
 			giga2_file = NULL;
 			return;
+		}
+
+		if ( !drawQueue.empty() )
+		{
+			cmd_t *npc_moveto = CVar()->FindCmd( "npc_moveto" );
+
+			std::vector<Vector> &angs = drawQueue[ 0 ];
+
+			for ( Vector &ang : angs )
+			{
+				g_pEngineFuncs->SetViewAngles( ang );
+				npc_moveto->function();
+				//g_pEngineFuncs->ClientCmd( "npc_moveto" );
+			}
+
+			drawQueue.erase( drawQueue.begin() );
+			g_pEngineFuncs->SetViewAngles( Vector( 0, 90, 0 ) );
+
+			if ( drawQueue.empty() )
+			{
+				//CVar()->SetValue( "fps_max", (float)( 1.0 / ( ( ( 1.0 / 60.0 ) - 0.01 ) / 2.0 ) ) );
+			}
+		}
+		else
+		{
+			g_pEngineFuncs->SetViewAngles( Vector( 0, 90, 0 ) );
 		}
 
 		if ( *dbRealtime - giga2_last_play >= giga2_framerate )
@@ -208,6 +418,13 @@ void CEdgePixelsPlayer::CreateMove( float frametime, usercmd_t *cmd, int active 
 
 			cmd_t *npc_moveto = CVar()->FindCmd( "npc_moveto" );
 
+			const int queued_draw_calls = 5;
+			int queued_draw_calls_cur = 0;
+			int queued_draw_calls_pixels_delta = pixels / queued_draw_calls;
+			std::vector<Vector> worldPoints;
+
+			drawQueue.push_back( std::vector<Vector>() );
+
 			for ( int i = 0; i < pixels; i++ )
 			{
 				worldPoint.Zero();
@@ -220,18 +437,49 @@ void CEdgePixelsPlayer::CreateMove( float frametime, usercmd_t *cmd, int active 
 
 				VectorTransform( localPoint, localSpaceToWorld, worldPoint );
 
-				//g_pEffectsAPI->R_SparkShower( worldPoint );
-
 				vecDir = worldPoint - vecEyes;
 				VectorAngles( vecDir, vecAngles );
 				vecAngles.x *= -1.f;
 				vecAngles.z = 0.f;
 
-				g_pEngineFuncs->SetViewAngles( vecAngles );
-				npc_moveto->function();
+				worldPoints.push_back( vecAngles );
+			}
+
+			std::random_shuffle( worldPoints.begin(), worldPoints.end() );
+
+			for ( int i = 0; i < pixels; i++ )
+			{
+				//g_pEffectsAPI->R_SparkShower( worldPoint );
+
+				if ( queued_draw_calls_cur * queued_draw_calls_pixels_delta <= i )
+				{
+					queued_draw_calls_cur++;
+					drawQueue.push_back( std::vector<Vector>() );
+				}
+
+				drawQueue.back().push_back( worldPoints[ i ] );
 
 				//Render()->DrawBox( worldPoint, Vector( -2, -2, -2 ), Vector( 2, 2, 2 ), { 232, 0, 232, 150 }, 1.f );
 			}
+
+			std::random_shuffle( drawQueue.begin(), drawQueue.end() );
+
+			//for ( std::vector<Vector> &angs : drawQueue )
+			//{
+			//	std::random_shuffle( angs.begin(), angs.end() );
+			//}
+
+			std::vector<Vector> &angs = drawQueue[ 0 ];
+
+			for ( Vector &ang : angs )
+			{
+				g_pEngineFuncs->SetViewAngles( ang );
+				npc_moveto->function();
+				//g_pEngineFuncs->ClientCmd( "npc_moveto" );
+			}
+
+			//CVar()->SetValue( "fps_max", (float)( 1.0 / ( 0.01 / pixels ) ) );
+			drawQueue.erase( drawQueue.begin() );
 
 			//vecDir = giga2_pos - vecEyes;
 			//VectorAngles( vecDir, vecAngles );
@@ -242,85 +490,7 @@ void CEdgePixelsPlayer::CreateMove( float frametime, usercmd_t *cmd, int active 
 			g_pEngineFuncs->SetViewAngles( Vector( 0, 90, 0 ) );
 		}
 	}
-
-	if ( !points.empty() )
-	{
-		if ( points_it >= (int)points.size() )
-		{
-			points_it = 0;
-			points.clear();
-			points_it2++;
-
-			float localSpaceToWorld[ 3 ][ 4 ];
-
-			Vector vecPoint;
-
-			float radius = 60.f;
-			float delta_angle = 2.0 * M_PI / circle_points;
-
-			clock_angle += ( 2.0 * M_PI * ( 1.0 / double( ( circle_points + clock_points ) ) ) );
-
-			for ( float angle = 0.f; angle < 2.0 * M_PI; angle += delta_angle )
-			{
-				vecPoint.Zero();
-
-				vecPoint.x = cos( angle );
-				vecPoint.y = sin( angle );
-
-				vecPoint *= radius;
-
-				points.push_back( vecPoint );
-			}
-
-			float delta_radius = radius / clock_points;
-
-			for ( float r = 0.f; r < radius; r += delta_radius )
-			{
-				vecPoint.Zero();
-
-				vecPoint.x = cos( clock_angle );
-				vecPoint.y = sin( clock_angle );
-
-				vecPoint *= r;
-
-				points.push_back( vecPoint );
-			}
-
-			AngleMatrix( clock_ang, localSpaceToWorld );
-
-			localSpaceToWorld[ 0 ][ 3 ] = clock_pos.x;
-			localSpaceToWorld[ 1 ][ 3 ] = clock_pos.y;
-			localSpaceToWorld[ 2 ][ 3 ] = clock_pos.z;
-
-			for ( const Vector &point : points )
-			{
-				Vector worldPoint;
-				VectorTransform( point, localSpaceToWorld, worldPoint );
-
-				*(Vector *)&point = worldPoint;
-
-				//Render()->DrawBox( worldPoint, Vector( -2, -2, -2 ), Vector( 2, 2, 2 ), { 232, 0, 232, 150 }, 5.f );
-			}
-		}
-
-		Vector vecPoint = points[ points_it ];
-		Vector vecEyes = g_pPlayerMove->origin + g_pPlayerMove->view_ofs;
-
-		Vector vecAngles;
-		Vector vecDir = vecPoint - vecEyes;
-
-		VectorAngles( vecDir, vecAngles );
-		vecAngles.z = 0.f;
-
-		//char command_buffer[ 64 ];
-		//snprintf( command_buffer, M_ARRAYSIZE( command_buffer ), "setang %f %f 0;npc_moveto", vecAngles.x, vecAngles.y );
-		//g_pEngineFuncs->ClientCmd( command_buffer );
-
-		g_pEngineFuncs->SetViewAngles( vecAngles );
-		g_pEngineFuncs->ClientCmd( "npc_moveto" );
-
-		points_it++;
-	}
+*/
 }
 
 //-----------------------------------------------------------------------------
@@ -353,7 +523,7 @@ DECLARE_FUNC( void, __cdecl, HOOKED_CL_TempEntInit, void )
 
 bool CEdgePixelsPlayer::Load( void )
 {
-	ud_t inst;
+#if 0
 	bool bScanOK = true;
 
 	auto fCL_TempEntInit = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::CL_TempEntInit );
@@ -367,7 +537,8 @@ bool CEdgePixelsPlayer::Load( void )
 	if ( !bScanOK )
 		return false;
 
-#if 0
+	ud_t inst;
+
 	MemoryUtils()->InitDisasm( &inst, m_pfnCL_TempEntInit, 32, 80 );
 
 	while ( MemoryUtils()->Disassemble( &inst ) )
@@ -413,10 +584,12 @@ bool CEdgePixelsPlayer::Load( void )
 
 void CEdgePixelsPlayer::PostLoad( void )
 {
-	m_hCL_TempEntInit = DetoursAPI()->DetourFunction( m_pfnCL_TempEntInit, HOOKED_CL_TempEntInit, GET_FUNC_PTR( ORIG_CL_TempEntInit ) );
+	//m_hCL_TempEntInit = DetoursAPI()->DetourFunction( m_pfnCL_TempEntInit, HOOKED_CL_TempEntInit, GET_FUNC_PTR( ORIG_CL_TempEntInit ) );
+
+	npc_moveto = CVar()->FindCmd( "npc_moveto" );
 }
 
 void CEdgePixelsPlayer::Unload( void )
 {
-	DetoursAPI()->RemoveDetour( m_hCL_TempEntInit );
+	//DetoursAPI()->RemoveDetour( m_hCL_TempEntInit );
 }

@@ -29,6 +29,7 @@ CCapture g_Capture;
 ConVar sc_cap_fps( "sc_cap_fps", "60", FCVAR_CLIENTDLL );
 ConVar sc_cap_slowdown( "sc_cap_slowdown", "1", FCVAR_CLIENTDLL );
 ConVar sc_cap_sampling_min_fps( "sc_cap_sampling_min_fps", "7200", FCVAR_CLIENTDLL );
+ConVar sc_cap_sampling_round_fps( "sc_cap_sampling_round_fps", "1", FCVAR_CLIENTDLL );
 
 CON_COMMAND( sc_cap_start, "" )
 {
@@ -189,16 +190,23 @@ bool CCapture::Start( const char *pszFilename, double fps, double slowdown, doub
 	}
 
 	double fpsMultiplier;
+	double sampleFrametime;
 
 	m_captureFps = fps;
 	m_samplingFps = sampling_fps;
 	m_iFpsMultiplier = int( fpsMultiplier = ceil( sampling_fps / fps ) );
-	m_fps = m_captureFps * fpsMultiplier;
-	m_frametime = ( 1.0 / m_fps ) * ( 1.0 / slowdown );
+	m_fps = sc_cap_sampling_round_fps.GetBool() ? m_captureFps * fpsMultiplier : m_samplingFps;
+	m_frametime = ( 1.0 / m_captureFps ) * ( 1.0 / slowdown ); // m_fps
+
+	if ( m_fps < m_frametime )
+		m_fps = m_frametime;
+
 	m_iWidth = g_ScreenInfo.width;
 	m_iHeight = g_ScreenInfo.height;
 	m_nPixelsBufferSize = m_iWidth * m_iHeight * 3;
 	m_pPixelsBuffer = (char *)malloc( m_nPixelsBufferSize );
+
+	sampleFrametime = ( 1.0 / m_fps );
 
 	if ( m_pPixelsBuffer == NULL )
 	{
@@ -220,7 +228,7 @@ bool CCapture::Start( const char *pszFilename, double fps, double slowdown, doub
 	m_lastRecordTime = 0.0;
 
 	CVar()->SetValue( "fps_max", (float)m_captureFps );
-	CVar()->SetValue( "host_framerate", (float)m_frametime );
+	CVar()->SetValue( "host_framerate", (float)sampleFrametime ); // m_frametime
 
 	Msg( "[Capture] Started recording to file \"%s.mp4\"\n", pszFilename );
 	return true;
@@ -244,6 +252,8 @@ bool CCapture::Stop( void )
 
 	CVar()->SetValue( "fps_max", 200 );
 	CVar()->SetValue( "host_framerate", 0 );
+
+	Msg( "[Capture] Stopped recording to file \"%s\"\n", m_sFilename.c_str() );
 
 	m_bRecording = false;
 	return true;
@@ -355,24 +365,28 @@ void CCapture::PostUpdateScreen( void )
 		//testcounter = 0;
 		//snprintf( testbuffer, M_ARRAYSIZE( testbuffer ), "%s_%05d.bmp", m_sFilename.c_str(), 1 );
 		//VID_TakeSnapshot( testbuffer );
+
+		SaveImage();
 	}
-	else
-	//else if ( *dbRealtime - m_lastRecordTime >= m_frametime )
+	//else
+	else if ( *dbRealtime - m_lastRecordTime >= m_frametime )
 	{
-		m_iCaptureFrameCount++;
+		//m_iCaptureFrameCount++;
 		m_lastRecordTime = *dbRealtime;
 
-		if ( m_iCaptureFrameCount != m_iFpsMultiplier )
-			return;
-		
-		m_iCaptureFrameCount = 0;
+		//if ( m_iCaptureFrameCount != m_iFpsMultiplier )
+		//	return;
+		//
+		//m_iCaptureFrameCount = 0;
+
+		SaveImage();
 
 		//testcounter++;
 		//snprintf( testbuffer, M_ARRAYSIZE( testbuffer ), "%s_%05d.bmp", m_sFilename.c_str(), testcounter + 1 );
 		//VID_TakeSnapshot( testbuffer );
 	}
 
-	SaveImage();
+	//SaveImage();
 }
 
 //-----------------------------------------------------------------------------
