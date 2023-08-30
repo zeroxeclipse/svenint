@@ -90,6 +90,8 @@ DECLARE_HOOK(int, __cdecl, CRC_MapFile, uint32 *ulCRC, char *pszMapName);
 DECLARE_HOOK( bool, __cdecl, ReadWaveFile, const char *pszFilename, char *&pMicInputFileData, int &nMicInputFileBytes, int &bitsPerSample, int &numChannels, int &sampleRate );
 
 DECLARE_HOOK(void *, __cdecl, Mod_LeafPVS, mleaf_t *leaf, model_t *model);
+DECLARE_HOOK(void, __cdecl, Con_NXPrintf, struct con_nprint_s *info, char *fmt, ...);
+DECLARE_HOOK(void, __cdecl, CL_FlushEntityPacket, void *msg);
 
 DECLARE_CLASS_HOOK( void, CGame__SleepUntilInput, void *thisptr, int unk );
 
@@ -184,6 +186,7 @@ ConVar sc_novis( "sc_novis", "0", FCVAR_CLIENTDLL, "Better r_novis" );
 ConVar sc_unforcecvars( "sc_unforcecvars", "0", FCVAR_CLIENTDLL, "Don't force CVars" );
 ConVar sc_force_highest_cheats_level( "sc_force_highest_cheats_level", "0", FCVAR_CLIENTDLL, "Force sv_cheats 255" );
 ConVar sc_disable_nofocus_sleep( "sc_disable_nofocus_sleep", "0", FCVAR_CLIENTDLL, "Disable longer sleep time when the game's window is not active" );
+ConVar sc_draw_flush_entity_packet( "sc_draw_flush_entity_packet", "1", FCVAR_CLIENTDLL, "Draw flush entity packet HUD message" );
 ConVar sc_viewmodel_semitransparent( "sc_viewmodel_semitransparent", "0", FCVAR_CLIENTDLL, "Semi-transparent viewmodel" );
 
 ConVar sc_disable_svenint_chat( "sc_disable_svenint_chat", "0", FCVAR_CLIENTDLL, "" );
@@ -223,6 +226,8 @@ private:
 	void *m_pfnCRC_MapFile;
 	void *m_pfnReadWaveFile;
 	void *m_pfnMod_LeafPVS;
+	void *m_pfnCon_NXPrintf;
+	void *m_pfnCL_FlushEntityPacket;
 	void *m_pfnCGame__SleepUntilInput;
 
 	DetourHandle_t m_hIN_Move;
@@ -244,6 +249,8 @@ private:
 	DetourHandle_t m_hCRC_MapFile;
 	DetourHandle_t m_hReadWaveFile;
 	DetourHandle_t m_hMod_LeafPVS;
+	DetourHandle_t m_hCon_NXPrintf;
+	DetourHandle_t m_hCL_FlushEntityPacket;
 	DetourHandle_t m_hCGame__SleepUntilInput;
 
 	DetourHandle_t m_hStudioSetupBones;
@@ -934,6 +941,29 @@ DECLARE_FUNC(int, __cdecl, HOOKED_CRC_MapFile, uint32 *ulCRC, char *pszMapName)
 DECLARE_FUNC(void *, __cdecl, HOOKED_Mod_LeafPVS, mleaf_t *leaf, model_t *model)
 {
 	return ORIG_Mod_LeafPVS( sc_novis.GetBool() ? model->leafs : leaf, model );
+}
+
+static bool inside_CL_FlushEntityPacket = false;
+DECLARE_FUNC( void, __cdecl, HOOKED_Con_NXPrintf, struct con_nprint_s *info, char *fmt, ... )
+{
+	if ( !inside_CL_FlushEntityPacket )
+		ORIG_Con_NXPrintf( info, fmt );
+}
+
+DECLARE_FUNC(void, __cdecl, HOOKED_CL_FlushEntityPacket, void *msg)
+{
+	if ( !sc_draw_flush_entity_packet.GetBool() )
+	{
+		inside_CL_FlushEntityPacket = true;
+
+		ORIG_CL_FlushEntityPacket( msg );
+
+		inside_CL_FlushEntityPacket = false;
+	}
+	else
+	{
+		ORIG_CL_FlushEntityPacket( msg );
+	}
 }
 
 DECLARE_CLASS_FUNC( void, HOOKED_CGame__SleepUntilInput, void *thisptr, int unk )
@@ -1879,6 +1909,8 @@ CHooksModule::CHooksModule()
 	m_pfnCRC_MapFile = NULL;
 	m_pfnReadWaveFile = NULL;
 	m_pfnMod_LeafPVS = NULL;
+	m_pfnCon_NXPrintf = NULL;
+	m_pfnCL_FlushEntityPacket = NULL;
 	m_pfnCGame__SleepUntilInput = NULL;
 
 	m_hNetchan_CanPacket = 0;
@@ -1955,6 +1987,8 @@ bool CHooksModule::Load()
 	auto fpfnCRC_MapFile = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::CRC_MapFile );
 	auto fpfnReadWaveFile = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::ReadWaveFile );
 	auto fpfnMod_LeafPVS = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::Mod_LeafPVS );
+	auto fpfnCon_NXPrintf = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::Con_NXPrintf );
+	auto fpfnCL_FlushEntityPacket = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::CL_FlushEntityPacket );
 	auto fpfnCGame__SleepUntilInput = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Hardware, Patterns::Hardware::CGame__SleepUntilInput );
 	auto fpfnScaleColors = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::ScaleColors );
 	auto fpfnScaleColors_RGBA = MemoryUtils()->FindPatternAsync( SvenModAPI()->Modules()->Client, Patterns::Client::ScaleColors_RGBA );
@@ -2033,6 +2067,18 @@ bool CHooksModule::Load()
 	if ( !( m_pfnMod_LeafPVS = fpfnMod_LeafPVS.get() ) )
 	{
 		Warning( xs( "Couldn't find function \"Mod_LeafPVS\"\n" ) );
+		ScanOK = false;
+	}
+	
+	if ( !( m_pfnCon_NXPrintf = fpfnCon_NXPrintf.get() ) )
+	{
+		Warning( xs( "Couldn't find function \"Con_NXPrintf\"\n" ) );
+		ScanOK = false;
+	}
+	
+	if ( !( m_pfnCL_FlushEntityPacket = fpfnCL_FlushEntityPacket.get() ) )
+	{
+		Warning( xs( "Couldn't find function \"CL_FlushEntityPacket\"\n" ) );
 		ScanOK = false;
 	}
 	
@@ -2193,6 +2239,8 @@ void CHooksModule::PostLoad()
 	m_hCRC_MapFile = DetoursAPI()->DetourFunction( m_pfnCRC_MapFile, HOOKED_CRC_MapFile, GET_FUNC_PTR( ORIG_CRC_MapFile ) );
 	m_hReadWaveFile = DetoursAPI()->DetourFunction( m_pfnReadWaveFile, HOOKED_ReadWaveFile, GET_FUNC_PTR( ORIG_ReadWaveFile ) );
 	m_hMod_LeafPVS = DetoursAPI()->DetourFunction( m_pfnMod_LeafPVS, HOOKED_Mod_LeafPVS, GET_FUNC_PTR( ORIG_Mod_LeafPVS ) );
+	m_hCon_NXPrintf = DetoursAPI()->DetourFunction( m_pfnCon_NXPrintf, HOOKED_Con_NXPrintf, GET_FUNC_PTR( ORIG_Con_NXPrintf ) );
+	m_hCL_FlushEntityPacket = DetoursAPI()->DetourFunction( m_pfnCL_FlushEntityPacket, HOOKED_CL_FlushEntityPacket, GET_FUNC_PTR( ORIG_CL_FlushEntityPacket ) );
 	m_hCGame__SleepUntilInput = DetoursAPI()->DetourFunction( m_pfnCGame__SleepUntilInput, HOOKED_CGame__SleepUntilInput, GET_FUNC_PTR( ORIG_CGame__SleepUntilInput ) );
 
 	m_hStudioSetupBones = DetoursAPI()->DetourVirtualFunction( g_pStudioRenderer, 7, HOOKED_StudioSetupBones, GET_FUNC_PTR( ORIG_StudioSetupBones ) );
@@ -2237,6 +2285,8 @@ void CHooksModule::Unload()
 	DetoursAPI()->RemoveDetour( m_hCRC_MapFile );
 	DetoursAPI()->RemoveDetour( m_hReadWaveFile );
 	DetoursAPI()->RemoveDetour( m_hMod_LeafPVS );
+	DetoursAPI()->RemoveDetour( m_hCon_NXPrintf );
+	DetoursAPI()->RemoveDetour( m_hCL_FlushEntityPacket );
 	DetoursAPI()->RemoveDetour( m_hCGame__SleepUntilInput );
 
 	DetoursAPI()->RemoveDetour( m_hStudioSetupBones );
