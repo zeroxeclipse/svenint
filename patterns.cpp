@@ -22,6 +22,7 @@ namespace Patterns
 		DEFINE_PATTERN( SCR_EndLoadingPlaque, "C7 05 ? ? ? ? ? ? ? ? E8 ? ? ? ? 68 ? ? ? ? 68 ? ? ? ? E8 ? ? ? ? 83 C4 ? C7 05" );
 
 		DEFINE_PATTERN( Mod_LeafPVS, "8B 44 24 08 8B 4C 24 04 8B 90 8C 00 00 00" );
+		DEFINE_PATTERN( Con_NXPrintf, "56 8B 74 24 08 85 F6 0F 84 ? ? ? ? 8B 06" );
 
 		DEFINE_PATTERN( V_FadeAlpha, "51 D9 ? ? ? ? ? DD ? ? ? ? ? 8A 0D" );
 		DEFINE_PATTERN( V_RenderView, "81 EC ? ? 00 00 A1 ? ? ? ? 33 C4 89 84 24 ? ? 00 00 D9 EE D9 15" );
@@ -40,6 +41,7 @@ namespace Patterns
 		DEFINE_PATTERN( CL_BatchResourceRequest, "55 8B EC 83 E4 ? B8 ? ? ? ? E8 ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 1C 01 04 00" );
 		DEFINE_PATTERN( CL_PlayerFlashlight, "81 EC ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 BC 00 00 00 A1" );
 		DEFINE_PATTERN( CL_TempEntInit, "68 ? ? ? ? 6A ? 68 ? ? ? ? E8 ? ? ? ? 83 C4 ? B8 ? ? ? ? 8D A4 24 00 00 00 00" );
+		DEFINE_PATTERN( CL_FlushEntityPacket, "81 EC ? ? ? ? A1 ? ? ? ? 33 C4 89 84 24 C4 02 00 00" );
 
 		DEFINE_PATTERN( ClientDLL_HudRedraw, "E8 ? ? ? ? 85 C0 75 ? A1 ? ? ? ? 85 C0" );
 

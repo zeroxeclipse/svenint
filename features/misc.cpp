@@ -28,6 +28,7 @@
 
 #include "../features/strafer.h"
 #include "../modules/patches.h"
+#include "../utils/random.h"
 #include "../game/utils.h"
 #include "../game/draw_context.h"
 
@@ -35,12 +36,14 @@
 #include "../patterns.h"
 
 #define USE_GAY_PERFECT_AUTOJUMP ( 0 )
+#define SIMULATE_STEPS ( 1 )
 
 //-----------------------------------------------------------------------------
 // Imports
 //-----------------------------------------------------------------------------
 
 extern bool bSendPacket;
+extern ref_params_t refparams;
 
 //-----------------------------------------------------------------------------
 // Declare hooks
@@ -189,6 +192,10 @@ ConVar sc_jumpbug_min_fall_velocity( "sc_jumpbug_min_fall_velocity", "580", FCVA
 ConVar sc_app_speed( "sc_app_speed", "1", FCVAR_CLIENTDLL, "Speed of application", true, 0.1f, false, FLT_MAX );
 ConVar sc_speedhack( "sc_speedhack", "1", FCVAR_CLIENTDLL, "sc_speedhack <value> - Set speedhack value", true, 0.f, false, FLT_MAX );
 ConVar sc_speedhack_ltfx( "sc_speedhack_ltfx", "0", FCVAR_CLIENTDLL, "sc_speedhack_ltfx <value> - Set LTFX speedhack value; 0 - disable, value < 0 - slower, value > 0 - faster", true, -100.f, false, FLT_MAX );
+
+#if SIMULATE_STEPS
+ConVar sc_demo_simulate_steps( "sc_demo_simulate_steps", "0", FCVAR_CLIENTDLL );
+#endif
 
 ConVar sc_stick( "sc_stick", "0", FCVAR_CLIENTDLL, "Player's index to stick" );
 ConVar sc_stick_strafe( "sc_stick_strafe", "0", FCVAR_CLIENTDLL, "Use strafer when stick is enabled" );
@@ -836,8 +843,11 @@ DECLARE_FUNC(void, __cdecl, HOOKED_fNetchan_Transmit, netchan_t *chan, int lengt
 	ORIG_fNetchan_Transmit(chan, lengthInBytes, data);
 }
 
+void *gSoundEngine = NULL;
 DECLARE_CLASS_FUNC(void, HOOKED_CClient_SoundEngine__Play2DSound, void *thisptr, const char *pszFilename, float flVolume)
 {
+	gSoundEngine = thisptr;
+
 	if ( !strcmp(pszFilename, "misc/talk.wav") )
 	{
 		pszFilename = "sven_internal/talk.wav";
@@ -898,6 +908,7 @@ void CMisc::CreateMove(float frametime, struct usercmd_s *cmd, int active)
 
 	FakeLag(frametime);
 	ColorPulsator();
+	PlayStepSound();
 	TertiaryAttackGlitch();
 
 	if ( g_Config.cvars.rotate_dead_body && Client()->IsDying() )
@@ -3181,6 +3192,592 @@ void CMisc::ColorPulsator()
 			++s_iBottomColorOffset;
 		}
 	}
+}
+
+//-----------------------------------------------------------------------------
+// PlayStepSound
+//-----------------------------------------------------------------------------
+
+#if SIMULATE_STEPS
+#define STEP_CONCRETE	0		// default step sound
+#define STEP_METAL		1		// metal floor
+#define STEP_DIRT		2		// dirt, sand, rock
+#define STEP_VENT		3		// ventillation duct
+#define STEP_GRATE		4		// metal grating
+#define STEP_TILE		5		// floor tiles
+#define STEP_SLOSH		6		// shallow liquid puddle
+#define STEP_WADE		7		// wading in liquid
+#define STEP_LADDER		8		// climbing ladder
+
+#define CHAR_TEX_CONCRETE	'C'			// texture types
+#define CHAR_TEX_METAL		'M'
+#define CHAR_TEX_DIRT		'D'
+#define CHAR_TEX_VENT		'V'
+#define CHAR_TEX_GRATE		'G'
+#define CHAR_TEX_TILE		'T'
+#define CHAR_TEX_SLOSH		'S'
+#define CHAR_TEX_WOOD		'W'
+#define CHAR_TEX_COMPUTER	'P'
+#define CHAR_TEX_GLASS		'Y'
+#define CHAR_TEX_FLESH		'F'
+
+#define CTEXTURESMAX		512			// max number of textures loaded (4096 is the max)
+#define CBTEXTURENAMEMAX	16			// only load first n chars of name
+
+// Texture names
+static int gcTextures = 0;
+static char grgszTextureName[ CTEXTURESMAX ][ CBTEXTURENAMEMAX ];
+static char grgchTextureType[ CTEXTURESMAX ];
+
+static int StepSound_flTimeStepSound = 0;
+static int StepSound_iStepLeft = 0;
+static char StepSound_sztexturename[ 256 ] = { 0 };
+static char StepSound_chtexturetype = '\0';
+static bool StepSound_OnGround = true;
+static bool StepSound_Ducking = false;
+static Vector StepSound_Origin;
+static Vector StepSound_Velocity;
+static Vector StepSound_PrevVelocity;
+
+static void StepSound_SwapTextures( int i, int j )
+{
+	char chTemp;
+	char szTemp[ CBTEXTURENAMEMAX ];
+
+	strcpy( szTemp, grgszTextureName[ i ] );
+	chTemp = grgchTextureType[ i ];
+
+	strcpy( grgszTextureName[ i ], grgszTextureName[ j ] );
+	grgchTextureType[ i ] = grgchTextureType[ j ];
+
+	strcpy( grgszTextureName[ j ], szTemp );
+	grgchTextureType[ j ] = chTemp;
+}
+
+static void StepSound_SortTextures( void )
+{
+	// Bubble sort, yuck, but this only occurs at startup and it's only 512 elements...
+	//
+	int i, j;
+
+	for ( i = 0; i < gcTextures; i++ )
+	{
+		for ( j = i + 1; j < gcTextures; j++ )
+		{
+			if ( stricmp( grgszTextureName[ i ], grgszTextureName[ j ] ) > 0 )
+			{
+				// Swap
+				//
+				StepSound_SwapTextures( i, j );
+			}
+		}
+	}
+}
+
+static void StepSound_InitTextureTypes()
+{
+	static bool bTextureTypeInit = false;
+
+	if ( bTextureTypeInit )
+		return;
+
+	char buffer[ 512 ];
+	int i, j;
+	byte *pMemFile;
+	int fileSize, filePos;
+	
+	memset( &( grgszTextureName[ 0 ][ 0 ] ), 0, CTEXTURESMAX * CBTEXTURENAMEMAX );
+	memset( grgchTextureType, 0, CTEXTURESMAX );
+
+	gcTextures = 0;
+	memset( buffer, 0, 512 );
+
+	fileSize = g_pPlayerMove->COM_FileSize( "sound/materials.txt" );
+	pMemFile = g_pPlayerMove->COM_LoadFile( "sound/materials.txt", 5, NULL );
+
+	if ( !pMemFile )
+		return;
+
+	filePos = 0;
+	// for each line in the file...
+	while ( g_pPlayerMove->memfgets( pMemFile, fileSize, &filePos, buffer, 511 ) != NULL && ( gcTextures < CTEXTURESMAX ) )
+	{
+		// skip whitespace
+		i = 0;
+		while ( buffer[ i ] && isspace( buffer[ i ] ) )
+			i++;
+
+		if ( !buffer[ i ] )
+			continue;
+
+		// skip comment lines
+		if ( buffer[ i ] == '/' || !isalpha( buffer[ i ] ) )
+			continue;
+
+		// get texture type
+		grgchTextureType[ gcTextures ] = toupper( buffer[ i++ ] );
+
+		// skip whitespace
+		while ( buffer[ i ] && isspace( buffer[ i ] ) )
+			i++;
+
+		if ( !buffer[ i ] )
+			continue;
+
+		// get sentence name
+		j = i;
+		while ( buffer[ j ] && !isspace( buffer[ j ] ) )
+			j++;
+
+		if ( !buffer[ j ] )
+			continue;
+
+		// null-terminate name and save in sentences array
+		j = min( j, CBTEXTURENAMEMAX - 1 + i );
+		buffer[ j ] = 0;
+		strcpy( &( grgszTextureName[ gcTextures++ ][ 0 ] ), &( buffer[ i ] ) );
+	}
+
+	// Must use engine to free since we are in a .dll
+	g_pPlayerMove->COM_FreeFile( pMemFile );
+
+	StepSound_SortTextures();
+
+	bTextureTypeInit = true;
+}
+
+static char StepSound_FindTextureType( char *name )
+{
+	int left, right, pivot;
+	int val;
+
+	left = 0;
+	right = gcTextures - 1;
+
+	while ( left <= right )
+	{
+		pivot = ( left + right ) / 2;
+
+		val = strnicmp( name, grgszTextureName[ pivot ], CBTEXTURENAMEMAX - 1 );
+		if ( val == 0 )
+		{
+			return grgchTextureType[ pivot ];
+		}
+		else if ( val > 0 )
+		{
+			left = pivot + 1;
+		}
+		else if ( val < 0 )
+		{
+			right = pivot - 1;
+		}
+	}
+
+	return CHAR_TEX_CONCRETE;
+}
+
+static void StepSound_CatagorizeTextureType( void )
+{
+	vec3_t start, end;
+	const char *pTextureName;
+
+	VectorCopy( StepSound_Origin, start );
+	VectorCopy( StepSound_Origin, end );
+
+	// Straight down
+	end[ 2 ] -= 64;
+
+	// Fill in default values, just in case.
+	StepSound_sztexturename[ 0 ] = '\0';
+	StepSound_chtexturetype = CHAR_TEX_CONCRETE;
+
+	if ( g_pPlayerMove->PM_TraceTexture == NULL )
+		return;
+
+	pTextureName = g_pPlayerMove->PM_TraceTexture( StepSound_OnGround ? 0 : -1, start, end );
+
+	if ( !pTextureName )
+		return;
+
+	// strip leading '-0' or '+0~' or '{' or '!'
+	if ( *pTextureName == '-' || *pTextureName == '+' )
+		pTextureName += 2;
+
+	if ( *pTextureName == '{' || *pTextureName == '!' || *pTextureName == '~' || *pTextureName == ' ' )
+		pTextureName++;
+	// '}}'
+
+	strcpy( StepSound_sztexturename, pTextureName );
+	StepSound_sztexturename[ 256 - 1 ] = 0;
+
+	// get texture type
+	StepSound_chtexturetype = StepSound_FindTextureType( StepSound_sztexturename );
+}
+
+static int StepSound_MapTextureTypeStepType( char chTextureType )
+{
+	switch ( chTextureType )
+	{
+	default:
+	case CHAR_TEX_CONCRETE:	return STEP_CONCRETE;
+	case CHAR_TEX_METAL: return STEP_METAL;
+	case CHAR_TEX_DIRT: return STEP_DIRT;
+	case CHAR_TEX_VENT: return STEP_VENT;
+	case CHAR_TEX_GRATE: return STEP_GRATE;
+	case CHAR_TEX_TILE: return STEP_TILE;
+	case CHAR_TEX_SLOSH: return STEP_SLOSH;
+	}
+}
+
+static void StepSound_PlayStepSound( int step, float fvol )
+{
+	static int iSkipStep = 0;
+	int irand;
+	vec3_t hvel;
+
+	StepSound_iStepLeft = (int)!StepSound_iStepLeft;
+
+	irand = random.RandomInt( 0, 1 ) + ( StepSound_iStepLeft * 2 );
+
+	// FIXME mp_footsteps needs to be a movevar
+	//if ( true && !pmove->movevars->footsteps )
+		//return;
+
+	VectorCopy( StepSound_Velocity, hvel );
+	hvel[ 2 ] = 0.0;
+
+	if ( true && ( !false && hvel.Length() <= 220 ) )
+		return;
+
+	// irand - 0,1 for right foot, 2,3 for left foot
+	// used to alternate left and right foot
+	// FIXME, move to player state
+
+	if ( gSoundEngine == NULL )
+		return;
+
+	switch ( step )
+	{
+	default:
+	case STEP_CONCRETE:
+		switch ( irand )
+		{
+			// right foot
+		case 0:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_step1.wav", fvol );	break;
+		case 1:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_step3.wav", fvol );	break;
+			// left foot
+		case 2:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_step2.wav", fvol );	break;
+		case 3:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_step4.wav", fvol );	break;
+		}
+		break;
+	case STEP_METAL:
+		switch ( irand )
+		{
+			// right foot
+		case 0: ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_metal1.wav", fvol );	break;
+		case 1:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_metal3.wav", fvol );	break;
+			// left foot
+		case 2:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_metal2.wav", fvol );	break;
+		case 3:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_metal4.wav", fvol );	break;
+		}
+		break;
+	case STEP_DIRT:
+		switch ( irand )
+		{
+			// right foot
+		case 0:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_dirt1.wav", fvol );	break;
+		case 1:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_dirt3.wav", fvol );	break;
+			// left foot
+		case 2:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_dirt2.wav", fvol );	break;
+		case 3:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_dirt4.wav", fvol );	break;
+		}
+		break;
+	case STEP_VENT:
+		switch ( irand )
+		{
+			// right foot
+		case 0:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_step1.wav", fvol );	break;
+		case 1:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_duct3.wav", fvol );	break;
+			// left foot
+		case 2:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_duct2.wav", fvol );	break;
+		case 3:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_duct4.wav", fvol );	break;
+		}
+		break;
+	case STEP_GRATE:
+		switch ( irand )
+		{
+			// right foot
+		case 0:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_grate1.wav", fvol );	break;
+		case 1:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_grate3.wav", fvol );	break;
+			// left foot
+		case 2:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_grate2.wav", fvol );	break;
+		case 3:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_grate4.wav", fvol );	break;
+		}
+		break;
+	case STEP_TILE:
+		if ( !random.RandomInt( 0, 4 ) )
+			irand = 4;
+		switch ( irand )
+		{
+			// right foot
+		case 0:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_tile1.wav", fvol );	break;
+		case 1:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_tile3.wav", fvol );	break;
+			// left foot
+		case 2:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_tile2.wav", fvol );	break;
+		case 3:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_tile4.wav", fvol );	break;
+		case 4: ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_tile5.wav", fvol );	break;
+		}
+		break;
+	case STEP_SLOSH:
+		switch ( irand )
+		{
+			// right foot
+		case 0:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_slosh1.wav", fvol );	break;
+		case 1:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_slosh3.wav", fvol );	break;
+			// left foot
+		case 2:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_slosh2.wav", fvol );	break;
+		case 3:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_slosh4.wav", fvol );	break;
+		}
+		break;
+	case STEP_WADE:
+		if ( iSkipStep == 0 )
+		{
+			iSkipStep++;
+			break;
+		}
+
+		if ( iSkipStep++ == 3 )
+		{
+			iSkipStep = 0;
+		}
+
+		switch ( irand )
+		{
+			// right foot
+		case 0:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_wade1.wav", fvol );	break;
+		case 1:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_wade2.wav", fvol );	break;
+			// left foot
+		case 2:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_wade3.wav", fvol );	break;
+		case 3:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_wade4.wav", fvol );	break;
+		}
+		break;
+	case STEP_LADDER:
+		switch ( irand )
+		{
+			// right foot
+		case 0:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_ladder1.wav", fvol );	break;
+		case 1:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_ladder3.wav", fvol );	break;
+			// left foot
+		case 2: ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_ladder2.wav", fvol );	break;
+		case 3:	ORIG_CClient_SoundEngine__Play2DSound( gSoundEngine, "player/pl_ladder4.wav", fvol );	break;
+		}
+		break;
+	}
+}
+
+static void StepSound_UpdateStepSound( void )
+{
+	int	fWalking;
+	float fvol;
+	vec3_t knee;
+	vec3_t feet;
+	vec3_t center;
+	float height;
+	float speed;
+	float velrun;
+	float velwalk;
+	float flduck;
+	int	fLadder;
+	int step;
+
+	if ( StepSound_flTimeStepSound > 0 )
+		return;
+
+	StepSound_CatagorizeTextureType();
+	
+	speed = StepSound_Velocity.Length();
+
+	// determine if we are on a ladder
+	fLadder = false;// IsOnLadder();
+	//fLadder = ( pmove->movetype == MOVETYPE_FLY );// IsOnLadder();
+
+	// UNDONE: need defined numbers for run, walk, crouch, crouch run velocities!!!!	
+	if ( StepSound_Ducking || fLadder )
+	{
+		velwalk = 60;		// These constants should be based on cl_movespeedkey * cl_forwardspeed somehow
+		velrun = 80;		// UNDONE: Move walking to server
+		flduck = 100;
+	}
+	else
+	{
+		velwalk = 120;
+		velrun = 210;
+		flduck = 0;
+	}
+
+	// If we're on a ladder or on the ground, and we're moving fast enough,
+	//  play step sound.  Also, if pmove->StepSound_flTimeStepSound is zero, get the new
+	//  sound right away - we just started moving in new level.
+	if ( ( fLadder || StepSound_OnGround ) &&
+		 ( speed > 0.0 ) &&
+		 ( speed >= velwalk || !StepSound_flTimeStepSound ) )
+	{
+		fWalking = speed < velrun;
+
+		VectorCopy( StepSound_Origin, center );
+		VectorCopy( StepSound_Origin, knee );
+		VectorCopy( StepSound_Origin, feet );
+
+		height = StepSound_Ducking ? VEC_DUCK_HULL_MAX[ 2 ] - VEC_DUCK_HULL_MIN[ 2 ] : VEC_HULL_MAX[ 2 ] - VEC_HULL_MIN[ 2 ];
+		//height = pmove->player_maxs[ pmove->usehull ][ 2 ] - pmove->player_mins[ pmove->usehull ][ 2 ];
+
+		knee[ 2 ] = StepSound_Origin[ 2 ] - 0.1 * height;
+		feet[ 2 ] = StepSound_Origin[ 2 ] - 0.5 * height + 2.0;
+
+		// find out what we're stepping in or on...
+		if ( fLadder )
+		{
+			step = STEP_LADDER;
+			fvol = 0.35;
+			StepSound_flTimeStepSound = 350;
+		}
+		else if ( g_pPlayerMove->PM_PointContents( knee, NULL ) == CONTENTS_WATER )
+		{
+			step = STEP_WADE;
+			fvol = 0.65;
+			StepSound_flTimeStepSound = 600;
+		}
+		else if ( g_pPlayerMove->PM_PointContents( feet, NULL ) == CONTENTS_WATER )
+		{
+			step = STEP_SLOSH;
+			fvol = fWalking ? 0.2 : 0.5;
+			StepSound_flTimeStepSound = fWalking ? 400 : 300;
+		}
+		else
+		{
+			// find texture under player, if different from current texture, 
+			// get material type
+			step = StepSound_MapTextureTypeStepType( StepSound_chtexturetype );
+
+			switch ( StepSound_chtexturetype )
+			{
+			default:
+			case CHAR_TEX_CONCRETE:
+				fvol = fWalking ? 0.2 : 0.5;
+				StepSound_flTimeStepSound = fWalking ? 400 : 300;
+				break;
+
+			case CHAR_TEX_METAL:
+				fvol = fWalking ? 0.2 : 0.5;
+				StepSound_flTimeStepSound = fWalking ? 400 : 300;
+				break;
+
+			case CHAR_TEX_DIRT:
+				fvol = fWalking ? 0.25 : 0.55;
+				StepSound_flTimeStepSound = fWalking ? 400 : 300;
+				break;
+
+			case CHAR_TEX_VENT:
+				fvol = fWalking ? 0.4 : 0.7;
+				StepSound_flTimeStepSound = fWalking ? 400 : 300;
+				break;
+
+			case CHAR_TEX_GRATE:
+				fvol = fWalking ? 0.2 : 0.5;
+				StepSound_flTimeStepSound = fWalking ? 400 : 300;
+				break;
+
+			case CHAR_TEX_TILE:
+				fvol = fWalking ? 0.2 : 0.5;
+				StepSound_flTimeStepSound = fWalking ? 400 : 300;
+				break;
+
+			case CHAR_TEX_SLOSH:
+				fvol = fWalking ? 0.2 : 0.5;
+				StepSound_flTimeStepSound = fWalking ? 400 : 300;
+				break;
+			}
+		}
+
+		StepSound_flTimeStepSound += flduck; // slower step time if ducking
+
+		// play the sound
+		// 35% volume if ducking
+		if ( StepSound_Ducking )
+		{
+			fvol *= 0.35;
+		}
+
+		StepSound_PlayStepSound( step, fvol );
+	}
+}
+
+static void StepSound_TraceGround()
+{
+	float frametime = 1.f / fps_max->value;
+
+	StepSound_Velocity = refparams.simvel;
+	StepSound_Origin = refparams.simorg;
+
+	StepSound_Ducking = ( refparams.viewheight[ 2 ] == VEC_DUCK_VIEW.z );
+	StepSound_OnGround = false;
+
+	if ( ( StepSound_Velocity[ 2 ] != 0.0f && StepSound_PrevVelocity[ 2 ] == 0.0f ) || ( StepSound_Velocity[ 2 ] > 0.0f && StepSound_PrevVelocity[ 2 ] < 0.0f ) )
+	{
+		StepSound_PrevVelocity = StepSound_Velocity;
+		StepSound_flTimeStepSound = 0;
+		StepSound_OnGround = true;
+		return;
+	}
+
+	int oldhull = g_pPlayerMove->usehull;
+	g_pPlayerMove->usehull = StepSound_Ducking ? PM_HULL_DUCKED_PLAYER : PM_HULL_PLAYER;
+
+	// Trace forward
+	pmtrace_t tr = g_pPlayerMove->PM_PlayerTrace( StepSound_Origin, StepSound_Origin + ( ( StepSound_Velocity - Vector( 0.f, 0.f, 800.f * 0.5f * frametime ) ) * frametime ), PM_NORMAL, -1 );
+
+	// Did hit a wall or started in solid
+	if ( tr.fraction != 1.f && !tr.allsolid && tr.plane.normal.z >= 0.7f )
+	{
+		StepSound_OnGround = true;
+	}
+	else
+	{
+		Vector point = StepSound_Origin;
+		point.z -= 2.f;
+
+		// Trace down
+		tr = g_pPlayerMove->PM_PlayerTrace( StepSound_Origin, point, PM_NORMAL, -1 );
+
+		if ( tr.plane.normal.z >= 0.7f )
+		{
+			StepSound_OnGround = true;
+		}
+	}
+
+	g_pPlayerMove->usehull = oldhull;
+	StepSound_PrevVelocity = StepSound_Velocity;
+}
+#endif
+
+void CMisc::PlayStepSound()
+{
+#if SIMULATE_STEPS
+	extern bool g_bPlayingbackDemo;
+
+	if ( !sc_demo_simulate_steps.GetBool() || !g_bPlayingbackDemo )
+		return;
+
+	StepSound_InitTextureTypes();
+
+	// PM_ReduceTimers
+	StepSound_flTimeStepSound -= int( ( 1.0 / fps_max->value ) * 1000.f );
+	if ( StepSound_flTimeStepSound < 0 )
+		StepSound_flTimeStepSound = 0;
+
+	StepSound_TraceGround();
+	StepSound_UpdateStepSound();
+#endif
 }
 
 //-----------------------------------------------------------------------------

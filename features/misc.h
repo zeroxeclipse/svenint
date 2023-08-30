@@ -72,6 +72,7 @@ private:
 	void TertiaryAttackGlitch();
 
 	void ColorPulsator();
+	void PlayStepSound();
 
 	void QuakeGuns_V_CalcRefdef();
 	void QuakeGuns_HUD_PostRunCmd(struct local_state_s *to);

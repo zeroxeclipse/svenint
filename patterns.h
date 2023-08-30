@@ -29,6 +29,7 @@ namespace Patterns
 		EXTERN_PATTERN( SCR_EndLoadingPlaque );
 
 		EXTERN_PATTERN( Mod_LeafPVS );
+		EXTERN_PATTERN( Con_NXPrintf );
 
 		EXTERN_PATTERN( V_FadeAlpha );
 		EXTERN_PATTERN( V_RenderView );
@@ -47,6 +48,7 @@ namespace Patterns
 		EXTERN_PATTERN( CL_BatchResourceRequest );
 		EXTERN_PATTERN( CL_PlayerFlashlight );
 		EXTERN_PATTERN( CL_TempEntInit );
+		EXTERN_PATTERN( CL_FlushEntityPacket );
 
 		EXTERN_PATTERN( ClientDLL_HudRedraw );
 
