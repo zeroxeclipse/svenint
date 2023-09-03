@@ -66,6 +66,7 @@ public:
 	void				DrawPlayerHull_Comm( int client, int dead, const Vector &vecOrigin, bool bDuck );
 
 	void				DrawPlayerHulls( void );
+	void				DrawUsables( void );
 	void				DrawReviveBoostInfo( void );
 	void				DrawPredictedReviveBoost( void );
 	void				DrawReviveInfo( void );

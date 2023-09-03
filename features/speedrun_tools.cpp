@@ -38,6 +38,24 @@ extern ref_params_t refparams;
 extern movevars_t refparams_movevars;
 
 //-----------------------------------------------------------------------------
+// Macro definitions
+//-----------------------------------------------------------------------------
+
+// These are caps bits to indicate what an object's capabilities (currently used for save/restore and level transitions)
+#define		FCAP_CUSTOMSAVE				0x00000001
+#define		FCAP_ACROSS_TRANSITION		0x00000002		// should transfer between transitions
+#define		FCAP_MUST_SPAWN				0x00000004		// Spawn after restore
+#define		FCAP_DONT_SAVE				0x80000000		// Don't save this
+#define		FCAP_IMPULSE_USE			0x00000008		// can be used by the player
+#define		FCAP_CONTINUOUS_USE			0x00000010		// can be used by the player
+#define		FCAP_ONOFF_USE				0x00000020		// can be used by the player
+#define		FCAP_DIRECTIONAL_USE		0x00000040		// Player sends +/- 1 when using (currently only tracktrains)
+#define		FCAP_MASTER					0x00000080		// Can be used to "master" other entities (like multisource)
+
+// UNDONE: This will ignore transition volumes (trigger_transition), but not the PVS!!!
+#define		FCAP_FORCE_TRANSITION		0x00000080		// ALWAYS goes across transitions
+
+//-----------------------------------------------------------------------------
 // Declare Hooks... and function pointer
 //-----------------------------------------------------------------------------
 
@@ -1198,6 +1216,7 @@ void CSpeedrunTools::OnVideoInit( void )
 void CSpeedrunTools::V_CalcRefDef( void )
 {
 	DrawReviveInfo();
+	DrawUsables();
 	DrawPlayerHulls();
 	DrawReviveBoostInfo();
 	DrawReviveUnstuckArea();
@@ -2220,6 +2239,109 @@ void CSpeedrunTools::DrawReviveInfo( void )
 
 	//	Render()->DrawBox( vecEnd, Vector( -64, -64, -64 ), Vector( 64, 64, 64 ), r, g, b, 0.5f );
 	//}
+}
+
+//-----------------------------------------------------------------------------
+// Draw usable entities
+//-----------------------------------------------------------------------------
+
+ConVar sc_usables( "sc_usables", "0", FCVAR_CLIENTDLL );
+ConVar sc_usables_radius( "sc_usables_radius", "64", FCVAR_CLIENTDLL );
+
+void CSpeedrunTools::DrawUsables( void )
+{
+	if ( !sc_usables.GetBool() || !Host_IsServerActive() )
+		return;
+
+	edict_t *pPlayer = g_pServerEngineFuncs->pfnPEntityOfEntIndex( g_pPlayerMove->player_index + 1 );
+
+	if ( pPlayer == NULL )
+		return;
+
+	std::vector<const edict_t *> usableEntities;
+
+	edict_t *pObject = NULL;
+	Vector vecOrigin = pPlayer->v.origin;
+	float flSearchRadius = sc_usables_radius.GetFloat();
+
+	while ( !FNullEnt( pObject = g_pServerEngineFuncs->pfnFindEntityInSphere( pObject, vecOrigin, flSearchRadius ) ) )
+	{
+		// Valid
+		if ( !IsValidEntity( pObject ) )
+			continue;
+
+		auto CBaseEntity__ObjectCaps = (Signatures::BaseEntity::ObjectCaps)MemoryUtils()->GetVirtualFunction( pObject->pvPrivateData, Offsets::BaseEntity::ObjectCaps );
+
+		if ( CBaseEntity__ObjectCaps == NULL )
+			continue;
+
+		// Usable
+		if ( !( CBaseEntity__ObjectCaps( (CBaseEntity *)pObject->pvPrivateData ) & ( FCAP_IMPULSE_USE | FCAP_CONTINUOUS_USE | FCAP_ONOFF_USE ) ) )
+			continue;
+
+		usableEntities.push_back( pObject );
+	}
+
+	if ( usableEntities.empty() )
+		return;
+
+	constexpr float VIEW_FIELD_NARROW = 0.7f;
+
+	Vector vecForward;
+	float flMaxDot = VIEW_FIELD_NARROW;
+	const edict_t *pTargetObject = NULL;
+	CDrawBoxNoDepthBuffer *pDrawBoxTarget = NULL;
+
+	AngleVectors( pPlayer->v.v_angle, &vecForward, NULL, NULL );
+
+	for ( const edict_t *pObject : usableEntities )
+	{
+		Vector vecModelOrigin = pObject->v.absmin + pObject->v.size * 0.5f;
+		const auto disp = vecModelOrigin - vecOrigin - pPlayer->v.view_ofs;
+
+		float dot = DotProduct( UTIL_ClampVectorToBox( disp, pObject->v.size * 0.5f ), vecForward );
+
+		if ( dot > flMaxDot )
+		{
+			pTargetObject = pObject;
+			flMaxDot = dot;
+		}
+	}
+
+	for ( const edict_t *pObject : usableEntities )
+	{
+		if ( pObject == pTargetObject )
+			continue;
+
+		Vector vecModelOrigin = pObject->v.absmin + pObject->v.size * 0.5f;
+		const auto disp = vecModelOrigin - vecOrigin - pPlayer->v.view_ofs;
+
+		if ( DotProduct( vecForward, disp ) > 0.0f )
+		{
+			pDrawBoxTarget = new CDrawBoxNoDepthBuffer( vecModelOrigin,
+														Vector( -2, -2, -2 ),
+														Vector( 2, 2, 2 ),
+														{ 255, 0, 0, 127 } );
+
+			Render()->AddDrawContext( pDrawBoxTarget );
+		}
+	}
+
+	if ( pTargetObject != NULL )
+	{
+		Vector vecModelOrigin = pTargetObject->v.absmin + pTargetObject->v.size * 0.5f;
+		const auto disp = vecModelOrigin - vecOrigin - pPlayer->v.view_ofs;
+
+		if ( DotProduct( vecForward, disp ) > 0.0f )
+		{
+			pDrawBoxTarget = new CDrawBoxNoDepthBuffer( vecModelOrigin,
+														Vector( -2, -2, -2 ),
+														Vector( 2, 2, 2 ),
+														{ 0, 255, 0, 127 } );
+
+			Render()->AddDrawContext( pDrawBoxTarget );
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------
