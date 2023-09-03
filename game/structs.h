@@ -26,6 +26,11 @@ class CBaseMonster;
 
 namespace Offsets
 {
+	namespace BaseEntity
+	{
+		constexpr size_t ObjectCaps = 9;
+	}
+
 	namespace BasePlayer
 	{
 		constexpr size_t IsAlive = 47;
@@ -42,6 +47,11 @@ namespace Offsets
 
 namespace Signatures
 {
+	namespace BaseEntity
+	{
+		FUNC_SIGNATURE( int, __thiscall, ObjectCaps, CBaseEntity * );
+	}
+
 	namespace BasePlayer
 	{
 		FUNC_SIGNATURE( bool, __thiscall, IsAlive, CBasePlayer * );
