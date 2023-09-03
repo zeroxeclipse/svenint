@@ -766,6 +766,38 @@ void UTIL_FindHullIntersectionClient( const Vector &vecSrc, pmtrace_t &tr, float
 }
 
 //-----------------------------------------------------------------------------
+// Linear algebra smh
+//-----------------------------------------------------------------------------
+
+Vector UTIL_ClampVectorToBox( const Vector &input, const Vector &clampSize )
+{
+	Vector sourceVector = input;
+
+	if ( sourceVector.x > clampSize.x )
+		sourceVector.x -= clampSize.x;
+	else if ( sourceVector.x < -clampSize.x )
+		sourceVector.x += clampSize.x;
+	else
+		sourceVector.x = 0;
+
+	if ( sourceVector.y > clampSize.y )
+		sourceVector.y -= clampSize.y;
+	else if ( sourceVector.y < -clampSize.y )
+		sourceVector.y += clampSize.y;
+	else
+		sourceVector.y = 0;
+
+	if ( sourceVector.z > clampSize.z )
+		sourceVector.z -= clampSize.z;
+	else if ( sourceVector.z < -clampSize.z )
+		sourceVector.z += clampSize.z;
+	else
+		sourceVector.z = 0;
+
+	return sourceVector.Normalize();
+}
+
+//-----------------------------------------------------------------------------
 // Viewport transformations
 //-----------------------------------------------------------------------------
 

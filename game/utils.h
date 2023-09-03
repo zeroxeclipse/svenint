@@ -99,6 +99,9 @@ void UTIL_FixupGravityVelocity( Vector &vecVelocity, float gravity, float entgra
 void UTIL_FindHullIntersection( const Vector &vecSrc, TraceResult &tr, float *mins, float *maxs, edict_t *pEntity );
 void UTIL_FindHullIntersectionClient( const Vector &vecSrc, pmtrace_t &tr, float *mins, float *maxs, int ignore_ent );
 
+// Linear algebra smh
+Vector UTIL_ClampVectorToBox( const Vector &input, const Vector &clampSize );
+
 // Viewport transformations
 bool UTIL_WorldToScreen( float *pflOrigin, float *pflVecScreen );
 void UTIL_ScreenToWorld( float *pflNDC, float *pflWorldOrigin );
