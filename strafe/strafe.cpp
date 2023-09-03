@@ -595,7 +595,7 @@ namespace Strafe
 				if ( std::abs( normalizedDiff ) > strafedata.frame.VectorialSnap )
 					out.Yaw = adjustedTarget;
 				else
-					out.Yaw = out.Yaw + std::copysign( additionAbs, normalizedDiff );
+					out.Yaw = strafedata.frame.VectorialIncrementInvert ? ( out.Yaw + additionAbs ) : ( out.Yaw + std::copysign( additionAbs, normalizedDiff ) );
 
 			#pragma warning(pop)
 			}

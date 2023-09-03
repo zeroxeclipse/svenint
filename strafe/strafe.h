@@ -107,6 +107,7 @@ namespace Strafe
 			UseGivenButtons( false ),
 			IgnoreGround( false ),
 			VectorialIncrement( 2.5f ),
+			VectorialIncrementInvert( false ),
 			VectorialOffset( 0.0f ),
 			VectorialSnap( 170.0f ),
 			Type( StrafeType::MAXACCEL ),
@@ -119,6 +120,7 @@ namespace Strafe
 
 	public:
 		float VectorialIncrement;
+		bool VectorialIncrementInvert;
 		float VectorialOffset;
 		float VectorialSnap;
 

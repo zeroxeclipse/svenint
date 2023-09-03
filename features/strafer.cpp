@@ -41,6 +41,7 @@ ConVar sc_strafe_dir("sc_strafe_dir", "3", FCVAR_CLIENTDLL, "Strafing direction.
 ConVar sc_strafe_type("sc_strafe_type", "0", FCVAR_CLIENTDLL, "Strafing type. Types:\n\t0 - Max acceleration strafing\n\t1 - Max angle strafing\n\t2 - Max deceleration strafing\n\t3 - Const speed strafing", true, 0.f, true, 3.f);
 ConVar sc_strafe_yaw("sc_strafe_yaw", "", FCVAR_CLIENTDLL, "Strafe yaw");
 ConVar sc_strafe_vectorial_increment("sc_strafe_vectorial_increment", "0", FCVAR_CLIENTDLL, "Determines how fast the player yaw angle moves towards the target yaw angle. 0 for no movement, 180 for instant snapping. Has no effect on strafing speed");
+ConVar sc_strafe_vectorial_increment_invert("sc_strafe_vectorial_increment_invert", "0", FCVAR_CLIENTDLL, "Invert direction yaw angle move towards the target yaw angle");
 ConVar sc_strafe_vectorial_offset("sc_strafe_vectorial_offset", "0", FCVAR_CLIENTDLL, "Determines the target view angle offset from tas_strafe_yaw");
 ConVar sc_strafe_vectorial_snap("sc_strafe_vectorial_snap", "170", FCVAR_CLIENTDLL, "Determines when the yaw angle snaps to the target yaw. Mainly used to prevent ABHing from resetting the yaw angle to the back on every jump");
 
@@ -204,6 +205,7 @@ void UpdateStrafeData( Strafe::StrafeData &strafeData, bool bStrafe, Strafe::Str
 	strafeData.frame.SetYaw( static_cast<double>( flYaw ) );
 
 	strafeData.frame.VectorialIncrement = sc_strafe_vectorial_increment.GetFloat();
+	strafeData.frame.VectorialIncrementInvert = sc_strafe_vectorial_increment_invert.GetBool();
 	strafeData.frame.VectorialOffset = sc_strafe_vectorial_offset.GetFloat();
 	strafeData.frame.VectorialSnap = sc_strafe_vectorial_snap.GetFloat();
 }
