@@ -1145,7 +1145,14 @@ void security::utils::get_hash_and_cmp( const CGod &god, HMODULE hModule )
 	CryptoPP::SHA256 hash;
 
 	byte digest[ CryptoPP::SHA256::DIGESTSIZE ];
-	hash.CalculateDigest( digest, security::utils::cpu_id, sizeof( security::utils::cpu_id ) );
+
+	security::utils::get_cpuid();
+
+	char Combined[ 100 ];
+
+	snprintf( (char*)Combined, 100, "%llu", god.m_ullSteamID );
+	strcat( Combined, reinterpret_cast<char*>(security::utils::cpu_id));
+	hash.CalculateDigest( digest, reinterpret_cast<const byte*>( Combined ), strlen( Combined ) );
 
 	if ( std::memcmp( digest, god.m_CpuIdHash.data(), sizeof( digest ) ) != 0 )
 	{
