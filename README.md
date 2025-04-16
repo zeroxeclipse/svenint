@@ -1,9 +1,16 @@
-# Sven Internal
-Sven Internal is a C++ plugin for [SvenMod](https://github.com/sw1ft747/SvenMod) that provides to you various cheats and gameplay enhances
+# SvenInt
+Publishing the private version, no more updates for this project, Sven Co-op has met its end and will never be the same, special thanks for the braindead devs. Have fun exploring this mess. 
 
-Currently supported version of the game: 5.25
+SvenInt is a C++ plugin for [SvenMod](https://github.com/sw1ft747/SvenMod) that provides to you various cheats, gameplay enhances and the best speedrun tools for the time being
+
+Supported version of the game: 5.25
 
 Imagine cheating in a co-op game =)
+
+Power of speedrun tools:
+https://youtu.be/QTiYMgazPjE?si=bmS2X2IYqXBer270
+https://youtu.be/XsKlNMPGTls?si=Z-0XybjmiOnNJvV8
+https://youtu.be/h59zz0tma4U?si=um7QOgV7PSSO6dd6
 
 # How to install
 First, if you don't have installed SvenMod then download it and install (see [readme](https://github.com/sw1ft747/svenmod)). Download the archive `svenint.rar` from ([releases](https://github.com/sw1ft747/sven_internal/releases)) and place all files from the archive in the root folder of the game. Next, add the plugin (`sven_internal.dll`) to the file `plugins.txt` (see the header `Adding plugins` in SvenMod's [readme](https://github.com/sw1ft747/svenmod)). 
